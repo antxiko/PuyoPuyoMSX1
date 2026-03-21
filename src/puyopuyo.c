@@ -5,7 +5,10 @@
 #include "psg.h"
 #include "math.h"
 #include "pt3/pt3_player.h"
+#include "compress/pletter.h"
 #include "music_data.h"
+#include "title_music.h"
+#include "title_data.h"
 
 //=============================================================================
 // DEFINES
@@ -34,7 +37,7 @@
 #define STATE_PLAYING   1
 #define STATE_GAMEOVER  2
 
-#define DROP_SPEED_INIT    20
+#define DROP_SPEED_INIT    16
 #define DROP_SPEED_MIN     3
 #define DROP_SPEED_SOFT    1
 #define LOCK_DELAY         8
@@ -78,6 +81,7 @@ typedef struct {
     u8 alive;
     u8 boardX, boardY;
     u8 rotateDelay;
+    u8 subY;  // 0 = aligned, 1 = offset 8px down (half-cell)
 } Player;
 
 //=============================================================================
@@ -299,6 +303,47 @@ static void WaitFrames(u8 count) {
 
 //=============================================================================
 // MUSIC PLAYER (custom, row-based)
+//=============================================================================
+
+//=============================================================================
+// TITLE MUSIC PLAYER
+//=============================================================================
+
+static void TitleMusic_Start(void) {
+    g_MusicRow = 0;
+    g_MusicFrameCount = 0;
+    g_MusicPlaying = TRUE;
+    PSG_Mute();
+    PSG_SetRegister(7, 0x38);
+}
+
+static void TitleMusic_Update(void) {
+    u16 a;
+
+    if (!g_MusicPlaying) return;
+
+    g_MusicFrameCount++;
+    if (g_MusicFrameCount < TITLE_MUSIC_FRAMES_PER_ROW) return;
+    g_MusicFrameCount = 0;
+
+    a = g_TitleMusicData[g_MusicRow];
+
+    if (a == 1) {
+        PSG_SetRegister(8, 0);
+    } else if (a > 1) {
+        PSG_SetRegister(0, (u8)(a & 0xFF));
+        PSG_SetRegister(1, (u8)(a >> 8));
+        PSG_SetRegister(8, 11);
+    }
+
+    g_MusicRow++;
+    if (g_MusicRow >= TITLE_MUSIC_ROWS) {
+        g_MusicRow = TITLE_MUSIC_LOOP_ROW;
+    }
+}
+
+//=============================================================================
+// GAMEPLAY MUSIC PLAYER
 //=============================================================================
 
 static void Music_Start(void) {
@@ -535,19 +580,32 @@ static void Shadow_Invalidate(void) {
     g_WallsDrawn = FALSE;
 }
 
+// Draw a falling puyo at sub-tile position (2x2 tiles with 1-tile Y offset)
+static void DrawPuyoSub(u8 tx, u8 ty, u8 color) {
+    u8 base;
+    if (color == PUYO_EMPTY || color > PUYO_GARBAGE) return;
+    base = PAT_PUYO_BASE + (color - 1) * 4;
+    // Draw bottom half of puyo at ty, top half at ty+1
+    VDP_Poke_GM2(tx,     ty,     base + 2);  // BL at top
+    VDP_Poke_GM2(tx + 1, ty,     base + 3);  // BR at top
+    VDP_Poke_GM2(tx,     ty + 1, base);      // TL at bottom
+    VDP_Poke_GM2(tx + 1, ty + 1, base + 1);  // TR at bottom
+}
+
 static void Game_DrawBoard(Player* p, u8 playerIdx) {
     u8 x, y;
     u8 bx = p->boardX;
     u8 by = p->boardY;
     u8 visible[BOARD_H][BOARD_W];
+    u8 hasFalling = (p->alive && p->puyoColor1 != PUYO_EMPTY);
 
-    // Build visible state
+    // Build visible state (board only, no falling pair)
     for (y = 0; y < BOARD_H; y++)
         for (x = 0; x < BOARD_W; x++)
             visible[y][x] = p->board[y][x];
 
-    // Overlay falling pair
-    if (p->alive && p->puyoColor1 != PUYO_EMPTY) {
+    // If subY==0, overlay falling pair into visible grid (aligned)
+    if (hasFalling && p->subY == 0) {
         if (p->puyoY < BOARD_H && p->puyoX < BOARD_W) {
             visible[p->puyoY][p->puyoX] = p->puyoColor1;
         }
@@ -567,6 +625,39 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                 g_Shadow[playerIdx][y][x] = visible[y][x];
                 DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
             }
+        }
+    }
+
+    // If subY==1, draw falling pair at half-cell offset (between rows)
+    if (hasFalling && p->subY == 1) {
+        // Force redraw of affected cells next frame
+        u8 px = p->puyoX, py = p->puyoY;
+        i8 sx = (i8)px + Game_GetSatX(p->puyoDir);
+        i8 sy = (i8)py + Game_GetSatY(p->puyoDir);
+
+        // Draw main puyo at half position: tile row = py*2 + 1
+        if (py < BOARD_H && px < BOARD_W) {
+            u8 ty = by + py * 2 + 1;
+            u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
+            VDP_Poke_GM2(bx + px * 2,     ty,     base);      // TL
+            VDP_Poke_GM2(bx + px * 2 + 1, ty,     base + 1);  // TR
+            VDP_Poke_GM2(bx + px * 2,     ty + 1, base + 2);  // BL
+            VDP_Poke_GM2(bx + px * 2 + 1, ty + 1, base + 3);  // BR
+            // Invalidate shadow for this cell and the one below
+            g_Shadow[playerIdx][py][px] = 0xFF;
+            if (py + 1 < BOARD_H) g_Shadow[playerIdx][py + 1][px] = 0xFF;
+        }
+
+        // Draw satellite puyo at half position
+        if (sx >= 0 && sx < BOARD_W && sy >= 0 && sy < BOARD_H) {
+            u8 ty = by + (u8)sy * 2 + 1;
+            u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+            VDP_Poke_GM2(bx + (u8)sx * 2,     ty,     base);
+            VDP_Poke_GM2(bx + (u8)sx * 2 + 1, ty,     base + 1);
+            VDP_Poke_GM2(bx + (u8)sx * 2,     ty + 1, base + 2);
+            VDP_Poke_GM2(bx + (u8)sx * 2 + 1, ty + 1, base + 3);
+            g_Shadow[playerIdx][(u8)sy][(u8)sx] = 0xFF;
+            if ((u8)sy + 1 < BOARD_H) g_Shadow[playerIdx][(u8)sy + 1][(u8)sx] = 0xFF;
         }
     }
 
@@ -634,25 +725,26 @@ static void Game_DrawScore(Player* p) {
 }
 
 static void Game_DrawTitle(void) {
-    VDP_FillScreen_GM2(PAT_EMPTY);
+    u16 i;
 
-    Print_SetPosition(10, 4);
-    Print_DrawText("PUYO PUYO VS");
+    // Disable BIOS key click
+    *((u8*)0xF3DB) = 0;
 
-    Print_SetPosition(7, 8);
-    Print_DrawText("PRESS SPACE/BTN A");
+    // Set up Screen 2 and clear VRAM
+    VDP_SetMode(VDP_MODE_GRAPHIC2);
+    VDP_ClearVRAM();
+    VDP_EnableVBlank(TRUE);
 
-    Print_SetPosition(5, 12);
-    Print_DrawText("JOY1/CURSORS: P1");
-    Print_SetPosition(5, 13);
-    Print_DrawText("JOY2: P2");
+    // Decompress title screen patterns to VRAM (3 banks x 2048 = 6144 bytes at 0x0000)
+    Pletter_UnpackToVRAM(g_TitlePattern, g_ScreenPatternLow);
 
-    Print_SetPosition(5, 16);
-    Print_DrawText("LEFT/RIGHT: MOVE");
-    Print_SetPosition(5, 17);
-    Print_DrawText("UP/BTN A: ROTATE");
-    Print_SetPosition(5, 18);
-    Print_DrawText("DOWN: FAST DROP");
+    // Set up name table: 0,1,2,...,255 repeated 3 times (at 0x1800)
+    for (i = 0; i < 768; i++) {
+        VDP_Poke_16K((u8)(i & 0xFF), g_ScreenLayoutLow + i);
+    }
+
+    // Decompress title screen colors to VRAM (3 banks x 2048 = 6144 bytes at 0x2000)
+    Pletter_UnpackToVRAM(g_TitleColor, g_ScreenColorLow);
 }
 
 static void Game_DrawGameOver(void) {
@@ -689,6 +781,7 @@ static void Game_InitPlayer(Player* p, u8 bx, u8 by) {
     p->lockTimer = 0;
     p->inputDelay = 0;
     p->rotateDelay = 0;
+    p->subY = 0;
     p->puyoColor1 = PUYO_EMPTY;
     p->puyoColor2 = PUYO_EMPTY;
 
@@ -700,6 +793,7 @@ static void Game_SpawnPair(Player* p) {
     p->puyoX = 2;
     p->puyoY = 0;
     p->puyoDir = DIR_UP;
+    p->subY = 0;
     p->puyoColor1 = p->nextColor1;
     p->puyoColor2 = p->nextColor2;
     p->nextColor1 = (Math_GetRandom8() % PUYO_COUNT) + 1;
@@ -766,23 +860,74 @@ static void Game_LockPair(Player* p) {
     SFX_Drop();
 }
 
-static bool Game_ApplyGravity(Player* p) {
+// Drop all floating puyos by exactly 1 row. Returns TRUE if anything moved.
+static bool Game_GravityStep(Player* p) {
     bool moved = FALSE;
-    u8 x, y, destY;
+    u8 x;
     i8 iy;
+    // Scan bottom-up so puyos don't chain-fall in one call
     for (x = 0; x < BOARD_W; x++) {
         for (iy = BOARD_H - 2; iy >= 0; iy--) {
-            y = (u8)iy;
+            u8 y = (u8)iy;
             if (p->board[y][x] != PUYO_EMPTY && p->board[y + 1][x] == PUYO_EMPTY) {
-                destY = y + 1;
-                while (destY + 1 < BOARD_H && p->board[destY + 1][x] == PUYO_EMPTY) destY++;
-                p->board[destY][x] = p->board[y][x];
+                p->board[y + 1][x] = p->board[y][x];
                 p->board[y][x] = PUYO_EMPTY;
                 moved = TRUE;
             }
         }
     }
     return moved;
+}
+
+// Animated gravity: drop puyos 8px at a time with visual feedback
+static void Game_AnimateGravity(Player* p, u8 playerIdx) {
+    u8 x, bx, by;
+    i8 iy;
+    bx = p->boardX;
+    by = p->boardY;
+
+    while (TRUE) {
+        // Find which puyos will fall (have empty below)
+        bool willFall = FALSE;
+        for (x = 0; x < BOARD_W; x++) {
+            for (iy = BOARD_H - 2; iy >= 0; iy--) {
+                if (p->board[(u8)iy][x] != PUYO_EMPTY && p->board[(u8)iy + 1][x] == PUYO_EMPTY) {
+                    willFall = TRUE;
+                    break;
+                }
+            }
+            if (willFall) break;
+        }
+        if (!willFall) break;
+
+        // Draw half-step: show falling puyos at +1 tile offset (8px)
+        for (x = 0; x < BOARD_W; x++) {
+            for (iy = BOARD_H - 2; iy >= 0; iy--) {
+                u8 y = (u8)iy;
+                if (p->board[y][x] != PUYO_EMPTY && p->board[y + 1][x] == PUYO_EMPTY) {
+                    u8 base = PAT_PUYO_BASE + (p->board[y][x] - 1) * 4;
+                    u8 ty = by + y * 2 + 1; // offset by 1 tile (8px)
+                    // Clear original position top tile row
+                    VDP_Poke_GM2(bx + x * 2,     by + y * 2, PAT_BG);
+                    VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2, PAT_BG);
+                    // Draw puyo shifted down 8px
+                    VDP_Poke_GM2(bx + x * 2,     ty,     base);
+                    VDP_Poke_GM2(bx + x * 2 + 1, ty,     base + 1);
+                    VDP_Poke_GM2(bx + x * 2,     ty + 1, base + 2);
+                    VDP_Poke_GM2(bx + x * 2 + 1, ty + 1, base + 3);
+                }
+            }
+        }
+        Halt(); // 1 frame at half position
+
+        // Actually move puyos down 1 row in the board
+        Game_GravityStep(p);
+
+        // Redraw affected area
+        Shadow_Invalidate();
+        Game_DrawBoard(p, playerIdx);
+        Halt(); // 1 frame at full position
+    }
 }
 
 static u8 g_Visited[BOARD_H][BOARD_W];
@@ -906,7 +1051,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
     u8 oppIdx = (playerIdx == 0) ? 1 : 0;
 
     while (TRUE) {
-        while (Game_ApplyGravity(p)) {}
+        Game_AnimateGravity(p, playerIdx);
 
         // First find groups without clearing them
         {
@@ -1073,18 +1218,30 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (btnUp || btnA) { Game_RotatePair(p, 1); p->rotateDelay = 8; }
         else if (btnB) { Game_RotatePair(p, -1); p->rotateDelay = 8; }
     }
-    currentSpeed = p->dropSpeed;
+    currentSpeed = p->dropSpeed / 2;
+    if (currentSpeed < 1) currentSpeed = 1;
     if (dir & JOY_INPUT_DIR_DOWN) currentSpeed = DROP_SPEED_SOFT;
     p->dropTimer++;
     if (p->dropTimer >= currentSpeed) {
         p->dropTimer = 0;
-        if (Game_CanMovePair(p, 0, 1)) { p->puyoY++; p->lockTimer = 0; }
-        else {
-            p->lockTimer++;
-            if (p->lockTimer >= LOCK_DELAY) {
-                Game_LockPair(p);
-                Game_ChainLoop(p, (p == &g_Player[0]) ? &g_Player[1] : &g_Player[0]);
+        if (p->subY == 0) {
+            // Half-step: check if we can move down
+            if (Game_CanMovePair(p, 0, 1)) {
+                p->subY = 1;
+                p->lockTimer = 0;
+            } else {
+                // Can't move down even half-step, try to lock
+                p->lockTimer++;
+                if (p->lockTimer >= LOCK_DELAY) {
+                    Game_LockPair(p);
+                    Game_ChainLoop(p, (p == &g_Player[0]) ? &g_Player[1] : &g_Player[0]);
+                }
             }
+        } else {
+            // Full step: complete the move to next row
+            p->subY = 0;
+            p->puyoY++;
+            p->lockTimer = 0;
         }
     }
 }
@@ -1192,7 +1349,21 @@ void main(void) {
         Halt();
         if (g_GameState == STATE_TITLE) {
             Game_DrawTitle();
-            WaitButton();
+            TitleMusic_Start();
+            // Wait for button press while playing title music
+            {
+                u8 joy1, joy2;
+                while (1) {
+                    Halt();
+                    TitleMusic_Update();
+                    joy1 = Joystick_Read(JOY_PORT_1);
+                    joy2 = Joystick_Read(JOY_PORT_2);
+                    if (JOY_GET_A(joy1) || JOY_GET_A(joy2)) break;
+                    if (JOY_GET_B(joy1) || JOY_GET_B(joy2)) break;
+                    if (Keyboard_IsKeyPressed(KEY_SPACE)) break;
+                }
+            }
+            Music_Stop();
             WaitFrames(10);
             g_GameState = STATE_PLAYING;
             VDP_Setup();
