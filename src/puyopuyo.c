@@ -58,6 +58,7 @@
 // Puyos: 1-24 (6 types x 4 quadrants: red,green,blue,yellow,purple,garbage)
 #define PAT_WALL        25
 #define PAT_GRAY_BASE   27  // grey puyo (4 quadrants: 27,28,29,30)
+#define PAT_EXPLODE     31  // explosion burst pattern
 // Font starts at 32
 
 #define CHAIN_GARBAGE_BASE  1
@@ -268,6 +269,11 @@ static const u8 g_PatEmptyTile[8] = {
 
 static const u8 g_PatWallTile[8] = {
     0xFF, 0x81, 0xBD, 0xA5, 0xA5, 0xBD, 0x81, 0xFF
+};
+
+// Explosion burst pattern (8x8 star)
+static const u8 g_PatExplode[8] = {
+    0x08, 0x49, 0x2A, 0x1C, 0x1C, 0x2A, 0x49, 0x08
 };
 
 static const u8 g_WallColor = COLOR_MERGE(COLOR_WHITE, COLOR_DARK_BLUE);
@@ -583,6 +589,11 @@ static void VDP_Setup(void) {
             }
             VDP_WriteVRAM_16K(colorBuf, colBase + (idx * 8), 8);
         }
+
+        // Pattern 31: explosion burst
+        VDP_WriteVRAM_16K(g_PatExplode, patBase + (PAT_EXPLODE * 8), 8);
+        for (i = 0; i < 8; i++) colorBuf[i] = COLOR_MERGE(COLOR_WHITE, COLOR_BLACK);
+        VDP_WriteVRAM_16K(colorBuf, colBase + (PAT_EXPLODE * 8), 8);
     }
 
     Print_SetTextFont(g_Font_MGL_Sample8, 32);
@@ -780,16 +791,9 @@ static void Game_DrawConnections(Player* p) {
                     for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][q][i];
 
                     if (q < 2) {
-                        // TL/TR: fill top corner rows
-                        patBuf[0] = 0xFF;
-                        patBuf[1] = 0xFF;
-                        patBuf[2] = 0xFF;
+                        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
                     } else {
-                        // BL/BR: fill bottom corner rows
-                        patBuf[5] = 0xFF;
-                        patBuf[6] = 0xFF;
-                        patBuf[7] = 0xFF;
-                        // Fill edge bits in body rows for L/R connections
+                        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
                         if (q == 2 && cL) { patBuf[3] |= 0x80; patBuf[4] |= 0x80; }
                         if (q == 3 && cR) { patBuf[3] |= 0x01; patBuf[4] |= 0x01; }
                     }
@@ -1209,16 +1213,19 @@ static u8 Game_ClearGroups(Player* p) {
     return totalCleared;
 }
 
-// Flash puyos that are about to be cleared (set them to white pattern momentarily)
+// Show explosion burst where puyos are about to be cleared
 static void Game_FlashCleared(Player* p, u8 playerIdx) {
-    u8 i, x, y, bx, by;
+    u8 i, x, y, bx, by, tx, ty;
     bx = p->boardX;
     by = p->boardY;
-    // Flash: draw white empty tiles where the group was
     for (i = 0; i < g_GroupSize; i++) {
         x = g_GroupX[i]; y = g_GroupY[i];
-        // Write the wall pattern (bright white) temporarily
-        DrawPuyo16(bx + x * 2, by + y * 2, PUYO_EMPTY);
+        tx = bx + x * 2; ty = by + y * 2;
+        // Draw explosion pattern in all 4 quadrants
+        VDP_Poke_GM2(tx,     ty,     PAT_EXPLODE);
+        VDP_Poke_GM2(tx + 1, ty,     PAT_EXPLODE);
+        VDP_Poke_GM2(tx,     ty + 1, PAT_EXPLODE);
+        VDP_Poke_GM2(tx + 1, ty + 1, PAT_EXPLODE);
         g_Shadow[playerIdx][y][x] = 0xFF; // force redraw next frame
     }
 }
@@ -1384,6 +1391,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
             Print_DrawChar(' ');
         }
     }
+
 }
 
 static void Game_AddGarbage(Player* p) {
