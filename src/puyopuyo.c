@@ -55,6 +55,7 @@
 #define PAT_BG          22  // animated background tile
 #define PAT_PUYO_BASE   1   // first puyo color starts here, 4 patterns each
 #define PAT_WALL        21
+#define PAT_GRAY_BASE   23  // grey puyo (4 quadrants: 23,24,25,26)
 // Font starts at 32
 
 #define CHAIN_GARBAGE_BASE  1
@@ -544,6 +545,21 @@ static void VDP_Setup(void) {
         VDP_WriteVRAM_16K(g_PatWallTile, patBase + (PAT_WALL * 8), 8);
         for (i = 0; i < 8; i++) colorBuf[i] = g_WallColor;
         VDP_WriteVRAM_16K(colorBuf, colBase + (PAT_WALL * 8), 8);
+
+        // Patterns 23-26: grey puyo (same shape as red, grey+white colors)
+        for (q = 0; q < 4; q++) {
+            idx = PAT_GRAY_BASE + q;
+            VDP_WriteVRAM_16K(g_PuyoPat[0][q], patBase + (idx * 8), 8);  // reuse red shape
+            for (i = 0; i < 8; i++) {
+                u8 orig = g_PuyoCol[0][q][i];
+                u8 fg = orig >> 4;
+                u8 bg = orig & 0x0F;
+                if (fg != COLOR_WHITE) fg = COLOR_GRAY;
+                if (bg != COLOR_BLACK) bg = COLOR_GRAY;
+                colorBuf[i] = (fg << 4) | bg;
+            }
+            VDP_WriteVRAM_16K(colorBuf, colBase + (idx * 8), 8);
+        }
     }
 
     Print_SetTextFont(g_Font_MGL_Sample8, 32);
@@ -751,10 +767,9 @@ static void Game_DrawTitle(void) {
 }
 
 // Animate loser's board turning grey, row by row from top
+// Uses dedicated grey puyo patterns so winner's puyos are unaffected
 static void Game_AnimateGameOver(void) {
     u8 loserIdx, y, x, bx, by;
-    u8 colorBuf[8];
-    u8 grayColor = COLOR_MERGE(COLOR_GRAY, COLOR_BLACK);
     Player* loser;
 
     if (!g_Player[0].alive) loserIdx = 0;
@@ -766,33 +781,24 @@ static void Game_AnimateGameOver(void) {
     for (y = 0; y < BOARD_H; y++) {
         for (x = 0; x < BOARD_W; x++) {
             if (loser->board[y][x] != PUYO_EMPTY) {
-                // Rewrite this puyo's color to grey
-                u8 base = PAT_PUYO_BASE + (loser->board[y][x] - 1) * 4;
-                u8 q;
-                for (q = 0; q < 4; q++) {
-                    u8 tileIdx = base + q;
-                    u8 ty = by + y * 2 + (q / 2);
-                    u8 bank = ty / 8;
-                    u8 i;
-                    for (i = 0; i < 8; i++) colorBuf[i] = grayColor;
-                    VDP_WriteVRAM_16K(colorBuf, g_ScreenColorLow + (bank * 0x800) + (tileIdx * 8), 8);
-                }
+                // Replace with grey puyo pattern
+                VDP_Poke_GM2(bx + x * 2,     by + y * 2,     PAT_GRAY_BASE);
+                VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2,     PAT_GRAY_BASE + 1);
+                VDP_Poke_GM2(bx + x * 2,     by + y * 2 + 1, PAT_GRAY_BASE + 2);
+                VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2 + 1, PAT_GRAY_BASE + 3);
             }
         }
-        Halt(); Halt(); // pause between rows
+        Halt(); Halt();
     }
 }
 
 static void Game_DrawGameOver(void) {
-    u8 winner;
-    Player *pw;
-
     // Animate the loser's board
     if (g_Player[0].alive || g_Player[1].alive) {
         Game_AnimateGameOver();
     }
 
-    // Show winner
+    // Show winner in center
     Print_SetPosition(CENTER_X, 10);
     if (!g_Player[0].alive && !g_Player[1].alive) {
         Print_DrawText("DRAW");
@@ -801,17 +807,71 @@ static void Game_DrawGameOver(void) {
     } else {
         Print_DrawText("P1 W");
     }
+}
 
-    // Show stats
-    winner = g_Player[0].alive ? 0 : 1;
-    pw = &g_Player[winner];
-    Print_SetPosition(CENTER_X, 14);
-    Print_DrawText("CH");
-    Print_DrawChar('0' + pw->maxChain);
-    Print_SetPosition(CENTER_X, 15);
-    Print_DrawChar('0' + (pw->totalCleared / 100) % 10);
-    Print_DrawChar('0' + (pw->totalCleared / 10) % 10);
-    Print_DrawChar('0' + pw->totalCleared % 10);
+// Dedicated stats screen with "STATS" written using puyos
+static void Game_DrawStatsScreen(void) {
+    u8 p, sx, sy;
+    Player *pw;
+
+    // Reinit VDP to get clean patterns/colors
+    VDP_Setup();
+    VDP_FillScreen_GM2(PAT_EMPTY);
+
+    // Decorative puyo row at top
+    DrawPuyo16(2,  1, PUYO_RED);
+    DrawPuyo16(6,  1, PUYO_GREEN);
+    DrawPuyo16(10, 1, PUYO_BLUE);
+    DrawPuyo16(14, 1, PUYO_YELLOW);
+    DrawPuyo16(18, 1, PUYO_RED);
+    DrawPuyo16(22, 1, PUYO_GREEN);
+    DrawPuyo16(26, 1, PUYO_BLUE);
+
+    // "STATS" title text
+    Print_SetPosition(11, 4);
+    Print_DrawText("- STATS -");
+
+    // Winner text
+    Print_SetPosition(11, 9);
+    if (!g_Player[0].alive && !g_Player[1].alive) {
+        Print_DrawText("DRAW GAME!");
+    } else if (!g_Player[0].alive) {
+        Print_DrawText("P2  WINS!");
+    } else {
+        Print_DrawText("P1  WINS!");
+    }
+
+    // Stats for both players side by side
+    for (p = 0; p < 2; p++) {
+        pw = &g_Player[p];
+        sx = (p == 0) ? 3 : 19;
+        sy = 12;
+
+        Print_SetPosition(sx + 1, sy);
+        if (p == 0) Print_DrawText("PLAYER 1");
+        else        Print_DrawText("PLAYER 2");
+
+        Print_SetPosition(sx, sy + 2);
+        Print_DrawText("SCORE");
+        Print_SetPosition(sx + 1, sy + 3);
+        Print_DrawChar('0' + (pw->score / 10000) % 10);
+        Print_DrawChar('0' + (pw->score / 1000) % 10);
+        Print_DrawChar('0' + (pw->score / 100) % 10);
+        Print_DrawChar('0' + (pw->score / 10) % 10);
+        Print_DrawChar('0' + pw->score % 10);
+
+        Print_SetPosition(sx, sy + 5);
+        Print_DrawText("CHAIN");
+        Print_SetPosition(sx + 3, sy + 6);
+        Print_DrawChar('0' + pw->maxChain);
+
+        Print_SetPosition(sx, sy + 8);
+        Print_DrawText("CLEAR");
+        Print_SetPosition(sx + 2, sy + 9);
+        Print_DrawChar('0' + (pw->totalCleared / 100) % 10);
+        Print_DrawChar('0' + (pw->totalCleared / 10) % 10);
+        Print_DrawChar('0' + pw->totalCleared % 10);
+    }
 }
 
 //=============================================================================
@@ -1485,8 +1545,12 @@ void main(void) {
         else if (g_GameState == STATE_GAMEOVER) {
             Game_DrawGameOver();
             SFX_Victory();
-            WaitFrames(120);
+            WaitFrames(60);
+            WaitButton();
+            // Stats screen
             PSG_Mute();
+            Game_DrawStatsScreen();
+            WaitButton();
             g_GameState = STATE_TITLE;
             VDP_Setup();
         }
