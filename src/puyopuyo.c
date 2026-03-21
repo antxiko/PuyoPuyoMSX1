@@ -82,6 +82,9 @@ typedef struct {
     u8 boardX, boardY;
     u8 rotateDelay;
     u8 subY;  // 0 = aligned, 1 = offset 8px down (half-cell)
+    u8 piecesPlaced; // count of locked pieces (for speed progression)
+    u8 maxChain;     // best chain this game
+    u16 totalCleared; // total puyos cleared this game
 } Player;
 
 //=============================================================================
@@ -747,8 +750,50 @@ static void Game_DrawTitle(void) {
     Pletter_UnpackToVRAM(g_TitleColor, g_ScreenColorLow);
 }
 
+// Animate loser's board turning grey, row by row from top
+static void Game_AnimateGameOver(void) {
+    u8 loserIdx, y, x, bx, by;
+    u8 colorBuf[8];
+    u8 grayColor = COLOR_MERGE(COLOR_GRAY, COLOR_BLACK);
+    Player* loser;
+
+    if (!g_Player[0].alive) loserIdx = 0;
+    else loserIdx = 1;
+    loser = &g_Player[loserIdx];
+    bx = loser->boardX;
+    by = loser->boardY;
+
+    for (y = 0; y < BOARD_H; y++) {
+        for (x = 0; x < BOARD_W; x++) {
+            if (loser->board[y][x] != PUYO_EMPTY) {
+                // Rewrite this puyo's color to grey
+                u8 base = PAT_PUYO_BASE + (loser->board[y][x] - 1) * 4;
+                u8 q;
+                for (q = 0; q < 4; q++) {
+                    u8 tileIdx = base + q;
+                    u8 ty = by + y * 2 + (q / 2);
+                    u8 bank = ty / 8;
+                    u8 i;
+                    for (i = 0; i < 8; i++) colorBuf[i] = grayColor;
+                    VDP_WriteVRAM_16K(colorBuf, g_ScreenColorLow + (bank * 0x800) + (tileIdx * 8), 8);
+                }
+            }
+        }
+        Halt(); Halt(); // pause between rows
+    }
+}
+
 static void Game_DrawGameOver(void) {
-    Print_SetPosition(CENTER_X, 16);
+    u8 winner;
+    Player *pw;
+
+    // Animate the loser's board
+    if (g_Player[0].alive || g_Player[1].alive) {
+        Game_AnimateGameOver();
+    }
+
+    // Show winner
+    Print_SetPosition(CENTER_X, 10);
     if (!g_Player[0].alive && !g_Player[1].alive) {
         Print_DrawText("DRAW");
     } else if (!g_Player[0].alive) {
@@ -756,6 +801,17 @@ static void Game_DrawGameOver(void) {
     } else {
         Print_DrawText("P1 W");
     }
+
+    // Show stats
+    winner = g_Player[0].alive ? 0 : 1;
+    pw = &g_Player[winner];
+    Print_SetPosition(CENTER_X, 14);
+    Print_DrawText("CH");
+    Print_DrawChar('0' + pw->maxChain);
+    Print_SetPosition(CENTER_X, 15);
+    Print_DrawChar('0' + (pw->totalCleared / 100) % 10);
+    Print_DrawChar('0' + (pw->totalCleared / 10) % 10);
+    Print_DrawChar('0' + pw->totalCleared % 10);
 }
 
 //=============================================================================
@@ -782,6 +838,9 @@ static void Game_InitPlayer(Player* p, u8 bx, u8 by) {
     p->inputDelay = 0;
     p->rotateDelay = 0;
     p->subY = 0;
+    p->piecesPlaced = 0;
+    p->maxChain = 0;
+    p->totalCleared = 0;
     p->puyoColor1 = PUYO_EMPTY;
     p->puyoColor2 = PUYO_EMPTY;
 
@@ -857,7 +916,14 @@ static void Game_LockPair(Player* p) {
         p->board[sy][sx] = p->puyoColor2;
     p->puyoColor1 = PUYO_EMPTY;
     p->puyoColor2 = PUYO_EMPTY;
+    p->subY = 0;
     SFX_Drop();
+
+    // Speed progression: every 10 pieces, increase speed
+    p->piecesPlaced++;
+    if (p->piecesPlaced % 10 == 0 && p->dropSpeed > DROP_SPEED_MIN * 2) {
+        p->dropSpeed -= 2;
+    }
 }
 
 // Drop all floating puyos by exactly 1 row. Returns TRUE if anything moved.
@@ -1088,33 +1154,42 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 
         chainCount++;
         p->score += cleared * 10 * chainCount;
+        p->totalCleared += cleared;
 
         // Sound effects
         SFX_Clear();
         if (chainCount > 1) SFX_Chain(chainCount);
 
-        // Visual effects
-        // Border flash - color changes per chain step
+        // Visual effects - more spectacular for bigger chains
         {
             u8 borderColors[] = { COLOR_LIGHT_GREEN, COLOR_LIGHT_YELLOW, COLOR_LIGHT_RED, COLOR_MAGENTA, COLOR_WHITE };
             u8 ci = chainCount - 1;
+            u8 flashFrames;
             if (ci > 4) ci = 4;
             VDP_SetColor(borderColors[ci]);
+
+            // Show chain count in center (bigger display for bigger chains)
+            if (chainCount > 1) {
+                Game_ShowChain(chainCount);
+            }
+
+            totalGarbage += CHAIN_GARBAGE_BASE * chainCount;
+
+            Game_DrawBoard(p, playerIdx);
+            Game_DrawScore(p);
+
+            // Longer pause for bigger chains
+            flashFrames = 4 + (chainCount > 2 ? chainCount * 2 : 0);
+            if (flashFrames > 16) flashFrames = 16;
+            while (flashFrames > 0) {
+                Halt();
+                // Flash border on/off for big chains
+                if (chainCount >= 3 && (flashFrames & 3) == 0) {
+                    VDP_SetColor((flashFrames & 4) ? borderColors[ci] : COLOR_BLACK);
+                }
+                flashFrames--;
+            }
         }
-
-        // Show chain count in center
-        if (chainCount > 1) {
-            Game_ShowChain(chainCount);
-        }
-
-        // Flash opponent walls red when garbage is coming
-        totalGarbage += CHAIN_GARBAGE_BASE * chainCount;
-
-        Game_DrawBoard(p, playerIdx);
-        Game_DrawScore(p);
-
-        // Pause to show the clear effect
-        Halt(); Halt(); Halt(); Halt();
 
         // Restore border
         VDP_SetColor(COLOR_BLACK);
@@ -1122,6 +1197,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
     }
 
     p->chainCount = chainCount;
+    if (chainCount > p->maxChain) p->maxChain = chainCount;
 
     if (totalGarbage > 0) {
         if (p->pendingGarbage > 0) {
@@ -1268,6 +1344,22 @@ static void Game_Init(void) {
     Game_DrawScore(&g_Player[1]);
     Print_SetPosition(CENTER_X, 7);
     Print_DrawText("VS");
+
+    // Countdown 3-2-1-GO
+    Print_SetPosition(CENTER_X + 1, 11);
+    Print_DrawChar('3');
+    WaitFrames(30);
+    Print_SetPosition(CENTER_X + 1, 11);
+    Print_DrawChar('2');
+    WaitFrames(30);
+    Print_SetPosition(CENTER_X + 1, 11);
+    Print_DrawChar('1');
+    WaitFrames(30);
+    Print_SetPosition(CENTER_X, 11);
+    Print_DrawText("GO!");
+    WaitFrames(20);
+    Print_SetPosition(CENTER_X, 11);
+    Print_DrawText("   ");
 }
 
 static u8 g_BgScrollOffset;
@@ -1301,18 +1393,31 @@ static void Game_Update(void) {
     SFX_Update();
     Game_UpdateBackground();
 
-    // Danger detection: flash walls red when close to losing
+    // Danger + garbage wall flash
     g_DangerFlash++;
     {
         bool p1Danger = Game_IsInDanger(&g_Player[0]);
         bool p2Danger = Game_IsInDanger(&g_Player[1]);
+        bool needRestore = TRUE;
+
         if (p1Danger || p2Danger) {
             if ((g_DangerFlash & 7) < 4) {
                 if (p1Danger) Game_FlashWalls(&g_Player[0], COLOR_LIGHT_RED);
                 if (p2Danger) Game_FlashWalls(&g_Player[1], COLOR_LIGHT_RED);
-            } else {
-                Game_RestoreWalls();
+                needRestore = FALSE;
             }
+        }
+        // Garbage pending: flash walls yellow (slower blink)
+        if (!p1Danger && g_Player[0].pendingGarbage > 0 && (g_DangerFlash & 15) < 8) {
+            Game_FlashWalls(&g_Player[0], COLOR_LIGHT_YELLOW);
+            needRestore = FALSE;
+        }
+        if (!p2Danger && g_Player[1].pendingGarbage > 0 && (g_DangerFlash & 15) < 8) {
+            Game_FlashWalls(&g_Player[1], COLOR_LIGHT_YELLOW);
+            needRestore = FALSE;
+        }
+        if (needRestore) {
+            Game_RestoreWalls();
         }
     }
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
