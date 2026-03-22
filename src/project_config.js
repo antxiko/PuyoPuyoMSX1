@@ -16,7 +16,7 @@ DoRun     = false;
 
 ProjName = "puyopuyo";
 ProjModules = [ ProjName ];
-LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "math", "psg", "pt3/pt3_player", "compress/pletter" ];
+LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "math", "psg", "pt3/pt3_player" ];
 
 Machine = "1";
 Target = "ROM_32K";

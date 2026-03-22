@@ -5,10 +5,8 @@
 #include "psg.h"
 #include "math.h"
 #include "pt3/pt3_player.h"
-#include "compress/pletter.h"
 #include "music_data.h"
 #include "title_music.h"
-#include "title_data.h"
 
 //=============================================================================
 // DEFINES
@@ -351,27 +349,26 @@ static void TitleMusic_Start(void) {
 }
 
 static void TitleMusic_Update(void) {
-    u16 a;
+    u16 a, b;
 
     if (!g_MusicPlaying) return;
 
     g_MusicFrameCount++;
-    if (g_MusicFrameCount < TITLE_MUSIC_FRAMES_PER_ROW) return;
+    if (g_MusicFrameCount < TitleMusic_FRAMES_PER_ROW) return;
     g_MusicFrameCount = 0;
 
-    a = g_TitleMusicData[g_MusicRow];
+    a = g_TitleMusicData[g_MusicRow][0];
+    b = g_TitleMusicData[g_MusicRow][1];
 
-    if (a == 1) {
-        PSG_SetRegister(8, 0);
-    } else if (a > 1) {
-        PSG_SetRegister(0, (u8)(a & 0xFF));
-        PSG_SetRegister(1, (u8)(a >> 8));
-        PSG_SetRegister(8, 11);
-    }
+    if (a == 1) { PSG_SetRegister(8, 0); }
+    else if (a > 1) { PSG_SetRegister(0, (u8)(a & 0xFF)); PSG_SetRegister(1, (u8)(a >> 8)); PSG_SetRegister(8, 11); }
+
+    if (b == 1) { PSG_SetRegister(9, 0); }
+    else if (b > 1) { PSG_SetRegister(2, (u8)(b & 0xFF)); PSG_SetRegister(3, (u8)(b >> 8)); PSG_SetRegister(9, 8); }
 
     g_MusicRow++;
-    if (g_MusicRow >= TITLE_MUSIC_ROWS) {
-        g_MusicRow = TITLE_MUSIC_LOOP_ROW;
+    if (g_MusicRow >= TitleMusic_ROWS) {
+        g_MusicRow = TitleMusic_LOOP_ROW;
     }
 }
 
@@ -395,44 +392,22 @@ static void Music_Stop(void) {
 }
 
 static void Music_Update(void) {
-    u16 a, b, c;
+    u16 a, b;
 
     if (!g_MusicPlaying) return;
 
     g_MusicFrameCount++;
-    if (g_MusicFrameCount < 3) return;
+    if (g_MusicFrameCount < Music_FRAMES_PER_ROW) return;
     g_MusicFrameCount = 0;
 
     a = g_MusicData[g_MusicRow][0];
     b = g_MusicData[g_MusicRow][1];
-    c = g_MusicData[g_MusicRow][2];
 
-    // Channel A (registers 0,1=tone, 8=volume)
-    if (a == 1) {
-        PSG_SetRegister(8, 0);
-    } else if (a > 1) {
-        PSG_SetRegister(0, (u8)(a & 0xFF));
-        PSG_SetRegister(1, (u8)(a >> 8));
-        PSG_SetRegister(8, 11);
-    }
+    if (a == 1) { PSG_SetRegister(8, 0); }
+    else if (a > 1) { PSG_SetRegister(0, (u8)(a & 0xFF)); PSG_SetRegister(1, (u8)(a >> 8)); PSG_SetRegister(8, 11); }
 
-    // Channel B (registers 2,3=tone, 9=volume)
-    if (b == 1) {
-        PSG_SetRegister(9, 0);
-    } else if (b > 1) {
-        PSG_SetRegister(2, (u8)(b & 0xFF));
-        PSG_SetRegister(3, (u8)(b >> 8));
-        PSG_SetRegister(9, 8);
-    }
-
-    // Channel C (registers 4,5=tone, 10=volume)
-    if (c == 1) {
-        PSG_SetRegister(10, 0);
-    } else if (c > 1) {
-        PSG_SetRegister(4, (u8)(c & 0xFF));
-        PSG_SetRegister(5, (u8)(c >> 8));
-        PSG_SetRegister(10, 12);
-    }
+    if (b == 1) { PSG_SetRegister(9, 0); }
+    else if (b > 1) { PSG_SetRegister(2, (u8)(b & 0xFF)); PSG_SetRegister(3, (u8)(b >> 8)); PSG_SetRegister(9, 8); }
 
     g_MusicRow++;
     if (g_MusicRow >= MUSIC_ROWS) {
@@ -844,27 +819,53 @@ static void Game_DrawScore(Player* p) {
     }
 }
 
+// Draw a 3x4 puyo letter at tile position (tx, ty)
+// data = 4 bytes, each with 3 bits: bit2=left, bit1=center, bit0=right
+static void DrawPuyoLetter(u8 tx, u8 ty, const u8* data, u8 color) {
+    u8 r, c;
+    for (r = 0; r < 4; r++) {
+        for (c = 0; c < 3; c++) {
+            if (data[r] & (4 >> c)) {
+                DrawPuyo16(tx + c * 2, ty + r * 2, color);
+            }
+        }
+    }
+}
+
 static void Game_DrawTitle(void) {
-    u16 i;
+    // Letter patterns: 3 cols x 4 rows, 3 bits per row
+    static const u8 letP[] = { 0x07, 0x05, 0x07, 0x04 }; // ### #.# ### #..
+    static const u8 letU[] = { 0x05, 0x05, 0x05, 0x07 }; // #.# #.# #.# ###
+    static const u8 letY[] = { 0x05, 0x02, 0x02, 0x02 }; // #.# .#. .#. .#.
+    static const u8 letO[] = { 0x07, 0x05, 0x05, 0x07 }; // ### #.# #.# ###
+    static const u8 letV[] = { 0x05, 0x05, 0x05, 0x02 }; // #.# #.# #.# .#.
+    static const u8 letS[] = { 0x07, 0x04, 0x07, 0x01 }; // ### #.. ### ..#
 
     // Disable BIOS key click
     *((u8*)0xF3DB) = 0;
 
-    // Set up Screen 2 and clear VRAM
-    VDP_SetMode(VDP_MODE_GRAPHIC2);
-    VDP_ClearVRAM();
-    VDP_EnableVBlank(TRUE);
+    VDP_Setup();
+    VDP_FillScreen_GM2(PAT_EMPTY);
 
-    // Decompress title screen patterns to VRAM (3 banks x 2048 = 6144 bytes at 0x0000)
-    Pletter_UnpackToVRAM(g_TitlePattern, g_ScreenPatternLow);
+    // "PUYO" line 1 - tile row 1, each letter 6 tiles wide + 2 tile gap
+    DrawPuyoLetter(1,  1, letP, PUYO_RED);
+    DrawPuyoLetter(9,  1, letU, PUYO_GREEN);
+    DrawPuyoLetter(17, 1, letY, PUYO_BLUE);
+    DrawPuyoLetter(25, 1, letO, PUYO_YELLOW);
 
-    // Set up name table: 0,1,2,...,255 repeated 3 times (at 0x1800)
-    for (i = 0; i < 768; i++) {
-        VDP_Poke_16K((u8)(i & 0xFF), g_ScreenLayoutLow + i);
-    }
+    // "PUYO" line 2 - tile row 10, different colors
+    DrawPuyoLetter(1,  10, letP, PUYO_PURPLE);
+    DrawPuyoLetter(9,  10, letU, PUYO_RED);
+    DrawPuyoLetter(17, 10, letY, PUYO_GREEN);
+    DrawPuyoLetter(25, 10, letO, PUYO_BLUE);
 
-    // Decompress title screen colors to VRAM (3 banks x 2048 = 6144 bytes at 0x2000)
-    Pletter_UnpackToVRAM(g_TitleColor, g_ScreenColorLow);
+    // "VS" between the two PUYOs - text
+    Print_SetPosition(15, 9);
+    Print_DrawText("VS");
+
+    // "PUSH START" at bottom
+    Print_SetPosition(11, 21);
+    Print_DrawText("PUSH START");
 }
 
 // Animate loser's board turning grey, row by row from top
