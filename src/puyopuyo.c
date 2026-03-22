@@ -4,7 +4,7 @@
 #include "msxgl.h"
 #include "psg.h"
 #include "math.h"
-#include "compress/pletter.h"
+#include "compress/zx0.h"
 #include "pt3/pt3_player.h"
 #include "pt3/pt3_notetable2.h"
 #include "pt3_data.h"
@@ -343,7 +343,7 @@ static void TitleMusic_Start(void) {
     PT3_Pause();
     PT3_SetNoteTable(PT3_NT2);
     PT3_Init();
-    Pletter_UnpackToRAM(g_MusicTitle_Plet, g_PT3Buffer);
+    ZX0_UnpackToRAM(g_MusicTitle_Zx0, g_PT3Buffer);
     PT3_InitSong(g_PT3Buffer);
     PT3_SetLoop(TRUE);
     PT3_Resume();
@@ -360,7 +360,7 @@ static void Music_Start(void) {
     PT3_Pause();
     PT3_SetNoteTable(PT3_NT2);
     PT3_Init();
-    Pletter_UnpackToRAM(g_MusicGame_Plet, g_PT3Buffer);
+    ZX0_UnpackToRAM(g_MusicGame_Zx0, g_PT3Buffer);
     PT3_InitSong(g_PT3Buffer);
     PT3_SetLoop(TRUE);
     PT3_Resume();
