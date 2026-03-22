@@ -49,19 +49,19 @@ for (let y = 0; y < imgH; y++) {
 const msxPalette = [
     [0, 0, 0],       // 0 transparent
     [0, 0, 0],       // 1 black
-    [33, 200, 66],   // 2 medium green
-    [94, 220, 120],  // 3 light green
-    [84, 85, 237],   // 4 dark blue
-    [125, 118, 252], // 5 light blue
-    [212, 82, 77],   // 6 dark red
-    [66, 235, 245],  // 7 cyan
-    [252, 85, 84],   // 8 medium red
-    [255, 121, 120], // 9 light red
-    [212, 193, 84],  // 10 dark yellow
-    [230, 206, 128], // 11 light yellow
-    [33, 176, 59],   // 12 dark green
-    [201, 91, 186],  // 13 magenta
-    [204, 204, 204], // 14 gray
+    [36, 219, 70],   // 2 medium green
+    [109, 235, 143], // 3 light green
+    [77, 80, 230],   // 4 dark blue
+    [118, 114, 255], // 5 light blue
+    [200, 71, 72],   // 6 dark red
+    [84, 243, 242],  // 7 cyan
+    [232, 91, 87],   // 8 medium red
+    [255, 130, 128], // 9 light red
+    [217, 200, 82],  // 10 dark yellow
+    [234, 212, 136], // 11 light yellow
+    [32, 170, 60],   // 12 dark green
+    [195, 91, 183],  // 13 magenta
+    [203, 203, 203], // 14 gray
     [255, 255, 255]  // 15 white
 ];
 
@@ -84,14 +84,7 @@ const ROWS = imgH / 8;
 const numTiles = COLS * ROWS;
 console.log(`Grid: ${COLS}x${ROWS} = ${numTiles} tiles`);
 
-// Try to load original color_table.bin from VRAM export
-let origColors = null;
-try {
-    origColors = fs.readFileSync(colorFile);
-    console.log(`Using color table from ${colorFile} (${origColors.length} bytes)`);
-} catch(e) {
-    console.log('No color_table.bin found, deriving colors from PNG');
-}
+// All colors derived from PNG pixels
 
 // For each tile, extract 8 rows of pattern + color
 const patterns = []; // [tile][8 bytes]
@@ -106,12 +99,7 @@ for (let tileIdx = 0; tileIdx < numTiles; tileIdx++) {
     for (let row = 0; row < 8; row++) {
         let fg, bg;
 
-        if (origColors && tileIdx < 32) {
-            // Use exact VRAM colors for game tiles (0-31)
-            const colByte = origColors[tileIdx * 8 + row];
-            fg = (colByte >> 4) & 0xF;
-            bg = colByte & 0xF;
-        } else {
+        {
             // Derive colors from PNG pixels (for tiles not in color table)
             const rowColors = [];
             for (let x = 0; x < 8; x++) {

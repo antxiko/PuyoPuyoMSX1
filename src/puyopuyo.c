@@ -9,6 +9,7 @@
 #include "pt3/pt3_notetable2.h"
 #include "pt3_data.h"
 #include "tileset_data.h"
+#include "screen_data.h"
 
 //=============================================================================
 // DEFINES
@@ -53,13 +54,14 @@
 // Pat 1-4 = red (TL,TR,BL,BR), 5-8 = green, 9-12 = blue, 13-16 = yellow, 17-20 = garbage
 // Pat 21 = wall
 #define PAT_EMPTY       0
-#define PAT_BG          26  // animated background tile
 #define PAT_PUYO_BASE   1   // first puyo color starts here, 4 patterns each
 // Puyos: 1-24 (6 types x 4 quadrants: red,green,blue,yellow,purple,garbage)
 #define PAT_WALL        25
 #define PAT_GRAY_BASE   27  // grey puyo (4 quadrants: 27,28,29,30)
 #define PAT_EXPLODE     31  // explosion burst pattern
 // Font starts at 32
+#define PAT_BG_P1       59  // P1 background tile (scroll diagonal down-right)
+#define PAT_BG_P2       60  // P2 background tile (scroll diagonal down-left)
 
 #define CHAIN_GARBAGE_BASE  1
 
@@ -105,10 +107,10 @@ static u8 g_PT3Buffer[7845]; // size of largest PT3
 
 
 static u8 g_Shadow[2][BOARD_H][BOARD_W];
+static u8 g_ScreenLayout[768]; // gameplay screen layout for tile restoration
 static u8 g_ConnPool; // next free pattern index for connection pool (128-255)
 static u8 g_BoardDirty[2]; // set when board changes, triggers connection redraw
 static u8 g_ShadowNext[2][2];
-static u8 g_WallsDrawn;
 
 //=============================================================================
 // 16x16 PUYO PATTERNS WITH FACES
@@ -258,10 +260,6 @@ static const u8 g_PupilSprite[4][2][8] = {
       { 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x28, 0x18 } },
 };
 
-// Animated background pattern (very subtle: ~4 pixels spread across 8x8)
-static const u8 g_BgBasePattern[8] = {
-    0x00, 0x00, 0x10, 0x00, 0x00, 0x02, 0x00, 0x00
-};
 
 static const u8 g_PatEmptyTile[8] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -299,15 +297,12 @@ static u8 Game_ClearGroups(Player* p);
 static void Game_ChainLoop(Player* p, Player* opponent);
 static void Game_AddGarbage(Player* p);
 static void Game_DrawBoard(Player* p, u8 playerIdx);
-static void Game_DrawBottomBar(void);
 static void Game_DrawConnections(Player* p);
 static void Game_DrawScore(Player* p);
 static void Game_DrawTitle(void);
 static void Game_DrawGameOver(void);
 static i8 Game_GetSatX(u8 dir);
 static i8 Game_GetSatY(u8 dir);
-static void Game_FlashWalls(Player* p, u8 color);
-static void Game_RestoreWalls(void);
 static bool Game_IsInDanger(Player* p);
 
 //=============================================================================
@@ -434,10 +429,11 @@ static void VDP_Setup(void) {
 static void DrawPuyo16(u8 tx, u8 ty, u8 color) {
     u8 base;
     if (color == PUYO_EMPTY || color > PUYO_GARBAGE) {
-        VDP_Poke_GM2(tx,     ty,     PAT_BG);
-        VDP_Poke_GM2(tx + 1, ty,     PAT_BG);
-        VDP_Poke_GM2(tx,     ty + 1, PAT_BG);
-        VDP_Poke_GM2(tx + 1, ty + 1, PAT_BG);
+        // Restore original screen layout tiles
+        VDP_Poke_GM2(tx,     ty,     g_ScreenLayout[ty * 32 + tx]);
+        VDP_Poke_GM2(tx + 1, ty,     g_ScreenLayout[ty * 32 + tx + 1]);
+        VDP_Poke_GM2(tx,     ty + 1, g_ScreenLayout[(ty + 1) * 32 + tx]);
+        VDP_Poke_GM2(tx + 1, ty + 1, g_ScreenLayout[(ty + 1) * 32 + tx + 1]);
     } else {
         base = PAT_PUYO_BASE + (color - 1) * 4;
         VDP_Poke_GM2(tx,     ty,     base);      // TL
@@ -445,6 +441,11 @@ static void DrawPuyo16(u8 tx, u8 ty, u8 color) {
         VDP_Poke_GM2(tx,     ty + 1, base + 2);  // BL
         VDP_Poke_GM2(tx + 1, ty + 1, base + 3);  // BR
     }
+}
+
+// Restore a tile from the original screen layout
+static void RestoreTile(u8 tx, u8 ty) {
+    VDP_Poke_GM2(tx, ty, g_ScreenLayout[ty * 32 + tx]);
 }
 
 static void Shadow_Invalidate(void) {
@@ -456,7 +457,6 @@ static void Shadow_Invalidate(void) {
         g_ShadowNext[p][0] = 0xFF;
         g_ShadowNext[p][1] = 0xFF;
     }
-    g_WallsDrawn = FALSE;
 }
 
 // Draw a falling puyo at sub-tile position (2x2 tiles with 1-tile Y offset)
@@ -471,16 +471,6 @@ static void DrawPuyoSub(u8 tx, u8 ty, u8 color) {
     VDP_Poke_GM2(tx + 1, ty + 1, base + 1);  // TR at bottom
 }
 
-static const u8 g_BottomBar[32] = {
-    25,32,33,34,35,32,33,34,35,32,33,34,35,25,32,33,
-    32,33,25,32,33,34,35,32,33,34,35,32,33,34,35,25
-};
-
-static void Game_DrawBottomBar(void) {
-    u8 x;
-    for (x = 0; x < 32; x++)
-        VDP_Poke_GM2(x, 23, g_BottomBar[x]);
-}
 
 static void Game_DrawBoard(Player* p, u8 playerIdx) {
     u8 x, y;
@@ -522,7 +512,7 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     if (hasFalling && p->puyoY <= 1) {
         u8 cx;
         for (cx = 0; cx < BOARD_W * 2; cx++)
-            VDP_Poke_GM2(bx + cx, 0, PAT_BG);
+            RestoreTile(bx + cx, 0);
     }
 
     // If subY==2, draw only bottom half of puyos at tile row 0 (emerging from top)
@@ -568,8 +558,8 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
             u8 tyNew = by + py * 2 + 1;  // new half-step position
             u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
             // Clear old top row
-            VDP_Poke_GM2(bx + px * 2,     tyOld, PAT_BG);
-            VDP_Poke_GM2(bx + px * 2 + 1, tyOld, PAT_BG);
+            RestoreTile(bx + px * 2, tyOld);
+            RestoreTile(bx + px * 2 + 1, tyOld);
             // Draw at half position
             VDP_Poke_GM2(bx + px * 2,     tyNew,     base);
             VDP_Poke_GM2(bx + px * 2 + 1, tyNew,     base + 1);
@@ -593,8 +583,8 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                 u8 tyNew = by + (u8)sy * 2 + 1;
                 u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
                 // Clear old top row
-                VDP_Poke_GM2(bx + (u8)sx * 2,     tyOld, PAT_BG);
-                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyOld, PAT_BG);
+                RestoreTile(bx + (u8)sx * 2, tyOld);
+                RestoreTile(bx + (u8)sx * 2 + 1, tyOld);
                 // Draw at half position
                 VDP_Poke_GM2(bx + (u8)sx * 2,     tyNew,     base);
                 VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyNew,     base + 1);
@@ -606,25 +596,15 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         }
     }
 
-    // Draw walls once
-    if (!g_WallsDrawn) {
-        // P1 walls: left at x=0, right at x=13
-        for (y = 0; y < 24; y++) {
-            VDP_Poke_GM2(0, y, PAT_WALL);
-            VDP_Poke_GM2(13, y, PAT_WALL);
-            VDP_Poke_GM2(18, y, PAT_WALL);
-            VDP_Poke_GM2(31, y, PAT_WALL);
-        }
-        g_WallsDrawn = TRUE;
-    }
+    // Walls are part of the screen layout, no need to draw them
 
     // Next piece preview (2 puyos stacked, in center area)
     {
         u8 nx, ny;
         if (playerIdx == 0) {
-            nx = CENTER_X; ny = 2;
+            nx = 16; ny = 7;
         } else {
-            nx = CENTER_X + 2; ny = 2;
+            nx = 16; ny = 14;
         }
         if (p->nextColor1 != g_ShadowNext[playerIdx][0]) {
             g_ShadowNext[playerIdx][0] = p->nextColor1;
@@ -712,9 +692,9 @@ static void Game_DrawScore(Player* p) {
     p->prevGarbage = p->pendingGarbage;
 
     if (p == &g_Player[0]) {
-        sx = CENTER_X; sy = 8;
+        sx = CENTER_X; sy = 6;
     } else {
-        sx = CENTER_X; sy = 12;
+        sx = CENTER_X; sy = 13;
     }
 
     Print_SetPosition(sx, sy);
@@ -777,8 +757,6 @@ static void Game_DrawTitle(void) {
     DrawPuyoLetter(25, 10, letO, PUYO_BLUE);
 
     // "VS" between the two PUYOs - text
-    Print_SetPosition(15, 9);
-    Print_DrawText("VS");
 
     // "PUSH START" at bottom
     Print_SetPosition(11, 21);
@@ -1055,8 +1033,8 @@ static void Game_AnimateGravity(Player* p, u8 playerIdx) {
                     u8 base = PAT_PUYO_BASE + (p->board[y][x] - 1) * 4;
                     u8 ty = by + y * 2 + 1; // offset by 1 tile (8px)
                     // Clear original position top tile row
-                    VDP_Poke_GM2(bx + x * 2,     by + y * 2, PAT_BG);
-                    VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2, PAT_BG);
+                    RestoreTile(bx + x * 2, by + y * 2);
+                    RestoreTile(bx + x * 2 + 1, by + y * 2);
                     // Draw puyo shifted down 8px
                     VDP_Poke_GM2(bx + x * 2,     ty,     base);
                     VDP_Poke_GM2(bx + x * 2 + 1, ty,     base + 1);
@@ -1166,25 +1144,6 @@ static void Game_ClearChainText(void) {
 }
 
 // Flash walls of a player's board
-static void Game_FlashWalls(Player* p, u8 color) {
-    u8 y, bx = p->boardX;
-    u8 colorBuf[8];
-    u8 i, bank;
-    // Change color of wall pattern temporarily by rewriting color table for wall pattern
-    for (i = 0; i < 8; i++) colorBuf[i] = COLOR_MERGE(color, COLOR_BLACK);
-    for (bank = 0; bank < 3; bank++) {
-        VDP_WriteVRAM_16K(colorBuf, g_ScreenColorLow + (bank * 0x800) + (PAT_WALL * 8), 8);
-    }
-}
-
-static void Game_RestoreWalls(void) {
-    u8 colorBuf[8];
-    u8 i, bank;
-    for (i = 0; i < 8; i++) colorBuf[i] = COLOR_MERGE(COLOR_WHITE, COLOR_DARK_BLUE);
-    for (bank = 0; bank < 3; bank++) {
-        VDP_WriteVRAM_16K(colorBuf, g_ScreenColorLow + (bank * 0x800) + (PAT_WALL * 8), 8);
-    }
-}
 
 // Check if a player is in danger (puyos in top 2 rows)
 static bool Game_IsInDanger(Player* p) {
@@ -1295,15 +1254,12 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         if (totalGarbage > 0) {
             opponent->pendingGarbage += totalGarbage;
             SFX_Garbage();
-            // Flash opponent walls red
-            Game_FlashWalls(opponent, COLOR_LIGHT_RED);
             // Show garbage count in center
             Print_SetPosition(CENTER_X, 10);
             Print_DrawChar('+');
             Print_DrawChar('0' + (totalGarbage / 10) % 10);
             Print_DrawChar('0' + totalGarbage % 10);
             Halt(); Halt(); Halt(); Halt(); Halt(); Halt();
-            Game_RestoreWalls();
             Print_SetPosition(CENTER_X, 10);
             Print_DrawChar(' ');
             Print_DrawChar(' ');
@@ -1436,25 +1392,18 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
 static void Game_Init(void) {
     Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
     Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
-    VDP_FillScreen_GM2(PAT_BG);
-    // Center column: black background (no scroll)
-    {
-        u8 cx, cy;
-        for (cy = 0; cy < 24; cy++)
-            for (cx = CENTER_X; cx < CENTER_X + 4; cx++)
-                VDP_Poke_GM2(cx, cy, PAT_EMPTY);
-    }
+    // Load gameplay screen layout from compressed data
+    ZX0_UnpackToRAM(g_GameScreen_Zx0, g_ScreenLayout);
+    VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
+    Game_InitBgScroll();
     Shadow_Invalidate();
     g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
     Game_DrawBoard(&g_Player[0], 0);
     Game_DrawBoard(&g_Player[1], 1);
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
-    Print_SetPosition(CENTER_X, 7);
-    Print_DrawText("VS");
 
-    // Bottom decorative bars (tile rows 22-23)
-    Game_DrawBottomBar();
+    // Bottom bar already included in screen layout
 
     // Countdown 3-2-1-GO
     Print_SetPosition(CENTER_X + 1, 11);
@@ -1473,64 +1422,80 @@ static void Game_Init(void) {
     Print_DrawText("   ");
 }
 
-static u8 g_BgScrollOffset;
+
+// Background scroll
+static u8 g_BgPatP1[8]; // current pattern for tile 59
+static u8 g_BgPatP2[8]; // current pattern for tile 60
+
+static u8 g_BgOrigP1[8]; // original P1 pattern
+static u8 g_BgOrigP2[8]; // original P2 pattern
+static u8 g_BgStep;
+
+static void Game_InitBgScroll(void) {
+    u8 i, bank;
+    u8 uniformCol;
+    // Decompress tileset patterns to read tiles 59/60
+    ZX0_UnpackToRAM(g_TilesetPat_Zx0, g_PT3Buffer);
+    for (i = 0; i < 8; i++) {
+        g_BgOrigP1[i] = g_PT3Buffer[PAT_BG_P1 * 8 + i];
+        g_BgOrigP2[i] = g_PT3Buffer[PAT_BG_P2 * 8 + i];
+    }
+    // Set uniform color for BG tiles: fg=black(1), bg=dark_blue(4)
+    // This ensures dots are visible on any row after pattern rotation
+    uniformCol = COLOR_MERGE(COLOR_BLACK, COLOR_DARK_BLUE);
+    {
+        u8 colBuf[8];
+        for (i = 0; i < 8; i++) colBuf[i] = uniformCol;
+        for (bank = 0; bank < 3; bank++) {
+            u16 colBase = g_ScreenColorLow + (u16)bank * 0x800;
+            VDP_WriteVRAM_16K(colBuf, colBase + PAT_BG_P1 * 8, 8);
+            VDP_WriteVRAM_16K(colBuf, colBase + PAT_BG_P2 * 8, 8);
+        }
+    }
+    g_BgStep = 0;
+}
 
 static void Game_UpdateBackground(void) {
-    u8 scrolled[8];
-    u8 i, bank;
-    u16 patBase;
     static u8 frameDiv;
+    u8 bank, i;
 
     frameDiv++;
     if ((frameDiv & 7) != 0) return; // update every 8 frames
-    g_BgScrollOffset++;
 
-    // Vertical scroll: shift rows up by offset (wrapping around)
-    for (i = 0; i < 8; i++) {
-        scrolled[i] = g_BgBasePattern[(i - g_BgScrollOffset) & 7];
+    g_BgStep++;
+
+    {
+        u8 step = g_BgStep & 7;
+
+        // P1: diagonal down-right (shift rows down + rotate bits right)
+        for (i = 0; i < 8; i++) {
+            u8 row = g_BgOrigP1[(i - step) & 7];
+            if (step > 0)
+                g_BgPatP1[i] = (row >> step) | (row << (8 - step));
+            else
+                g_BgPatP1[i] = row;
+        }
+
+        // P2: diagonal down-left (shift rows down + rotate bits left)
+        for (i = 0; i < 8; i++) {
+            u8 row = g_BgOrigP2[(i - step) & 7];
+            if (step > 0)
+                g_BgPatP2[i] = (row << step) | (row >> (8 - step));
+            else
+                g_BgPatP2[i] = row;
+        }
     }
 
-    // Write to PAT_BG in all 3 banks
+    // Write patterns only to all 3 banks
     for (bank = 0; bank < 3; bank++) {
-        patBase = g_ScreenPatternLow + (bank * 0x800);
-        VDP_WriteVRAM_16K(scrolled, patBase + (PAT_BG * 8), 8);
+        u16 patBase = g_ScreenPatternLow + (u16)bank * 0x800;
+        VDP_WriteVRAM_16K(g_BgPatP1, patBase + PAT_BG_P1 * 8, 8);
+        VDP_WriteVRAM_16K(g_BgPatP2, patBase + PAT_BG_P2 * 8, 8);
     }
 }
 
-static u8 g_DangerFlash;
-
 static void Game_Update(void) {
-    Music_Update();
-    SFX_Update();
     Game_UpdateBackground();
-
-    // Danger + garbage wall flash
-    g_DangerFlash++;
-    {
-        bool p1Danger = Game_IsInDanger(&g_Player[0]);
-        bool p2Danger = Game_IsInDanger(&g_Player[1]);
-        bool needRestore = TRUE;
-
-        if (p1Danger || p2Danger) {
-            if ((g_DangerFlash & 7) < 4) {
-                if (p1Danger) Game_FlashWalls(&g_Player[0], COLOR_LIGHT_RED);
-                if (p2Danger) Game_FlashWalls(&g_Player[1], COLOR_LIGHT_RED);
-                needRestore = FALSE;
-            }
-        }
-        // Garbage pending: flash walls yellow (slower blink)
-        if (!p1Danger && g_Player[0].pendingGarbage > 0 && (g_DangerFlash & 15) < 8) {
-            Game_FlashWalls(&g_Player[0], COLOR_LIGHT_YELLOW);
-            needRestore = FALSE;
-        }
-        if (!p2Danger && g_Player[1].pendingGarbage > 0 && (g_DangerFlash & 15) < 8) {
-            Game_FlashWalls(&g_Player[1], COLOR_LIGHT_YELLOW);
-            needRestore = FALSE;
-        }
-        if (needRestore) {
-            Game_RestoreWalls();
-        }
-    }
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
     if (g_BoardDirty[0] || g_BoardDirty[1]) {

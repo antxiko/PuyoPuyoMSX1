@@ -17,7 +17,7 @@ canvas { image-rendering: pixelated; }
 #tile-edit-canvas { border: 2px solid yellow; cursor: crosshair; }
 #tile-preview { border: 1px solid #666; }
 textarea { background: #333; color: #0f0; border: 1px solid #666; width: 100%; height: 120px; font-family: monospace; font-size: 10px; }
-.palette-grid { display: flex; flex-wrap: wrap; gap: 2px; margin: 5px 0; }
+.palette-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; margin: 5px 0; }
 .pal-color { width: 28px; height: 28px; border: 2px solid #444; cursor: pointer; }
 .pal-color.fg-selected { border-color: yellow; }
 .pal-color.bg-selected { border-color: cyan; }
@@ -41,9 +41,10 @@ input[type=file] { display: none; }
         <span id="info">Tile #0</span>
         <button onclick="fillAll()">Fill All</button>
         <button onclick="clearAll()">Clear</button>
-        <button onclick="exportMap()">Export Map</button>
+        <button onclick="exportMap()">Export Map (.json)</button>
+        <button onclick="importMap()">Import Map (.json)</button>
+        <button onclick="exportCArray()">Export C Array</button>
         <button onclick="exportBin()">Export .bin</button>
-        <button onclick="importMap()">Import Map</button>
         <button onclick="loadTileset()">Load PNG</button>
         <button onclick="saveTileset()">Save Tileset PNG</button>
     </div>
@@ -86,10 +87,10 @@ input[type=file] { display: none; }
 <script>
 // MSX1 Palette
 const MSX_PALETTE = [
-    [0,0,0,'Transparent'],[0,0,0,'Black'],[33,200,66,'Med Green'],[94,220,120,'Lt Green'],
-    [84,85,237,'Dk Blue'],[125,118,252,'Lt Blue'],[212,82,77,'Dk Red'],[66,235,245,'Cyan'],
-    [252,85,84,'Med Red'],[255,121,120,'Lt Red'],[212,193,84,'Dk Yellow'],[230,206,128,'Lt Yellow'],
-    [33,176,59,'Dk Green'],[201,91,186,'Magenta'],[204,204,204,'Gray'],[255,255,255,'White']
+    [0,0,0,'Transparent'],[0,0,0,'Black'],[36,219,70,'Med Green'],[109,235,143,'Lt Green'],
+    [77,80,230,'Dk Blue'],[118,114,255,'Lt Blue'],[200,71,72,'Dk Red'],[84,243,242,'Cyan'],
+    [232,91,87,'Med Red'],[255,130,128,'Lt Red'],[217,200,82,'Dk Yellow'],[234,212,136,'Lt Yellow'],
+    [32,170,60,'Dk Green'],[195,91,183,'Magenta'],[203,203,203,'Gray'],[255,255,255,'White']
 ];
 
 const COLS = 32, ROWS = 24, TILE_W = 8, TILE_H = 8, SCALE = 3;
@@ -208,16 +209,25 @@ function closestMSXColor(r, g, b) {
 function loadTileToEditor(tileIdx) {
     editTile = tileIdx;
     document.getElementById('edit-tile-num').textContent = tileIdx;
-    if (!tilesetCanvas2D) return;
-    const ctx = tilesetCanvas2D.getContext('2d');
-    const tx = (tileIdx % TSET_COLS) * TILE_W;
-    const ty = Math.floor(tileIdx / TSET_COLS) * TILE_H;
-    const imgData = ctx.getImageData(tx, ty, 8, 8);
-    for (let y = 0; y < 8; y++)
-        for (let x = 0; x < 8; x++) {
-            const i = (y * 8 + x) * 4;
-            editPixels[y * 8 + x] = closestMSXColor(imgData.data[i], imgData.data[i+1], imgData.data[i+2]);
-        }
+    if (!tilesetImg) return;
+    // Use a temp canvas to read pixels (avoids CORS issues with tilesetCanvas2D)
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = 8; tmpCanvas.height = 8;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    const srcX = (tileIdx % TSET_COLS) * TILE_W;
+    const srcY = Math.floor(tileIdx / TSET_COLS) * TILE_H;
+    tmpCtx.drawImage(tilesetImg, srcX, srcY, 8, 8, 0, 0, 8, 8);
+    try {
+        const imgData = tmpCtx.getImageData(0, 0, 8, 8);
+        for (let y = 0; y < 8; y++)
+            for (let x = 0; x < 8; x++) {
+                const i = (y * 8 + x) * 4;
+                editPixels[y * 8 + x] = closestMSXColor(imgData.data[i], imgData.data[i+1], imgData.data[i+2]);
+            }
+    } catch(e) {
+        // CORS: fill with BG color
+        editPixels.fill(editBG);
+    }
     drawTileEditor();
 }
 
@@ -311,7 +321,7 @@ function applyTileEdit() {
     const ctx = tilesetCanvas2D.getContext('2d');
     const tx = (editTile % TSET_COLS) * TILE_W;
     const ty = Math.floor(editTile / TSET_COLS) * TILE_H;
-    const imgData = ctx.getImageData(tx, ty, 8, 8);
+    const imgData = ctx.createImageData(8, 8);
     for (let y = 0; y < 8; y++)
         for (let x = 0; x < 8; x++) {
             const c = editPixels[y*8+x];
@@ -320,13 +330,9 @@ function applyTileEdit() {
             imgData.data[i] = rgb[0]; imgData.data[i+1] = rgb[1]; imgData.data[i+2] = rgb[2]; imgData.data[i+3] = 255;
         }
     ctx.putImageData(imgData, tx, ty);
-    // Update tilesetImg from canvas
-    const tmpImg = new Image();
-    tmpImg.onload = function() {
-        tilesetImg = tmpImg;
-        drawTileset(); drawScreen(); updateSelected();
-    };
-    tmpImg.src = tilesetCanvas2D.toDataURL();
+    // Use the offscreen canvas directly as the tileset image source
+    tilesetImg = tilesetCanvas2D;
+    drawTileset(); drawScreen(); updateSelected();
 }
 
 // Save tileset as PNG
@@ -370,7 +376,19 @@ function updateSelected() {
     document.getElementById('info').textContent = 'Tile #' + selectedTile;
 }
 
-// Tileset: click=select, dblclick=edit
+// Tileset: tooltip + click=select+edit
+tsetCanvas.addEventListener('mousemove', function(e) {
+    const rect = tsetCanvas.getBoundingClientRect();
+    const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
+    const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
+    let tip = document.getElementById('tooltip');
+    if (!tip) { tip = document.createElement('div'); tip.id='tooltip'; tip.style.cssText='position:fixed;background:#000;color:#0f0;border:1px solid #0f0;padding:2px 6px;font-size:11px;pointer-events:none;z-index:999;'; document.body.appendChild(tip); }
+    const idx = Math.min(ty*TSET_COLS+tx, 255);
+    tip.textContent = 'Tile #'+idx;
+    tip.style.left = (e.clientX+12)+'px'; tip.style.top = (e.clientY+12)+'px';
+    tip.style.display = 'block';
+});
+tsetCanvas.addEventListener('mouseleave', function() { const t=document.getElementById('tooltip'); if(t) t.style.display='none'; });
 tsetCanvas.addEventListener('mousedown', function(e) {
     const rect = tsetCanvas.getBoundingClientRect();
     const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
@@ -394,11 +412,35 @@ scrCanvas.addEventListener('mousemove', function(e) { if(isDrawing) screenPlace(
 scrCanvas.addEventListener('mouseup', function() { isDrawing=false; });
 scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; });
 scrCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+scrCanvas.addEventListener('mousemove', function(e) {
+    if (isDrawing) { screenPlace(e); return; }
+    const rect = scrCanvas.getBoundingClientRect();
+    const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
+    const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
+    let tip = document.getElementById('tooltip');
+    if (!tip) { tip = document.createElement('div'); tip.id='tooltip'; tip.style.cssText='position:fixed;background:#000;color:#0f0;border:1px solid #0f0;padding:2px 6px;font-size:11px;pointer-events:none;z-index:999;'; document.body.appendChild(tip); }
+    if (tx>=0&&tx<COLS&&ty>=0&&ty<ROWS) {
+        tip.textContent = 'Tile #'+screenMap[ty*COLS+tx]+' ('+tx+','+ty+')';
+        tip.style.left = (e.clientX+12)+'px'; tip.style.top = (e.clientY+12)+'px';
+        tip.style.display = 'block';
+    } else { tip.style.display='none'; }
+});
+scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; const t=document.getElementById('tooltip'); if(t) t.style.display='none'; });
 
 function fillAll() { screenMap.fill(selectedTile); drawScreen(); }
 function clearAll() { screenMap.fill(0); drawScreen(); }
 
 function exportMap() {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({
+        width: COLS, height: ROWS,
+        tiles: Array.from(screenMap)
+    })], {type: 'application/json'}));
+    a.download = 'screen_layout.json';
+    a.click();
+}
+
+function exportCArray() {
     let out = 'static const u8 g_ScreenLayout['+COLS*ROWS+'] = {\n';
     for (let y = 0; y < ROWS; y++) {
         out += '    ';
@@ -406,7 +448,10 @@ function exportMap() {
         out += ' // row '+y+'\n';
     }
     out += '};\n';
-    document.getElementById('output').value = out;
+    const ta = document.getElementById('output');
+    ta.value = out;
+    ta.scrollIntoView();
+    ta.select();
 }
 
 function exportBin() {
@@ -416,10 +461,26 @@ function exportBin() {
 }
 
 function importMap() {
-    const nums = document.getElementById('output').value.match(/\d+/g);
-    if (!nums) return;
-    for (let i = 0; i < Math.min(nums.length, COLS*ROWS); i++) screenMap[i] = parseInt(nums[i]);
-    drawScreen();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.tiles && data.tiles.length) {
+                    for (let i = 0; i < Math.min(data.tiles.length, COLS*ROWS); i++)
+                        screenMap[i] = data.tiles[i];
+                    drawScreen();
+                }
+            } catch(err) { alert('Error reading file: ' + err.message); }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
 }
 </script>
 </body>
