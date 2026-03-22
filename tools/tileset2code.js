@@ -106,8 +106,8 @@ for (let tileIdx = 0; tileIdx < numTiles; tileIdx++) {
     for (let row = 0; row < 8; row++) {
         let fg, bg;
 
-        if (origColors && tileIdx * 8 + row < origColors.length) {
-            // Use exact colors from VRAM color table
+        if (origColors && tileIdx < 32) {
+            // Use exact VRAM colors for game tiles (0-31)
             const colByte = origColors[tileIdx * 8 + row];
             fg = (colByte >> 4) & 0xF;
             bg = colByte & 0xF;

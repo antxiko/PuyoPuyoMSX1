@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MSX Screen 2 Editor</title>
+<style>
+body { background: #222; color: #fff; font-family: monospace; margin: 10px; display: flex; gap: 20px; }
+#left-panel { flex: 1; }
+#right-panel { width: 340px; }
+.label { margin: 5px 0; font-size: 14px; font-weight: bold; }
+.sublabel { margin: 3px 0; font-size: 12px; color: #aaa; }
+button { background: #444; color: #fff; border: 1px solid #888; padding: 5px 12px; margin: 2px; cursor: pointer; font-family: monospace; font-size: 11px; }
+button:hover { background: #666; }
+button.active { background: #885; border-color: yellow; }
+canvas { image-rendering: pixelated; }
+#tileset-canvas { border: 1px solid #666; cursor: pointer; }
+#screen-canvas { border: 1px solid #666; cursor: pointer; }
+#tile-edit-canvas { border: 2px solid yellow; cursor: crosshair; }
+#tile-preview { border: 1px solid #666; }
+textarea { background: #333; color: #0f0; border: 1px solid #666; width: 100%; height: 120px; font-family: monospace; font-size: 10px; }
+.palette-grid { display: flex; flex-wrap: wrap; gap: 2px; margin: 5px 0; }
+.pal-color { width: 28px; height: 28px; border: 2px solid #444; cursor: pointer; }
+.pal-color.fg-selected { border-color: yellow; }
+.pal-color.bg-selected { border-color: cyan; }
+.color-info { font-size: 11px; margin: 3px 0; }
+#selected-tile { border: 2px solid yellow; vertical-align: middle; margin: 0 8px; }
+#info { display: inline; font-size: 12px; }
+.toolbar { margin: 4px 0; }
+input[type=file] { display: none; }
+</style>
+</head>
+<body>
+
+<div id="left-panel">
+    <h3>MSX Screen 2 Editor</h3>
+
+    <div class="label">Tileset (click to select, double-click to edit):</div>
+    <canvas id="tileset-canvas"></canvas>
+
+    <div class="toolbar">
+        Selected: <canvas id="selected-tile" width="32" height="32"></canvas>
+        <span id="info">Tile #0</span>
+        <button onclick="fillAll()">Fill All</button>
+        <button onclick="clearAll()">Clear</button>
+        <button onclick="exportMap()">Export Map</button>
+        <button onclick="exportBin()">Export .bin</button>
+        <button onclick="importMap()">Import Map</button>
+        <button onclick="loadTileset()">Load PNG</button>
+        <button onclick="saveTileset()">Save Tileset PNG</button>
+    </div>
+
+    <div class="label">Screen (32x24 = 256x192):</div>
+    <canvas id="screen-canvas"></canvas>
+
+    <div class="label">Output:</div>
+    <textarea id="output"></textarea>
+</div>
+
+<div id="right-panel">
+    <div class="label">Tile Editor - Tile #<span id="edit-tile-num">0</span></div>
+    <canvas id="tile-edit-canvas" width="256" height="256"></canvas>
+
+    <div class="sublabel">Preview:</div>
+    <canvas id="tile-preview" width="64" height="64"></canvas>
+
+    <div class="sublabel">MSX1 Palette (left=FG, right=BG):</div>
+    <div class="palette-grid" id="palette"></div>
+    <div class="color-info">
+        FG: <span id="fg-info">15 White</span> |
+        BG: <span id="bg-info">1 Black</span>
+    </div>
+    <div class="sublabel">Row colors (per 8px row, 2 colors max):</div>
+    <div id="row-colors"></div>
+
+    <div class="toolbar">
+        <button onclick="tileFlipH()">Flip H</button>
+        <button onclick="tileFlipV()">Flip V</button>
+        <button onclick="tileRotate()">Rotate</button>
+        <button onclick="tileClear()">Clear Tile</button>
+        <button onclick="tileInvert()">Invert</button>
+        <button onclick="applyTileEdit()">Apply to Tileset</button>
+    </div>
+</div>
+
+<input type="file" id="file-input" accept=".png">
+
+<script>
+// MSX1 Palette
+const MSX_PALETTE = [
+    [0,0,0,'Transparent'],[0,0,0,'Black'],[33,200,66,'Med Green'],[94,220,120,'Lt Green'],
+    [84,85,237,'Dk Blue'],[125,118,252,'Lt Blue'],[212,82,77,'Dk Red'],[66,235,245,'Cyan'],
+    [252,85,84,'Med Red'],[255,121,120,'Lt Red'],[212,193,84,'Dk Yellow'],[230,206,128,'Lt Yellow'],
+    [33,176,59,'Dk Green'],[201,91,186,'Magenta'],[204,204,204,'Gray'],[255,255,255,'White']
+];
+
+const COLS = 32, ROWS = 24, TILE_W = 8, TILE_H = 8, SCALE = 3;
+const TSET_COLS = 32, TSET_ROWS = 8;
+const EDIT_SCALE = 32; // pixel size in tile editor
+
+let tilesetImg = null;
+let tilesetCanvas2D = null; // offscreen canvas for pixel manipulation
+let selectedTile = 0;
+let screenMap = new Uint8Array(COLS * ROWS);
+let isDrawing = false, rightClick = false;
+
+// Tile editor state
+let editTile = 0;
+let editPixels = new Uint8Array(64); // 8x8 MSX color indices
+let editFG = 15; // white
+let editBG = 1;  // black
+let isEditDrawing = false, editRightBtn = false;
+
+screenMap.fill(0);
+
+// Canvas refs
+const tsetCanvas = document.getElementById('tileset-canvas');
+const tsetCtx = tsetCanvas.getContext('2d');
+const scrCanvas = document.getElementById('screen-canvas');
+const scrCtx = scrCanvas.getContext('2d');
+const selCanvas = document.getElementById('selected-tile');
+const selCtx = selCanvas.getContext('2d');
+const editCanvas = document.getElementById('tile-edit-canvas');
+const editCtx = editCanvas.getContext('2d');
+const prevCanvas = document.getElementById('tile-preview');
+const prevCtx = prevCanvas.getContext('2d');
+
+tsetCanvas.width = TSET_COLS * TILE_W * SCALE;
+tsetCanvas.height = TSET_ROWS * TILE_H * SCALE;
+scrCanvas.width = COLS * TILE_W * SCALE;
+scrCanvas.height = ROWS * TILE_H * SCALE;
+
+[tsetCtx, scrCtx, selCtx, editCtx, prevCtx].forEach(c => c.imageSmoothingEnabled = false);
+
+// Build palette UI
+const palDiv = document.getElementById('palette');
+for (let i = 0; i < 16; i++) {
+    const d = document.createElement('div');
+    d.className = 'pal-color';
+    d.style.background = `rgb(${MSX_PALETTE[i][0]},${MSX_PALETTE[i][1]},${MSX_PALETTE[i][2]})`;
+    if (i === 0) d.style.background = 'repeating-conic-gradient(#808080 0% 25%, #404040 0% 50%) 50%/8px 8px';
+    d.title = `${i}: ${MSX_PALETTE[i][3]}`;
+    d.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        if (e.button === 2) { editBG = i; } else { editFG = i; }
+        updatePaletteUI();
+    });
+    d.addEventListener('contextmenu', e => e.preventDefault());
+    palDiv.appendChild(d);
+}
+
+function updatePaletteUI() {
+    document.querySelectorAll('.pal-color').forEach((d, i) => {
+        d.classList.toggle('fg-selected', i === editFG);
+        d.classList.toggle('bg-selected', i === editBG);
+    });
+    document.getElementById('fg-info').textContent = editFG + ' ' + MSX_PALETTE[editFG][3];
+    document.getElementById('bg-info').textContent = editBG + ' ' + MSX_PALETTE[editBG][3];
+}
+updatePaletteUI();
+
+// Tileset loading
+function loadTileset() { document.getElementById('file-input').click(); }
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+            tilesetImg = img;
+            createTilesetCanvas();
+            drawTileset(); drawScreen(); updateSelected();
+            loadTileToEditor(selectedTile);
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+const defaultImg = new Image();
+defaultImg.onload = function() {
+    tilesetImg = defaultImg;
+    createTilesetCanvas();
+    drawTileset(); drawScreen(); updateSelected();
+    loadTileToEditor(0);
+};
+defaultImg.src = '../assets/tileset_tiled.png';
+
+function createTilesetCanvas() {
+    tilesetCanvas2D = document.createElement('canvas');
+    tilesetCanvas2D.width = tilesetImg.width;
+    tilesetCanvas2D.height = tilesetImg.height;
+    const ctx = tilesetCanvas2D.getContext('2d');
+    ctx.drawImage(tilesetImg, 0, 0);
+}
+
+function closestMSXColor(r, g, b) {
+    let best = 1, bestD = Infinity;
+    for (let i = 1; i < 16; i++) {
+        const dr = r - MSX_PALETTE[i][0], dg = g - MSX_PALETTE[i][1], db = b - MSX_PALETTE[i][2];
+        const d = dr*dr + dg*dg + db*db;
+        if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+}
+
+// Load tile pixels into editor
+function loadTileToEditor(tileIdx) {
+    editTile = tileIdx;
+    document.getElementById('edit-tile-num').textContent = tileIdx;
+    if (!tilesetCanvas2D) return;
+    const ctx = tilesetCanvas2D.getContext('2d');
+    const tx = (tileIdx % TSET_COLS) * TILE_W;
+    const ty = Math.floor(tileIdx / TSET_COLS) * TILE_H;
+    const imgData = ctx.getImageData(tx, ty, 8, 8);
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 8; x++) {
+            const i = (y * 8 + x) * 4;
+            editPixels[y * 8 + x] = closestMSXColor(imgData.data[i], imgData.data[i+1], imgData.data[i+2]);
+        }
+    drawTileEditor();
+}
+
+// Draw tile editor (big grid)
+function drawTileEditor() {
+    editCtx.clearRect(0, 0, 256, 256);
+    for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+            const c = editPixels[y * 8 + x];
+            const rgb = MSX_PALETTE[c];
+            editCtx.fillStyle = c === 0 ? '#808080' : `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+            editCtx.fillRect(x * EDIT_SCALE, y * EDIT_SCALE, EDIT_SCALE, EDIT_SCALE);
+        }
+    }
+    // Grid
+    editCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+    for (let i = 0; i <= 8; i++) {
+        editCtx.beginPath(); editCtx.moveTo(i*EDIT_SCALE, 0); editCtx.lineTo(i*EDIT_SCALE, 256); editCtx.stroke();
+        editCtx.beginPath(); editCtx.moveTo(0, i*EDIT_SCALE); editCtx.lineTo(256, i*EDIT_SCALE); editCtx.stroke();
+    }
+    // Preview
+    prevCtx.clearRect(0, 0, 64, 64);
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 8; x++) {
+            const c = editPixels[y * 8 + x];
+            const rgb = MSX_PALETTE[c];
+            prevCtx.fillStyle = c === 0 ? '#000' : `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+            prevCtx.fillRect(x * 8, y * 8, 8, 8);
+        }
+    // Row colors info
+    let rowHtml = '';
+    for (let y = 0; y < 8; y++) {
+        const colors = new Set();
+        for (let x = 0; x < 8; x++) colors.add(editPixels[y * 8 + x]);
+        const warn = colors.size > 2 ? ' style="color:red"' : '';
+        rowHtml += `<div${warn}>Row ${y}: ${[...colors].map(c=>c+' '+MSX_PALETTE[c][3]).join(', ')} (${colors.size} colors${colors.size>2?' WARNING!':''})</div>`;
+    }
+    document.getElementById('row-colors').innerHTML = rowHtml;
+}
+
+// Tile editor mouse
+function editPlace(e) {
+    const rect = editCanvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / EDIT_SCALE);
+    const y = Math.floor((e.clientY - rect.top) / EDIT_SCALE);
+    if (x < 0 || x >= 8 || y < 0 || y >= 8) return;
+    editPixels[y * 8 + x] = editRightBtn ? editBG : editFG;
+    drawTileEditor();
+}
+editCanvas.addEventListener('mousedown', function(e) { e.preventDefault(); isEditDrawing = true; editRightBtn = (e.button === 2); editPlace(e); });
+editCanvas.addEventListener('mousemove', function(e) { if (isEditDrawing) editPlace(e); });
+editCanvas.addEventListener('mouseup', function() { isEditDrawing = false; });
+editCanvas.addEventListener('mouseleave', function() { isEditDrawing = false; });
+editCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+// Tile operations
+function tileFlipH() {
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 4; x++) {
+            const a = y*8+x, b = y*8+(7-x);
+            [editPixels[a], editPixels[b]] = [editPixels[b], editPixels[a]];
+        }
+    drawTileEditor();
+}
+function tileFlipV() {
+    for (let y = 0; y < 4; y++)
+        for (let x = 0; x < 8; x++) {
+            const a = y*8+x, b = (7-y)*8+x;
+            [editPixels[a], editPixels[b]] = [editPixels[b], editPixels[a]];
+        }
+    drawTileEditor();
+}
+function tileRotate() {
+    const tmp = new Uint8Array(64);
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 8; x++)
+            tmp[x*8+(7-y)] = editPixels[y*8+x];
+    editPixels.set(tmp);
+    drawTileEditor();
+}
+function tileClear() { editPixels.fill(editBG); drawTileEditor(); }
+function tileInvert() {
+    for (let i = 0; i < 64; i++)
+        editPixels[i] = editPixels[i] === editFG ? editBG : editFG;
+    drawTileEditor();
+}
+
+// Apply edited tile back to tileset
+function applyTileEdit() {
+    if (!tilesetCanvas2D) return;
+    const ctx = tilesetCanvas2D.getContext('2d');
+    const tx = (editTile % TSET_COLS) * TILE_W;
+    const ty = Math.floor(editTile / TSET_COLS) * TILE_H;
+    const imgData = ctx.getImageData(tx, ty, 8, 8);
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 8; x++) {
+            const c = editPixels[y*8+x];
+            const rgb = MSX_PALETTE[c];
+            const i = (y*8+x)*4;
+            imgData.data[i] = rgb[0]; imgData.data[i+1] = rgb[1]; imgData.data[i+2] = rgb[2]; imgData.data[i+3] = 255;
+        }
+    ctx.putImageData(imgData, tx, ty);
+    // Update tilesetImg from canvas
+    const tmpImg = new Image();
+    tmpImg.onload = function() {
+        tilesetImg = tmpImg;
+        drawTileset(); drawScreen(); updateSelected();
+    };
+    tmpImg.src = tilesetCanvas2D.toDataURL();
+}
+
+// Save tileset as PNG
+function saveTileset() {
+    if (!tilesetCanvas2D) return;
+    const a = document.createElement('a');
+    a.href = tilesetCanvas2D.toDataURL('image/png');
+    a.download = 'tileset_tiled.png';
+    a.click();
+}
+
+// --- Screen editor (same as before) ---
+function drawTileset() {
+    if (!tilesetImg) return;
+    tsetCtx.clearRect(0, 0, tsetCanvas.width, tsetCanvas.height);
+    tsetCtx.drawImage(tilesetImg, 0, 0, tilesetImg.width, tilesetImg.height, 0, 0, tsetCanvas.width, tsetCanvas.height);
+    tsetCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+    for (let x = 0; x <= TSET_COLS; x++) { tsetCtx.beginPath(); tsetCtx.moveTo(x*TILE_W*SCALE,0); tsetCtx.lineTo(x*TILE_W*SCALE,tsetCanvas.height); tsetCtx.stroke(); }
+    for (let y = 0; y <= TSET_ROWS; y++) { tsetCtx.beginPath(); tsetCtx.moveTo(0,y*TILE_H*SCALE); tsetCtx.lineTo(tsetCanvas.width,y*TILE_H*SCALE); tsetCtx.stroke(); }
+    const sx = (selectedTile%TSET_COLS)*TILE_W*SCALE, sy = Math.floor(selectedTile/TSET_COLS)*TILE_H*SCALE;
+    tsetCtx.strokeStyle = 'yellow'; tsetCtx.lineWidth = 2;
+    tsetCtx.strokeRect(sx, sy, TILE_W*SCALE, TILE_H*SCALE); tsetCtx.lineWidth = 1;
+}
+
+function drawTileAt(tx, ty) {
+    if (!tilesetImg) return;
+    const idx = screenMap[ty*COLS+tx];
+    const srcX = (idx%TSET_COLS)*TILE_W, srcY = Math.floor(idx/TSET_COLS)*TILE_H;
+    scrCtx.drawImage(tilesetImg, srcX, srcY, TILE_W, TILE_H, tx*TILE_W*SCALE, ty*TILE_H*SCALE, TILE_W*SCALE, TILE_H*SCALE);
+}
+
+function drawScreen() {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) drawTileAt(x, y);
+}
+
+function updateSelected() {
+    if (!tilesetImg) return;
+    const srcX = (selectedTile%TSET_COLS)*TILE_W, srcY = Math.floor(selectedTile/TSET_COLS)*TILE_H;
+    selCtx.clearRect(0,0,32,32);
+    selCtx.drawImage(tilesetImg, srcX, srcY, TILE_W, TILE_H, 0, 0, 32, 32);
+    document.getElementById('info').textContent = 'Tile #' + selectedTile;
+}
+
+// Tileset: click=select, dblclick=edit
+tsetCanvas.addEventListener('mousedown', function(e) {
+    const rect = tsetCanvas.getBoundingClientRect();
+    const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
+    const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
+    selectedTile = Math.min(ty*TSET_COLS+tx, 255);
+    drawTileset(); updateSelected();
+    loadTileToEditor(selectedTile);
+});
+
+// Screen drawing
+function screenPlace(e) {
+    const rect = scrCanvas.getBoundingClientRect();
+    const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
+    const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
+    if (tx<0||tx>=COLS||ty<0||ty>=ROWS) return;
+    screenMap[ty*COLS+tx] = rightClick ? 0 : selectedTile;
+    drawTileAt(tx, ty);
+}
+scrCanvas.addEventListener('mousedown', function(e) { e.preventDefault(); isDrawing=true; rightClick=(e.button===2); screenPlace(e); });
+scrCanvas.addEventListener('mousemove', function(e) { if(isDrawing) screenPlace(e); });
+scrCanvas.addEventListener('mouseup', function() { isDrawing=false; });
+scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; });
+scrCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+function fillAll() { screenMap.fill(selectedTile); drawScreen(); }
+function clearAll() { screenMap.fill(0); drawScreen(); }
+
+function exportMap() {
+    let out = 'static const u8 g_ScreenLayout['+COLS*ROWS+'] = {\n';
+    for (let y = 0; y < ROWS; y++) {
+        out += '    ';
+        for (let x = 0; x < COLS; x++) { out += screenMap[y*COLS+x]; if(y<ROWS-1||x<COLS-1) out+=','; }
+        out += ' // row '+y+'\n';
+    }
+    out += '};\n';
+    document.getElementById('output').value = out;
+}
+
+function exportBin() {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([screenMap]));
+    a.download = 'screen_layout.bin'; a.click();
+}
+
+function importMap() {
+    const nums = document.getElementById('output').value.match(/\d+/g);
+    if (!nums) return;
+    for (let i = 0; i < Math.min(nums.length, COLS*ROWS); i++) screenMap[i] = parseInt(nums[i]);
+    drawScreen();
+}
+</script>
+</body>
+</html>

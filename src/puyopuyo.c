@@ -15,14 +15,14 @@
 //=============================================================================
 
 #define BOARD_W         6
-#define BOARD_H         12
+#define BOARD_H         11
 
 // Board positions in TILE coords (each puyo = 2x2 tiles)
 // Layout: [wall 1t][P1 12t][wall 1t][center 4t][wall 1t][P2 12t][wall 1t] = 32
 #define P1_BOARD_X      1    // tile X where P1 board starts
-#define P1_BOARD_Y      0    // tile Y
+#define P1_BOARD_Y      1    // tile Y (shifted down 1 to fit bottom bar at row 23)
 #define P2_BOARD_X      19
-#define P2_BOARD_Y      0
+#define P2_BOARD_Y      1
 #define CENTER_X        14   // center info column (4 tiles wide: 14,15,16,17)
 
 #define PUYO_EMPTY      0
@@ -86,6 +86,7 @@ typedef struct {
     u8 boardX, boardY;
     u8 rotateDelay;
     u8 subY;  // 0 = aligned, 1 = offset 8px down (half-cell)
+    u8 garbageFalling; // 1 = garbage is falling, wait before spawning
     u8 piecesPlaced; // count of locked pieces (for speed progression)
     u8 maxChain;     // best chain this game
     u16 totalCleared; // total puyos cleared this game
@@ -298,6 +299,7 @@ static u8 Game_ClearGroups(Player* p);
 static void Game_ChainLoop(Player* p, Player* opponent);
 static void Game_AddGarbage(Player* p);
 static void Game_DrawBoard(Player* p, u8 playerIdx);
+static void Game_DrawBottomBar(void);
 static void Game_DrawConnections(Player* p);
 static void Game_DrawScore(Player* p);
 static void Game_DrawTitle(void);
@@ -469,6 +471,17 @@ static void DrawPuyoSub(u8 tx, u8 ty, u8 color) {
     VDP_Poke_GM2(tx + 1, ty + 1, base + 1);  // TR at bottom
 }
 
+static const u8 g_BottomBar[32] = {
+    25,32,33,34,35,32,33,34,35,32,33,34,35,25,32,33,
+    32,33,25,32,33,34,35,32,33,34,35,32,33,34,35,25
+};
+
+static void Game_DrawBottomBar(void) {
+    u8 x;
+    for (x = 0; x < 32; x++)
+        VDP_Poke_GM2(x, 23, g_BottomBar[x]);
+}
+
 static void Game_DrawBoard(Player* p, u8 playerIdx) {
     u8 x, y;
     u8 bx = p->boardX;
@@ -505,36 +518,91 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         }
     }
 
+    // Clean tile row 0 (spawn area) when puyo is near the top
+    if (hasFalling && p->puyoY <= 1) {
+        u8 cx;
+        for (cx = 0; cx < BOARD_W * 2; cx++)
+            VDP_Poke_GM2(bx + cx, 0, PAT_BG);
+    }
+
+    // If subY==2, draw only bottom half of puyos at tile row 0 (emerging from top)
+    if (hasFalling && p->subY == 2) {
+        u8 px = p->puyoX;
+        i8 sx2 = (i8)px + Game_GetSatX(p->puyoDir);
+        i8 sy2 = Game_GetSatY(p->puyoDir);
+        // Main puyo: show BL/BR at row 0
+        u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
+        VDP_Poke_GM2(bx + px * 2,     0, base + 2);
+        VDP_Poke_GM2(bx + px * 2 + 1, 0, base + 3);
+        g_Shadow[playerIdx][0][px] = 0xFF;
+        // Satellite: show BL/BR at row 0 if same row, or skip if above
+        if (sx2 >= 0 && sx2 < BOARD_W) {
+            if (sy2 == 0) {
+                u8 base2 = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+                VDP_Poke_GM2(bx + (u8)sx2 * 2,     0, base2 + 2);
+                VDP_Poke_GM2(bx + (u8)sx2 * 2 + 1, 0, base2 + 3);
+                g_Shadow[playerIdx][0][(u8)sx2] = 0xFF;
+            }
+            // sy2==-1: satellite is above screen, will appear on next step
+        }
+    }
+
+    // If subY==0 and puyoY==0, also draw satellite at row 0 if it's at puyoY-1 (DIR_UP)
+    if (hasFalling && p->subY == 0 && p->puyoY == 0 && p->puyoDir == DIR_UP) {
+        // Satellite is at row -1, show only BL/BR at tile row 0
+        u8 base2 = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+        u8 sx3 = p->puyoX;
+        VDP_Poke_GM2(bx + sx3 * 2,     0, base2 + 2);
+        VDP_Poke_GM2(bx + sx3 * 2 + 1, 0, base2 + 3);
+    }
+
     // If subY==1, draw falling pair at half-cell offset (between rows)
     if (hasFalling && p->subY == 1) {
-        // Force redraw of affected cells next frame
         u8 px = p->puyoX, py = p->puyoY;
         i8 sx = (i8)px + Game_GetSatX(p->puyoDir);
         i8 sy = (i8)py + Game_GetSatY(p->puyoDir);
 
-        // Draw main puyo at half position: tile row = py*2 + 1
+        // Clear top tile row of old aligned position (the trail), then draw half-step
         if (py < BOARD_H && px < BOARD_W) {
-            u8 ty = by + py * 2 + 1;
+            u8 tyOld = by + py * 2;  // top of old position
+            u8 tyNew = by + py * 2 + 1;  // new half-step position
             u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
-            VDP_Poke_GM2(bx + px * 2,     ty,     base);      // TL
-            VDP_Poke_GM2(bx + px * 2 + 1, ty,     base + 1);  // TR
-            VDP_Poke_GM2(bx + px * 2,     ty + 1, base + 2);  // BL
-            VDP_Poke_GM2(bx + px * 2 + 1, ty + 1, base + 3);  // BR
-            // Invalidate shadow for this cell and the one below
+            // Clear old top row
+            VDP_Poke_GM2(bx + px * 2,     tyOld, PAT_BG);
+            VDP_Poke_GM2(bx + px * 2 + 1, tyOld, PAT_BG);
+            // Draw at half position
+            VDP_Poke_GM2(bx + px * 2,     tyNew,     base);
+            VDP_Poke_GM2(bx + px * 2 + 1, tyNew,     base + 1);
+            VDP_Poke_GM2(bx + px * 2,     tyNew + 1, base + 2);
+            VDP_Poke_GM2(bx + px * 2 + 1, tyNew + 1, base + 3);
             g_Shadow[playerIdx][py][px] = 0xFF;
             if (py + 1 < BOARD_H) g_Shadow[playerIdx][py + 1][px] = 0xFF;
         }
 
-        // Draw satellite puyo at half position
-        if (sx >= 0 && sx < BOARD_W && sy >= 0 && sy < BOARD_H) {
-            u8 ty = by + (u8)sy * 2 + 1;
-            u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-            VDP_Poke_GM2(bx + (u8)sx * 2,     ty,     base);
-            VDP_Poke_GM2(bx + (u8)sx * 2 + 1, ty,     base + 1);
-            VDP_Poke_GM2(bx + (u8)sx * 2,     ty + 1, base + 2);
-            VDP_Poke_GM2(bx + (u8)sx * 2 + 1, ty + 1, base + 3);
-            g_Shadow[playerIdx][(u8)sy][(u8)sx] = 0xFF;
-            if ((u8)sy + 1 < BOARD_H) g_Shadow[playerIdx][(u8)sy + 1][(u8)sx] = 0xFF;
+        // Satellite: clear old + draw half-step
+        if (sx >= 0 && sx < BOARD_W) {
+            if (sy == -1) {
+                u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+                VDP_Poke_GM2(bx + (u8)sx * 2,     0, base);
+                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, 0, base + 1);
+                VDP_Poke_GM2(bx + (u8)sx * 2,     1, base + 2);
+                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, 1, base + 3);
+                g_Shadow[playerIdx][0][(u8)sx] = 0xFF;
+            } else if (sy >= 0 && sy < BOARD_H) {
+                u8 tyOld = by + (u8)sy * 2;
+                u8 tyNew = by + (u8)sy * 2 + 1;
+                u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+                // Clear old top row
+                VDP_Poke_GM2(bx + (u8)sx * 2,     tyOld, PAT_BG);
+                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyOld, PAT_BG);
+                // Draw at half position
+                VDP_Poke_GM2(bx + (u8)sx * 2,     tyNew,     base);
+                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyNew,     base + 1);
+                VDP_Poke_GM2(bx + (u8)sx * 2,     tyNew + 1, base + 2);
+                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyNew + 1, base + 3);
+                g_Shadow[playerIdx][(u8)sy][(u8)sx] = 0xFF;
+                if ((u8)sy + 1 < BOARD_H) g_Shadow[playerIdx][(u8)sy + 1][(u8)sx] = 0xFF;
+            }
         }
     }
 
@@ -849,6 +917,7 @@ static void Game_InitPlayer(Player* p, u8 bx, u8 by) {
     p->inputDelay = 0;
     p->rotateDelay = 0;
     p->subY = 0;
+    p->garbageFalling = 0;
     p->piecesPlaced = 0;
     p->maxChain = 0;
     p->totalCleared = 0;
@@ -863,7 +932,7 @@ static void Game_SpawnPair(Player* p) {
     p->puyoX = 2;
     p->puyoY = 0;
     p->puyoDir = DIR_UP;
-    p->subY = 0;
+    p->subY = 2;  // 2 = emerging from top (show bottom half only at row 0)
     p->puyoColor1 = p->nextColor1;
     p->puyoColor2 = p->nextColor2;
     p->nextColor1 = (Math_GetRandom8() % PUYO_COUNT) + 1;
@@ -1246,21 +1315,23 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 
 static void Game_AddGarbage(Player* p) {
     u8 count, rows, remaining, x, y;
-    i8 iy;
     if (p->pendingGarbage == 0) return;
     SFX_GarbageReceive();
     count = p->pendingGarbage;
     if (count > BOARD_W * 2) count = BOARD_W * 2;
     p->pendingGarbage -= count;
     rows = (count + BOARD_W - 1) / BOARD_W;
-    for (iy = 0; iy < (i8)(BOARD_H - rows); iy++)
-        for (x = 0; x < BOARD_W; x++)
-            p->board[iy][x] = p->board[iy + rows][x];
+
+    // Place garbage at top rows (will fall down via gravity)
     remaining = count;
-    for (y = BOARD_H - rows; y < BOARD_H && remaining > 0; y++)
+    for (y = 0; y < rows && remaining > 0; y++)
         for (x = 0; x < BOARD_W && remaining > 0; x++) {
-            if (Math_GetRandom8() % 6 != 0) { p->board[y][x] = PUYO_GARBAGE; remaining--; }
-            else p->board[y][x] = PUYO_EMPTY;
+            if (p->board[y][x] == PUYO_EMPTY) {
+                if (Math_GetRandom8() % 6 != 0) {
+                    p->board[y][x] = PUYO_GARBAGE;
+                    remaining--;
+                }
+            }
         }
 }
 
@@ -1288,8 +1359,24 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (Keyboard_IsKeyPressed(KEY_SPACE)) btnA = TRUE;
     }
     if (dir & JOY_INPUT_DIR_UP) { btnUp = TRUE; dir &= ~JOY_INPUT_DIR_UP; }
+    // Handle garbage falling (non-blocking, 1 row per frame)
+    if (p->garbageFalling) {
+        if (Game_GravityStep(p)) {
+            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+        } else {
+            p->garbageFalling = 0;
+            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+        }
+        return;
+    }
+
     if (p->puyoColor1 == PUYO_EMPTY) {
-        Game_AddGarbage(p);
+        if (p->pendingGarbage > 0) {
+            Game_AddGarbage(p);
+            p->garbageFalling = 1;
+            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+            return;
+        }
         Game_SpawnPair(p);
         if (!p->alive) return;
         p->inputDelay = 3;
@@ -1317,7 +1404,10 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     p->dropTimer++;
     if (p->dropTimer >= currentSpeed) {
         p->dropTimer = 0;
-        if (p->subY == 0) {
+        if (p->subY == 2) {
+            // Emerging from top: transition to normal
+            p->subY = 0;
+        } else if (p->subY == 0) {
             // Half-step: check if we can move down
             if (Game_CanMovePair(p, 0, 1)) {
                 p->subY = 1;
@@ -1362,6 +1452,9 @@ static void Game_Init(void) {
     Game_DrawScore(&g_Player[1]);
     Print_SetPosition(CENTER_X, 7);
     Print_DrawText("VS");
+
+    // Bottom decorative bars (tile rows 22-23)
+    Game_DrawBottomBar();
 
     // Countdown 3-2-1-GO
     Print_SetPosition(CENTER_X + 1, 11);
@@ -1440,8 +1533,6 @@ static void Game_Update(void) {
     }
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
-    Game_DrawBoard(&g_Player[0], 0);
-    Game_DrawBoard(&g_Player[1], 1);
     if (g_BoardDirty[0] || g_BoardDirty[1]) {
         g_ConnPool = 128;
         Game_DrawConnections(&g_Player[0]);
@@ -1449,6 +1540,8 @@ static void Game_Update(void) {
         g_BoardDirty[0] = FALSE;
         g_BoardDirty[1] = FALSE;
     }
+    Game_DrawBoard(&g_Player[0], 0);
+    Game_DrawBoard(&g_Player[1], 1);
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
 }
