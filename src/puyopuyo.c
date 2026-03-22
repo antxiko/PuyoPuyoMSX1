@@ -8,6 +8,7 @@
 #include "pt3/pt3_player.h"
 #include "pt3/pt3_notetable2.h"
 #include "pt3_data.h"
+#include "tileset_data.h"
 
 //=============================================================================
 // DEFINES
@@ -394,67 +395,33 @@ static void SFX_Victory(void) {
 //=============================================================================
 
 static void VDP_Setup(void) {
-    u8 colorBuf[8];
-    u8 bank, c, q, i, idx;
+    u8 bank;
     u16 patBase, colBase;
 
     VDP_SetMode(VDP_MODE_GRAPHIC2);
+    VDP_SetColor(COLOR_BLACK);
     VDP_ClearVRAM();
     VDP_EnableVBlank(TRUE);
-
     VDP_DisableSpritesFrom(0);
 
-    for (bank = 0; bank < 3; bank++) {
-        patBase = g_ScreenPatternLow + (bank * 0x800);
-        colBase = g_ScreenColorLow + (bank * 0x800);
-
-        // Pattern 0: empty (true black)
-        VDP_WriteVRAM_16K(g_PatEmptyTile, patBase, 8);
-        for (i = 0; i < 8; i++) colorBuf[i] = g_EmptyColor;
-        VDP_WriteVRAM_16K(colorBuf, colBase, 8);
-
-        // Pattern PAT_BG: animated background
-        VDP_WriteVRAM_16K(g_BgBasePattern, patBase + (PAT_BG * 8), 8);
-        for (i = 0; i < 8; i++) colorBuf[i] = COLOR_MERGE(COLOR_DARK_BLUE, COLOR_BLACK);
-        VDP_WriteVRAM_16K(colorBuf, colBase + (PAT_BG * 8), 8);
-
-        // Patterns 1-20: puyo types with faces (5 types x 4 quadrants)
-        for (c = 0; c < 6; c++) {
-            for (q = 0; q < 4; q++) {
-                idx = PAT_PUYO_BASE + (c * 4) + q;
-                VDP_WriteVRAM_16K(g_PuyoPat[c][q], patBase + (idx * 8), 8);
-                VDP_WriteVRAM_16K(g_PuyoCol[c][q], colBase + (idx * 8), 8);
-            }
-        }
-
-        // Pattern 21: wall
-        VDP_WriteVRAM_16K(g_PatWallTile, patBase + (PAT_WALL * 8), 8);
-        for (i = 0; i < 8; i++) colorBuf[i] = g_WallColor;
-        VDP_WriteVRAM_16K(colorBuf, colBase + (PAT_WALL * 8), 8);
-
-        // Patterns 23-26: grey puyo (same shape as red, grey+white colors)
-        for (q = 0; q < 4; q++) {
-            idx = PAT_GRAY_BASE + q;
-            VDP_WriteVRAM_16K(g_PuyoPat[0][q], patBase + (idx * 8), 8);  // reuse red shape
-            for (i = 0; i < 8; i++) {
-                u8 orig = g_PuyoCol[0][q][i];
-                u8 fg = orig >> 4;
-                u8 bg = orig & 0x0F;
-                if (fg != COLOR_WHITE) fg = COLOR_GRAY;
-                if (bg != COLOR_BLACK) bg = COLOR_GRAY;
-                colorBuf[i] = (fg << 4) | bg;
-            }
-            VDP_WriteVRAM_16K(colorBuf, colBase + (idx * 8), 8);
-        }
-
-        // Pattern 31: explosion burst
-        VDP_WriteVRAM_16K(g_PatExplode, patBase + (PAT_EXPLODE * 8), 8);
-        for (i = 0; i < 8; i++) colorBuf[i] = COLOR_MERGE(COLOR_WHITE, COLOR_BLACK);
-        VDP_WriteVRAM_16K(colorBuf, colBase + (PAT_EXPLODE * 8), 8);
-    }
-
+    // Init Print system first (writes font to VRAM, will be overwritten by tileset)
     Print_SetTextFont(g_Font_MGL_Sample8, 32);
     Print_SetColor(COLOR_WHITE, COLOR_BLACK);
+
+    // Decompress tileset patterns to RAM, then copy to each VRAM bank
+    // This overwrites everything including font patterns (tileset has its own font)
+    ZX0_UnpackToRAM(g_TilesetPat_Zx0, g_PT3Buffer);
+    for (bank = 0; bank < 3; bank++) {
+        patBase = g_ScreenPatternLow + (bank * 0x800);
+        VDP_WriteVRAM_16K(g_PT3Buffer, patBase, 2048);
+    }
+
+    // Decompress tileset colors to RAM, then copy to each VRAM bank
+    ZX0_UnpackToRAM(g_TilesetCol_Zx0, g_PT3Buffer);
+    for (bank = 0; bank < 3; bank++) {
+        colBase = g_ScreenColorLow + (bank * 0x800);
+        VDP_WriteVRAM_16K(g_PT3Buffer, colBase, 2048);
+    }
 }
 
 //=============================================================================
