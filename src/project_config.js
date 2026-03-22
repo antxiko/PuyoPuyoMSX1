@@ -16,12 +16,16 @@ DoRun     = false;
 
 ProjName = "puyopuyo";
 ProjModules = [ ProjName ];
-LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "math", "psg", "pt3/pt3_player" ];
+LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "math", "psg", "pt3/pt3_player", "compress/pletter" ];
 
 Machine = "1";
-Target = "ROM_32K";
+Target = "ROM_48K";
+
+// Hook VDP interrupt to call VDP_InterruptHandler
+InstallRAMISR = true;
 
 Optim = "Speed";
+
 
 //*******************************************************************************
 // SIGNATURE SETTINGS

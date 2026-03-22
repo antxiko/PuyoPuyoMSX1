@@ -4,9 +4,10 @@
 #include "msxgl.h"
 #include "psg.h"
 #include "math.h"
+#include "compress/pletter.h"
 #include "pt3/pt3_player.h"
-#include "music_data.h"
-#include "title_music.h"
+#include "pt3/pt3_notetable2.h"
+#include "pt3_data.h"
 
 //=============================================================================
 // DEFINES
@@ -97,10 +98,9 @@ static Player g_Player[2];
 static u8 g_GameState;
 static u8 g_FrameCount;
 
-// Music player state
-static u16 g_MusicRow;
-static u8 g_MusicFrameCount;
-static bool g_MusicPlaying;
+// PT3 player needs song data in RAM (modifies it in-place)
+static u8 g_PT3Buffer[7845]; // size of largest PT3
+
 
 static u8 g_Shadow[2][BOARD_H][BOARD_W];
 static u8 g_ConnPool; // next free pattern index for connection pool (128-255)
@@ -303,16 +303,9 @@ static void Game_DrawTitle(void);
 static void Game_DrawGameOver(void);
 static i8 Game_GetSatX(u8 dir);
 static i8 Game_GetSatY(u8 dir);
-static void SFX_Update(void);
-static void SFX_Drop(void);
 static void Game_FlashWalls(Player* p, u8 color);
 static void Game_RestoreWalls(void);
 static bool Game_IsInDanger(Player* p);
-static void SFX_Clear(void);
-static void SFX_Chain(u8 chain);
-static void SFX_Garbage(void);
-static void SFX_GarbageReceive(void);
-static void SFX_Victory(void);
 
 //=============================================================================
 // HELPERS
@@ -340,36 +333,23 @@ static void WaitFrames(u8 count) {
 // TITLE MUSIC PLAYER
 //=============================================================================
 
+// ISR: called automatically every VBlank by crt0
+void VDP_InterruptHandler(void) {
+    PT3_UpdatePSG();
+    PT3_Decode();
+}
+
 static void TitleMusic_Start(void) {
-    g_MusicRow = 0;
-    g_MusicFrameCount = 0;
-    g_MusicPlaying = TRUE;
-    PSG_Mute();
-    PSG_SetRegister(7, 0x38);
+    PT3_Pause();
+    PT3_SetNoteTable(PT3_NT2);
+    PT3_Init();
+    Pletter_UnpackToRAM(g_MusicTitle_Plet, g_PT3Buffer);
+    PT3_InitSong(g_PT3Buffer);
+    PT3_SetLoop(TRUE);
+    PT3_Resume();
 }
 
 static void TitleMusic_Update(void) {
-    u16 a, b;
-
-    if (!g_MusicPlaying) return;
-
-    g_MusicFrameCount++;
-    if (g_MusicFrameCount < TitleMusic_FRAMES_PER_ROW) return;
-    g_MusicFrameCount = 0;
-
-    a = g_TitleMusicData[g_MusicRow][0];
-    b = g_TitleMusicData[g_MusicRow][1];
-
-    if (a == 1) { PSG_SetRegister(8, 0); }
-    else if (a > 1) { PSG_SetRegister(0, (u8)(a & 0xFF)); PSG_SetRegister(1, (u8)(a >> 8)); PSG_SetRegister(8, 11); }
-
-    if (b == 1) { PSG_SetRegister(9, 0); }
-    else if (b > 1) { PSG_SetRegister(2, (u8)(b & 0xFF)); PSG_SetRegister(3, (u8)(b >> 8)); PSG_SetRegister(9, 8); }
-
-    g_MusicRow++;
-    if (g_MusicRow >= TitleMusic_ROWS) {
-        g_MusicRow = TitleMusic_LOOP_ROW;
-    }
 }
 
 //=============================================================================
@@ -377,134 +357,36 @@ static void TitleMusic_Update(void) {
 //=============================================================================
 
 static void Music_Start(void) {
-    g_MusicRow = 0;
-    g_MusicFrameCount = 0;
-    g_MusicPlaying = TRUE;
-    PSG_Mute();  // silence first
-    // Enable tone on all 3 channels, disable noise
-    // Register 7: bits 0-2 tone (0=on), bits 3-5 noise (1=off)
-    PSG_SetRegister(7, 0x38);  // 00111000 = tones on, noise off
+    PT3_Pause();
+    PT3_SetNoteTable(PT3_NT2);
+    PT3_Init();
+    Pletter_UnpackToRAM(g_MusicGame_Plet, g_PT3Buffer);
+    PT3_InitSong(g_PT3Buffer);
+    PT3_SetLoop(TRUE);
+    PT3_Resume();
 }
 
 static void Music_Stop(void) {
-    g_MusicPlaying = FALSE;
-    PSG_Mute();
+    PT3_Pause();
+    PT3_Silence();
 }
 
 static void Music_Update(void) {
-    u16 a, b;
-
-    if (!g_MusicPlaying) return;
-
-    g_MusicFrameCount++;
-    if (g_MusicFrameCount < Music_FRAMES_PER_ROW) return;
-    g_MusicFrameCount = 0;
-
-    a = g_MusicData[g_MusicRow][0];
-    b = g_MusicData[g_MusicRow][1];
-
-    if (a == 1) { PSG_SetRegister(8, 0); }
-    else if (a > 1) { PSG_SetRegister(0, (u8)(a & 0xFF)); PSG_SetRegister(1, (u8)(a >> 8)); PSG_SetRegister(8, 11); }
-
-    if (b == 1) { PSG_SetRegister(9, 0); }
-    else if (b > 1) { PSG_SetRegister(2, (u8)(b & 0xFF)); PSG_SetRegister(3, (u8)(b >> 8)); PSG_SetRegister(9, 8); }
-
-    g_MusicRow++;
-    if (g_MusicRow >= MUSIC_ROWS) {
-        g_MusicRow = MUSIC_LOOP_ROW;
-    }
 }
 
 //=============================================================================
 // SOUND EFFECTS (all on Channel C - registers 4,5,10)
 //=============================================================================
 
-static u8 g_SfxTimer;   // frames remaining for current SFX
-static u8 g_SfxVolume;  // current SFX volume (decays)
-
-// Call every frame to handle SFX decay on channel C
-static void SFX_Update(void) {
-    if (g_SfxTimer > 0) {
-        g_SfxTimer--;
-        // Decay volume
-        if (g_SfxTimer > 0 && (g_SfxTimer & 1) == 0 && g_SfxVolume > 0) {
-            g_SfxVolume--;
-        }
-        PSG_SetRegister(10, g_SfxVolume);
-        if (g_SfxTimer == 0) {
-            PSG_SetRegister(10, 0); // silence channel C
-        }
-    }
-}
-
-// Piece locks into place - short thud
-static void SFX_Drop(void) {
-    PSG_SetRegister(4, (u8)(600 & 0xFF));
-    PSG_SetRegister(5, (u8)(600 >> 8));
-    g_SfxVolume = 10;
-    g_SfxTimer = 6;
-    PSG_SetRegister(10, g_SfxVolume);
-}
-
-// Group of 4+ cleared - bright pop
-static void SFX_Clear(void) {
-    PSG_SetRegister(4, (u8)(200 & 0xFF));
-    PSG_SetRegister(5, (u8)(200 >> 8));
-    g_SfxVolume = 13;
-    g_SfxTimer = 12;
-    PSG_SetRegister(10, g_SfxVolume);
-}
-
-// Chain combo - ascending pitch per chain step
-static void SFX_Chain(u8 chain) {
-    u16 tone = 250 - (chain * 25);
-    if (tone < 50) tone = 50;
-    PSG_SetRegister(4, (u8)(tone & 0xFF));
-    PSG_SetRegister(5, (u8)(tone >> 8));
-    g_SfxVolume = 14;
-    g_SfxTimer = 15;
-    PSG_SetRegister(10, g_SfxVolume);
-}
-
-// Garbage sent to opponent - low rumble
-static void SFX_Garbage(void) {
-    PSG_SetRegister(4, (u8)(900 & 0xFF));
-    PSG_SetRegister(5, (u8)(900 >> 8));
-    g_SfxVolume = 12;
-    g_SfxTimer = 10;
-    PSG_SetRegister(10, g_SfxVolume);
-}
-
-// Garbage received/lands - impact thump
-static void SFX_GarbageReceive(void) {
-    PSG_SetRegister(4, (u8)(1200 & 0xFF));
-    PSG_SetRegister(5, (u8)(1200 >> 8));
-    g_SfxVolume = 14;
-    g_SfxTimer = 8;
-    PSG_SetRegister(10, g_SfxVolume);
-}
-
-// Victory jingle (plays after music stops, uses all channels)
+// SFX stubs (disabled - PT3 controls all PSG)
+static void SFX_Update(void) {}
+static void SFX_Drop(void) {}
+static void SFX_Clear(void) {}
+static void SFX_Chain(u8 chain) { chain; }
+static void SFX_Garbage(void) {}
+static void SFX_GarbageReceive(void) {}
 static void SFX_Victory(void) {
-    PSG_SetRegister(7, 0x38); // all tones on
-    // C major arpeggio ascending
-    PSG_SetRegister(0, (u8)(213 & 0xFF)); PSG_SetRegister(1, (u8)(213 >> 8)); // C4
-    PSG_SetRegister(8, 12);
-    WaitFrames(8);
-    PSG_SetRegister(0, (u8)(169 & 0xFF)); PSG_SetRegister(1, (u8)(169 >> 8)); // E4
-    WaitFrames(8);
-    PSG_SetRegister(0, (u8)(142 & 0xFF)); PSG_SetRegister(1, (u8)(142 >> 8)); // G4
-    WaitFrames(8);
-    // Big C5 chord
-    PSG_SetRegister(0, (u8)(106 & 0xFF)); PSG_SetRegister(1, (u8)(106 >> 8)); // C5
-    PSG_SetRegister(2, (u8)(169 & 0xFF)); PSG_SetRegister(3, (u8)(169 >> 8)); // E4
-    PSG_SetRegister(4, (u8)(213 & 0xFF)); PSG_SetRegister(5, (u8)(213 >> 8)); // C4
-    PSG_SetRegister(8, 13); PSG_SetRegister(9, 10); PSG_SetRegister(10, 10);
-    WaitFrames(20);
-    // Fade
-    PSG_SetRegister(8, 6); PSG_SetRegister(9, 4); PSG_SetRegister(10, 4);
-    WaitFrames(10);
-    PSG_Mute();
+    WaitFrames(30);
 }
 
 //=============================================================================
@@ -1621,8 +1503,6 @@ static void WaitButton(void) {
 
 void main(void) {
     VDP_Setup();
-    PSG_SetMixer(~(PSG_TONE_A_ON | PSG_TONE_B_ON | PSG_TONE_C_ON));
-    PSG_Mute();
     g_GameState = STATE_TITLE;
     g_FrameCount = 0;
 
@@ -1664,7 +1544,7 @@ void main(void) {
             WaitFrames(60);
             WaitButton();
             // Stats screen
-            PSG_Mute();
+            PT3_Silence();
             Game_DrawStatsScreen();
             WaitButton();
             g_GameState = STATE_TITLE;
