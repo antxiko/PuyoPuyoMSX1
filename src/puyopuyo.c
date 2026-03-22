@@ -703,16 +703,19 @@ static void Game_DrawScore(Player* p) {
     Print_DrawChar('0' + (p->score / 100) % 10);
     Print_DrawChar('0' + (p->score / 10) % 10);
 
-    if (p->pendingGarbage > 0) {
-        Print_SetPosition(sx, sy + 1);
-        Print_DrawChar('G');
-        Print_DrawChar('0' + (p->pendingGarbage / 10) % 10);
-        Print_DrawChar('0' + p->pendingGarbage % 10);
-    } else {
-        Print_SetPosition(sx, sy + 1);
-        Print_DrawChar(' ');
-        Print_DrawChar(' ');
-        Print_DrawChar(' ');
+    {
+        u8 gy = (p == &g_Player[0]) ? 19 : 20;
+        if (p->pendingGarbage > 0) {
+            Print_SetPosition(CENTER_X, gy);
+            Print_DrawChar('G');
+            Print_DrawChar('0' + (p->pendingGarbage / 10) % 10);
+            Print_DrawChar('0' + p->pendingGarbage % 10);
+        } else {
+            Print_SetPosition(CENTER_X, gy);
+            RestoreTile(CENTER_X, gy);
+            RestoreTile(CENTER_X + 1, gy);
+            RestoreTile(CENTER_X + 2, gy);
+        }
     }
 }
 
@@ -1403,23 +1406,26 @@ static void Game_Init(void) {
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
 
-    // Bottom bar already included in screen layout
+    // Wait for screen to be visible before countdown
+    Halt(); Halt();
 
     // Countdown 3-2-1-GO
-    Print_SetPosition(CENTER_X + 1, 11);
+    Print_SetPosition(14, 1);
     Print_DrawChar('3');
     WaitFrames(30);
-    Print_SetPosition(CENTER_X + 1, 11);
+    Print_SetPosition(14, 1);
     Print_DrawChar('2');
     WaitFrames(30);
-    Print_SetPosition(CENTER_X + 1, 11);
+    Print_SetPosition(14, 1);
     Print_DrawChar('1');
     WaitFrames(30);
-    Print_SetPosition(CENTER_X, 11);
+    Print_SetPosition(14, 1);
     Print_DrawText("GO!");
     WaitFrames(20);
-    Print_SetPosition(CENTER_X, 11);
-    Print_DrawText("   ");
+    // Restore layout tiles instead of writing spaces
+    RestoreTile(14, 1);
+    RestoreTile(15, 1);
+    RestoreTile(16, 1);
 }
 
 
