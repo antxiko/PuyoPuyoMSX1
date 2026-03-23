@@ -1,0 +1,12 @@
+{
+  "name": "msx-editor",
+  "version": "1.0.0",
+  "bin": "editor.js",
+  "pkg": {
+    "assets": [
+      "screen_editor.html"
+    ],
+    "targets": ["node18-win-x64"],
+    "outputPath": "."
+  }
+}

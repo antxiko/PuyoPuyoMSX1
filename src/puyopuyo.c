@@ -1295,6 +1295,133 @@ static void Game_AddGarbage(Player* p) {
 }
 
 //=============================================================================
+// CPU AI (Player 2)
+//=============================================================================
+
+static u8 g_CpuTargetX;   // target column
+static u8 g_CpuTargetDir; // target rotation
+static u8 g_CpuDelay;     // frame counter between moves
+static u8 g_CpuLevel;     // 1-8 difficulty
+
+// CPU difficulty parameters per level (1-8)
+// [speed, columns, rotate, fastdrop]
+// speed: frames between moves (lower=faster)
+// columns: how many columns to evaluate (2-6)
+// rotate: 0=no, 1=yes
+// fastdrop: 0=no, 1=yes
+static const u8 g_CpuParams[8][4] = {
+    { 8, 2, 0, 0 }, // Level 1: very slow, 2 cols, no rotate, no fast drop
+    { 7, 3, 0, 0 }, // Level 2
+    { 6, 4, 0, 0 }, // Level 3
+    { 5, 5, 1, 0 }, // Level 4: starts rotating
+    { 4, 6, 1, 0 }, // Level 5: checks all columns
+    { 3, 6, 1, 1 }, // Level 6: fast drop
+    { 2, 6, 1, 1 }, // Level 7
+    { 1, 6, 1, 1 }, // Level 8: maximum speed
+};
+
+// Find the topmost puyo color in a column
+static u8 CPU_TopColor(Player* p, u8 x) {
+    i8 y;
+    for (y = 0; y < BOARD_H; y++) {
+        if (p->board[y][x] != PUYO_EMPTY)
+            return p->board[y][x];
+    }
+    return PUYO_EMPTY;
+}
+
+// Count how many adjacent same-color puyos are near the top of column x
+static u8 CPU_ScoreColumn(Player* p, u8 x, u8 color) {
+    u8 score = 0;
+    i8 y;
+    // Find landing row
+    for (y = BOARD_H - 1; y >= 0; y--) {
+        if (p->board[y][x] == PUYO_EMPTY) break;
+    }
+    if (y < 0) return 0; // column full
+    // Check neighbors at landing position
+    if (x > 0 && p->board[y][x-1] == color) score += 2;
+    if (x < BOARD_W-1 && p->board[y][x+1] == color) score += 2;
+    if (y < BOARD_H-1 && p->board[y+1][x] == color) score += 3;
+    // Bonus: matching color below
+    if (y + 1 < BOARD_H && p->board[y+1][x] == color) score += 2;
+    return score;
+}
+
+static void CPU_DecideMove(Player* p) {
+    u8 x, score, bestScore = 0;
+    u8 bestX = 2;
+    u8 bestDir = DIR_UP;
+    u8 c1 = p->puyoColor1;
+    u8 c2 = p->puyoColor2;
+    u8 lvl = g_CpuLevel;
+    u8 maxCols = g_CpuParams[lvl][1];
+    u8 canRotate = g_CpuParams[lvl][2];
+    u8 startX, endX;
+
+    // Lower levels only check a few columns near center
+    if (maxCols >= BOARD_W) {
+        startX = 0; endX = BOARD_W;
+    } else {
+        startX = (BOARD_W - maxCols) / 2;
+        endX = startX + maxCols;
+    }
+
+    // Levels 1-2: random element (sometimes pick random column)
+    if (lvl < 2 && (Math_GetRandom8() & 3) == 0) {
+        g_CpuTargetX = Math_GetRandom8() % BOARD_W;
+        g_CpuTargetDir = DIR_UP;
+        g_CpuDelay = 0;
+        return;
+    }
+
+    // Try vertical placements
+    for (x = startX; x < endX; x++) {
+        score = CPU_ScoreColumn(p, x, c1);
+        if (score > bestScore) {
+            bestScore = score; bestX = x; bestDir = DIR_UP;
+        }
+        if (canRotate) {
+            score = CPU_ScoreColumn(p, x, c2);
+            if (score > bestScore) {
+                bestScore = score; bestX = x; bestDir = DIR_DOWN;
+            }
+        }
+    }
+
+    // Levels 5+: try horizontal placement too
+    if (canRotate && lvl >= 4) {
+        for (x = startX; x < endX && x < BOARD_W - 1; x++) {
+            score = CPU_ScoreColumn(p, x, c1) + CPU_ScoreColumn(p, x + 1, c2);
+            if (score > bestScore) {
+                bestScore = score; bestX = x; bestDir = DIR_RIGHT;
+            }
+            score = CPU_ScoreColumn(p, x, c2) + CPU_ScoreColumn(p, x + 1, c1);
+            if (score > bestScore) {
+                bestScore = score; bestX = x; bestDir = DIR_LEFT;
+            }
+        }
+    }
+
+    // If nothing found, pick least-filled column
+    if (bestScore == 0) {
+        u8 minH = BOARD_H;
+        for (x = 0; x < BOARD_W; x++) {
+            u8 h = 0;
+            i8 y;
+            for (y = 0; y < BOARD_H; y++) {
+                if (p->board[y][x] != PUYO_EMPTY) { h = BOARD_H - y; break; }
+            }
+            if (h < minH) { minH = h; bestX = x; }
+        }
+    }
+
+    g_CpuTargetX = bestX;
+    g_CpuTargetDir = canRotate ? bestDir : DIR_UP;
+    g_CpuDelay = 0;
+}
+
+//=============================================================================
 // PLAYER UPDATE
 //=============================================================================
 
@@ -1318,6 +1445,25 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (Keyboard_IsKeyPressed(KEY_SPACE)) btnA = TRUE;
     }
     if (dir & JOY_INPUT_DIR_UP) { btnUp = TRUE; dir &= ~JOY_INPUT_DIR_UP; }
+
+    // CPU takes over player 2 if joystick is idle
+    if (joyPort == JOY_PORT_2 && dir == 0 && !btnA && !btnB && p->puyoColor1 != PUYO_EMPTY) {
+        u8 speed = g_CpuParams[g_CpuLevel][0];
+        u8 fastDrop = g_CpuParams[g_CpuLevel][3];
+        g_CpuDelay++;
+        if (g_CpuDelay >= speed) {
+            g_CpuDelay = 0;
+            if (p->puyoDir != g_CpuTargetDir) {
+                btnA = TRUE;
+            } else if (p->puyoX < g_CpuTargetX) {
+                dir = JOY_INPUT_DIR_RIGHT;
+            } else if (p->puyoX > g_CpuTargetX) {
+                dir = JOY_INPUT_DIR_LEFT;
+            } else if (fastDrop) {
+                dir = JOY_INPUT_DIR_DOWN;
+            }
+        }
+    }
     // Handle garbage falling (non-blocking, 1 row per frame)
     if (p->garbageFalling) {
         if (Game_GravityStep(p)) {
@@ -1339,6 +1485,8 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         Game_SpawnPair(p);
         if (!p->alive) return;
         p->inputDelay = 3;
+        // CPU decides target for new piece
+        if (joyPort == JOY_PORT_2) CPU_DecideMove(p);
         return;
     }
     if (p->inputDelay > 0) p->inputDelay--;
@@ -1395,6 +1543,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
 static void Game_Init(void) {
     Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
     Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
+    g_CpuLevel = 2; // Level 3 (0-indexed)
     // Load gameplay screen layout from compressed data
     ZX0_UnpackToRAM(g_GameScreen_Zx0, g_ScreenLayout);
     VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
