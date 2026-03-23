@@ -99,6 +99,8 @@ All game graphics were created with **[MSXJuanEditor](https://github.com/antxiko
 - **Antxiko** — game design, pixel art, music selection
 - **TheNestruo** — graphic design & art direction (the game would be MUCH uglier without him)
 - **Claude Opus 4.6** — code, tools, engine integration
+- **Aki** — title music: *Milky Way in My Pocket* (FOReVER 2026 - 8bit winter games)
+- **LaesQ** — gameplay music: *Ostagazuzulum* (FOReVER 2026 - 8bit winter games)
 - **MSXgl** by Aoineko — the framework that makes MSX C development possible
 - **PT3 player** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
 
