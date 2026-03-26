@@ -106,4 +106,30 @@ All game graphics were created with **[MSXJuanEditor](https://github.com/antxiko
 
 ---
 
+## The Great Connection Wars (builds 161-169)
+
+There are bugs you fix in an afternoon, and then there are bugs that drag you into the underworld and make you question reality. The puyo connection rendering was the latter.
+
+It started innocently: "the connections flicker sometimes." Nine builds, forty-seven failed theories, and one complete architectural rewrite later, we finally understood what was happening — and it was everything, all at once.
+
+**Build 161** — The original sin. Connections used a dynamic pattern pool (indices 128-255) that was rewritten to VRAM every single frame. Each connection required 17 bytes of VRAM writes: 8 for pattern data, 8 for color data, 1 for the name table. With a full board, that's hundreds of writes per frame, far exceeding what the VBlank period allows. The TMS9918A doesn't forgive.
+
+**Build 162-163** — We tried write buffers, pre-computing everything in RAM before flushing to VRAM. We tried drawing connections only for the affected player. We tried partial connection updates around the last locked piece. Each fix solved one problem and created two more. The pattern pool was shared between players — Player 1's connection patterns would overwrite indices that Player 2 was still referencing, causing puyos to display in the wrong color.
+
+**Build 164** — The great cleanup. Removed every dead variable, unused function, and zombie code path. Stripped 300+ bytes of RAM waste. The code was clean. The connections still flickered.
+
+**Build 165** — The architectural revolution. Replaced the entire dynamic pattern pool with 36 pre-computed fixed patterns loaded once at startup. Each puyo color gets 6 connection variants (top-filled TL, top-filled TR, bottom-filled BL, bottom-filled-with-left-edge BL, bottom-filled BR, bottom-filled-with-right-edge BR). Connection drawing went from 17 VRAM bytes per tile to exactly 1. A 17x reduction. The pool was dead. The flickering continued.
+
+**Build 166-167** — The falling piece was the traitor. Every frame, the subY drawing code would RestoreTile (write background) then immediately VDP_Poke (write puyo) at the same position, even when the piece hadn't moved. The VDP would scan between those two writes and display the background for one scanline pass — a flicker visible to the human eye but invisible to the logic. We added position tracking to skip redundant redraws. But then connections started disappearing because the cleanup code was overwriting them. We made connections redraw every frame — but that overloaded VRAM writes again when the board was full.
+
+**Build 168** — The shadow loop revelation. The shadow comparison system was marking `g_BoardDirty` from the cleanup code, which triggered a full connection redraw on the next frame. But that redraw wrote base puyo patterns first, erasing the connections, then redrew them — visible as a one-frame flash. The fix: trigger `g_BoardDirty` from inside the shadow loop itself, so connections are redrawn in the SAME frame, right after the base patterns, never leaving a frame without them.
+
+**Build 169** — The final boss: `Shadow_Invalidate()`. During chain combos, `Game_AnimateGravity` was calling `Shadow_Invalidate()` which nuked the ENTIRE shadow table — every cell set to 0xFF, forcing every puyo on the board to be redrawn from scratch, erasing all connections, then redrawing them one frame later. The connections would vanish during every single chain. The fix was surgical: instead of invalidating everything, only invalidate the specific cells that actually moved during gravity (source and destination). Puyos that didn't move kept their shadow clean, their connections untouched, their dignity intact.
+
+Nine builds. One function. Zero dynamic patterns. The connections finally hold.
+
+*The Z80 doesn't forgive sloppy VRAM management. But it respects those who learn.*
+
+---
+
 *Built for the machine that started it all. Long live the Z80.*

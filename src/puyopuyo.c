@@ -60,6 +60,8 @@
 #define PAT_GRAY_BASE   27  // grey puyo (4 quadrants: 27,28,29,30)
 #define PAT_EXPLODE     31  // explosion burst pattern
 // Font starts at 32
+#define PAT_CONN_BASE   61  // connection patterns: 6 per color, 6 colors = 36 (61-96)
+// Per color offset: 0=Q0top, 1=Q1top, 2=Q2bot, 3=Q2botL, 4=Q3bot, 5=Q3botR
 #define PAT_BG_P1       59  // P1 background tile (scroll diagonal down-right)
 #define PAT_BG_P2       60  // P2 background tile (scroll diagonal down-left)
 
@@ -108,9 +110,11 @@ static u8 g_PT3Buffer[7845]; // size of largest PT3
 
 static u8 g_Shadow[2][BOARD_H][BOARD_W];
 static u8 g_ScreenLayout[768]; // gameplay screen layout for tile restoration
-static u8 g_ConnPool; // next free pattern index for connection pool (128-255)
 static u8 g_BoardDirty[2]; // set when board changes, triggers connection redraw
 static u8 g_ShadowNext[2][2];
+// Track previous falling piece position for cleanup (0xFF = none)
+static u8 g_PrevFallX1[2], g_PrevFallY1[2]; // main puyo tile coords
+static u8 g_PrevFallX2[2], g_PrevFallY2[2]; // satellite tile coords
 
 //=============================================================================
 // 16x16 PUYO PATTERNS WITH FACES
@@ -292,12 +296,11 @@ static void Game_Update(void);
 static void Game_UpdatePlayer(Player* p, u8 joyPort);
 static bool Game_CanPlace(Player* p, u8 x, u8 y);
 static void Game_LockPair(Player* p);
-static bool Game_ApplyGravity(Player* p);
 static u8 Game_ClearGroups(Player* p);
 static void Game_ChainLoop(Player* p, Player* opponent);
 static void Game_AddGarbage(Player* p);
 static void Game_DrawBoard(Player* p, u8 playerIdx);
-static void Game_DrawConnections(Player* p);
+static void Game_DrawConnections(Player* p, u8 pi);
 static void Game_DrawScore(Player* p);
 static void Game_DrawTitle(void);
 static void Game_DrawGameOver(void);
@@ -377,7 +380,6 @@ static void Music_Update(void) {
 //=============================================================================
 
 // SFX stubs (disabled - PT3 controls all PSG)
-static void SFX_Update(void) {}
 static void SFX_Drop(void) {}
 static void SFX_Clear(void) {}
 static void SFX_Chain(u8 chain) { chain; }
@@ -419,6 +421,70 @@ static void VDP_Setup(void) {
         colBase = g_ScreenColorLow + (bank * 0x800);
         VDP_WriteVRAM_16K(g_PT3Buffer, colBase, 2048);
     }
+
+    // Pre-compute connection patterns into VRAM
+    Game_InitConnPatterns();
+}
+
+// Pre-compute connection patterns into VRAM indices PAT_CONN_BASE..PAT_CONN_BASE+35
+static void Game_InitConnPatterns(void) {
+    u8 ci, bank;
+    u8 patBuf[8];
+
+    for (ci = 0; ci < 6; ci++) {
+        u8 baseIdx = PAT_CONN_BASE + ci * 6;
+        u8 i;
+
+        // Variant 0: Q0 (TL) top-filled - rows 0-2 = 0xFF
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][0][i];
+        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][0], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx) * 8, 8);
+        }
+
+        // Variant 1: Q1 (TR) top-filled - rows 0-2 = 0xFF
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][1][i];
+        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 1) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][1], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 1) * 8, 8);
+        }
+
+        // Variant 2: Q2 (BL) bottom-filled - rows 5-7 = 0xFF
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][2][i];
+        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 2) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][2], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 2) * 8, 8);
+        }
+
+        // Variant 3: Q2 (BL) bottom-filled + left edge
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][2][i];
+        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
+        patBuf[3] |= 0x80; patBuf[4] |= 0x80;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 3) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][2], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 3) * 8, 8);
+        }
+
+        // Variant 4: Q3 (BR) bottom-filled - rows 5-7 = 0xFF
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][3][i];
+        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 4) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][3], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 4) * 8, 8);
+        }
+
+        // Variant 5: Q3 (BR) bottom-filled + right edge
+        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][3][i];
+        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
+        patBuf[3] |= 0x01; patBuf[4] |= 0x01;
+        for (bank = 0; bank < 3; bank++) {
+            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 5) * 8, 8);
+            VDP_WriteVRAM_16K(g_PuyoCol[ci][3], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 5) * 8, 8);
+        }
+    }
 }
 
 //=============================================================================
@@ -456,20 +522,11 @@ static void Shadow_Invalidate(void) {
                 g_Shadow[p][y][x] = 0xFF;
         g_ShadowNext[p][0] = 0xFF;
         g_ShadowNext[p][1] = 0xFF;
+        g_PrevFallX1[p] = 0xFF; g_PrevFallY1[p] = 0xFF;
+        g_PrevFallX2[p] = 0xFF; g_PrevFallY2[p] = 0xFF;
     }
 }
 
-// Draw a falling puyo at sub-tile position (2x2 tiles with 1-tile Y offset)
-static void DrawPuyoSub(u8 tx, u8 ty, u8 color) {
-    u8 base;
-    if (color == PUYO_EMPTY || color > PUYO_GARBAGE) return;
-    base = PAT_PUYO_BASE + (color - 1) * 4;
-    // Draw bottom half of puyo at ty, top half at ty+1
-    VDP_Poke_GM2(tx,     ty,     base + 2);  // BL at top
-    VDP_Poke_GM2(tx + 1, ty,     base + 3);  // BR at top
-    VDP_Poke_GM2(tx,     ty + 1, base);      // TL at bottom
-    VDP_Poke_GM2(tx + 1, ty + 1, base + 1);  // TR at bottom
-}
 
 
 static void Game_DrawBoard(Player* p, u8 playerIdx) {
@@ -486,126 +543,155 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
 
     // If subY==0, overlay falling pair into visible grid (aligned)
     if (hasFalling && p->subY == 0) {
-        if (p->puyoY < BOARD_H && p->puyoX < BOARD_W) {
+        if (p->puyoY < BOARD_H && p->puyoX < BOARD_W)
             visible[p->puyoY][p->puyoX] = p->puyoColor1;
-        }
         {
             i8 sxs = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
             i8 sys = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
-            if (sxs >= 0 && sxs < BOARD_W && sys >= 0 && sys < BOARD_H) {
+            if (sxs >= 0 && sxs < BOARD_W && sys >= 0 && sys < BOARD_H)
                 visible[sys][sxs] = p->puyoColor2;
+        }
+    }
+
+    // Only update changed cells (shadow comparison)
+    {
+        u8 skipX1 = 0xFF, skipY1 = 0xFF, skipX2 = 0xFF, skipY2 = 0xFF;
+        if (hasFalling && p->subY != 0) {
+            skipX1 = p->puyoX; skipY1 = p->puyoY;
+            {
+                i8 fsx = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+                i8 fsy = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
+                if (fsx >= 0 && fsx < BOARD_W && fsy >= 0)
+                    { skipX2 = (u8)fsx; skipY2 = (u8)fsy; }
+            }
+        }
+        for (y = 0; y < BOARD_H; y++) {
+            for (x = 0; x < BOARD_W; x++) {
+                if (x == skipX1 && (y == skipY1 || y == skipY1 + 1)) continue;
+                if (x == skipX2 && (y == skipY2 || y == skipY2 + 1)) continue;
+                if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
+                    g_Shadow[playerIdx][y][x] = visible[y][x];
+                    DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
+                    g_BoardDirty[playerIdx] = TRUE;
+                }
             }
         }
     }
 
-    // Only update changed cells (each cell = 2x2 tiles)
-    for (y = 0; y < BOARD_H; y++) {
-        for (x = 0; x < BOARD_W; x++) {
-            if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
-                g_Shadow[playerIdx][y][x] = visible[y][x];
-                DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
+    // --- FALLING PIECE: compute new position, clean only moved tiles, draw new ---
+    {
+        u8 prevX1 = g_PrevFallX1[playerIdx], prevY1 = g_PrevFallY1[playerIdx];
+        u8 prevX2 = g_PrevFallX2[playerIdx], prevY2 = g_PrevFallY2[playerIdx];
+        u8 newX1 = 0xFF, newY1 = 0xFF, newX2 = 0xFF, newY2 = 0xFF;
+
+        // Pre-compute where the piece WILL be drawn this frame
+        if (hasFalling && p->subY == 2) {
+            newX1 = bx + p->puyoX * 2; newY1 = 0;
+            { i8 s = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+              if (s >= 0 && s < BOARD_W && Game_GetSatY(p->puyoDir) == 0)
+                { newX2 = bx + (u8)s * 2; newY2 = 0; } }
+        } else if (hasFalling && p->subY == 1) {
+            if (p->puyoY < BOARD_H && p->puyoX < BOARD_W)
+                { newX1 = bx + p->puyoX * 2; newY1 = by + p->puyoY * 2; }
+            { i8 sx = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+              i8 sy = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
+              if (sx >= 0 && sx < BOARD_W) {
+                if (sy == -1) { newX2 = bx + (u8)sx * 2; newY2 = 0; }
+                else if (sy >= 0 && sy < BOARD_H) { newX2 = bx + (u8)sx * 2; newY2 = by + (u8)sy * 2; }
+              } }
+        } else if (hasFalling && p->subY == 0 && p->puyoY == 0 && p->puyoDir == DIR_UP) {
+            newX2 = bx + p->puyoX * 2; newY2 = 0;
+        }
+
+        // Only clean previous position if it MOVED
+        if (prevX1 != 0xFF && (prevX1 != newX1 || prevY1 != newY1)) {
+            RestoreTile(prevX1, prevY1);
+            RestoreTile(prevX1 + 1, prevY1);
+            if (prevY1 + 1 < 24) { RestoreTile(prevX1, prevY1 + 1); RestoreTile(prevX1 + 1, prevY1 + 1); }
+            if (prevY1 + 2 < 24) { RestoreTile(prevX1, prevY1 + 2); RestoreTile(prevX1 + 1, prevY1 + 2); }
+            if (prevY1 >= by && prevY1 < by + BOARD_H * 2) {
+                u8 cy = (prevY1 - by) / 2, cx = (prevX1 - bx) / 2;
+                if (cx < BOARD_W && cy < BOARD_H) g_Shadow[playerIdx][cy][cx] = 0xFF;
+                if (cx < BOARD_W && cy + 1 < BOARD_H) g_Shadow[playerIdx][cy + 1][cx] = 0xFF;
+                if (cx < BOARD_W && cy + 2 < BOARD_H) g_Shadow[playerIdx][cy + 2][cx] = 0xFF;
             }
         }
+        if (prevX2 != 0xFF && (prevX2 != newX2 || prevY2 != newY2)) {
+            RestoreTile(prevX2, prevY2);
+            RestoreTile(prevX2 + 1, prevY2);
+            if (prevY2 + 1 < 24) { RestoreTile(prevX2, prevY2 + 1); RestoreTile(prevX2 + 1, prevY2 + 1); }
+            if (prevY2 + 2 < 24) { RestoreTile(prevX2, prevY2 + 2); RestoreTile(prevX2 + 1, prevY2 + 2); }
+            if (prevY2 >= by && prevY2 < by + BOARD_H * 2) {
+                u8 cy = (prevY2 - by) / 2, cx = (prevX2 - bx) / 2;
+                if (cx < BOARD_W && cy < BOARD_H) g_Shadow[playerIdx][cy][cx] = 0xFF;
+                if (cx < BOARD_W && cy + 1 < BOARD_H) g_Shadow[playerIdx][cy + 1][cx] = 0xFF;
+                if (cx < BOARD_W && cy + 2 < BOARD_H) g_Shadow[playerIdx][cy + 2][cx] = 0xFF;
+            }
+        }
+        g_PrevFallX1[playerIdx] = 0xFF;
+        g_PrevFallX2[playerIdx] = 0xFF;
     }
 
-    // Clean tile row 0 (spawn area) when puyo is near the top
-    if (hasFalling && p->puyoY <= 1) {
-        u8 cx;
-        for (cx = 0; cx < BOARD_W * 2; cx++)
-            RestoreTile(bx + cx, 0);
-    }
-
-    // If subY==2, draw only bottom half of puyos at tile row 0 (emerging from top)
+    // Draw falling piece at current position
     if (hasFalling && p->subY == 2) {
-        u8 px = p->puyoX;
-        i8 sx2 = (i8)px + Game_GetSatX(p->puyoDir);
-        i8 sy2 = Game_GetSatY(p->puyoDir);
-        // Main puyo: show BL/BR at row 0
         u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
-        VDP_Poke_GM2(bx + px * 2,     0, base + 2);
-        VDP_Poke_GM2(bx + px * 2 + 1, 0, base + 3);
-        g_Shadow[playerIdx][0][px] = 0xFF;
-        // Satellite: show BL/BR at row 0 if same row, or skip if above
-        if (sx2 >= 0 && sx2 < BOARD_W) {
-            if (sy2 == 0) {
-                u8 base2 = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                VDP_Poke_GM2(bx + (u8)sx2 * 2,     0, base2 + 2);
-                VDP_Poke_GM2(bx + (u8)sx2 * 2 + 1, 0, base2 + 3);
-                g_Shadow[playerIdx][0][(u8)sx2] = 0xFF;
-            }
-            // sy2==-1: satellite is above screen, will appear on next step
-        }
+        u8 tx1 = bx + p->puyoX * 2;
+        VDP_Poke_GM2(tx1, 0, base + 2);
+        VDP_Poke_GM2(tx1 + 1, 0, base + 3);
+        g_PrevFallX1[playerIdx] = tx1; g_PrevFallY1[playerIdx] = 0;
+        { i8 sx2 = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+          if (sx2 >= 0 && sx2 < BOARD_W && Game_GetSatY(p->puyoDir) == 0) {
+            u8 base2 = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+            u8 tx2 = bx + (u8)sx2 * 2;
+            VDP_Poke_GM2(tx2, 0, base2 + 2);
+            VDP_Poke_GM2(tx2 + 1, 0, base2 + 3);
+            g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = 0;
+        } }
     }
 
-    // If subY==0 and puyoY==0, also draw satellite at row 0 if it's at puyoY-1 (DIR_UP)
     if (hasFalling && p->subY == 0 && p->puyoY == 0 && p->puyoDir == DIR_UP) {
-        // Satellite is at row -1, show only BL/BR at tile row 0
         u8 base2 = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-        u8 sx3 = p->puyoX;
-        VDP_Poke_GM2(bx + sx3 * 2,     0, base2 + 2);
-        VDP_Poke_GM2(bx + sx3 * 2 + 1, 0, base2 + 3);
+        u8 tx2 = bx + p->puyoX * 2;
+        VDP_Poke_GM2(tx2, 0, base2 + 2);
+        VDP_Poke_GM2(tx2 + 1, 0, base2 + 3);
+        g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = 0;
     }
 
-    // If subY==1, draw falling pair at half-cell offset (between rows)
     if (hasFalling && p->subY == 1) {
         u8 px = p->puyoX, py = p->puyoY;
         i8 sx = (i8)px + Game_GetSatX(p->puyoDir);
         i8 sy = (i8)py + Game_GetSatY(p->puyoDir);
-
-        // Clear top tile row of old aligned position (the trail), then draw half-step
         if (py < BOARD_H && px < BOARD_W) {
-            u8 tyOld = by + py * 2;  // top of old position
-            u8 tyNew = by + py * 2 + 1;  // new half-step position
+            u8 tyTop = by + py * 2;
             u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
-            // Clear old top row
-            RestoreTile(bx + px * 2, tyOld);
-            RestoreTile(bx + px * 2 + 1, tyOld);
-            // Draw at half position
-            VDP_Poke_GM2(bx + px * 2,     tyNew,     base);
-            VDP_Poke_GM2(bx + px * 2 + 1, tyNew,     base + 1);
-            VDP_Poke_GM2(bx + px * 2,     tyNew + 1, base + 2);
-            VDP_Poke_GM2(bx + px * 2 + 1, tyNew + 1, base + 3);
-            g_Shadow[playerIdx][py][px] = 0xFF;
-            if (py + 1 < BOARD_H) g_Shadow[playerIdx][py + 1][px] = 0xFF;
+            u8 tx1 = bx + px * 2;
+            RestoreTile(tx1, tyTop); RestoreTile(tx1 + 1, tyTop);
+            VDP_Poke_GM2(tx1, tyTop + 1, base); VDP_Poke_GM2(tx1 + 1, tyTop + 1, base + 1);
+            VDP_Poke_GM2(tx1, tyTop + 2, base + 2); VDP_Poke_GM2(tx1 + 1, tyTop + 2, base + 3);
+            g_PrevFallX1[playerIdx] = tx1; g_PrevFallY1[playerIdx] = tyTop;
         }
-
-        // Satellite: clear old + draw half-step
         if (sx >= 0 && sx < BOARD_W) {
+            u8 tx2 = bx + (u8)sx * 2;
             if (sy == -1) {
                 u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                VDP_Poke_GM2(bx + (u8)sx * 2,     0, base);
-                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, 0, base + 1);
-                VDP_Poke_GM2(bx + (u8)sx * 2,     1, base + 2);
-                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, 1, base + 3);
-                g_Shadow[playerIdx][0][(u8)sx] = 0xFF;
+                VDP_Poke_GM2(tx2, 0, base); VDP_Poke_GM2(tx2 + 1, 0, base + 1);
+                VDP_Poke_GM2(tx2, 1, base + 2); VDP_Poke_GM2(tx2 + 1, 1, base + 3);
+                g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = 0;
             } else if (sy >= 0 && sy < BOARD_H) {
-                u8 tyOld = by + (u8)sy * 2;
-                u8 tyNew = by + (u8)sy * 2 + 1;
+                u8 tyTop = by + (u8)sy * 2;
                 u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                // Clear old top row
-                RestoreTile(bx + (u8)sx * 2, tyOld);
-                RestoreTile(bx + (u8)sx * 2 + 1, tyOld);
-                // Draw at half position
-                VDP_Poke_GM2(bx + (u8)sx * 2,     tyNew,     base);
-                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyNew,     base + 1);
-                VDP_Poke_GM2(bx + (u8)sx * 2,     tyNew + 1, base + 2);
-                VDP_Poke_GM2(bx + (u8)sx * 2 + 1, tyNew + 1, base + 3);
-                g_Shadow[playerIdx][(u8)sy][(u8)sx] = 0xFF;
-                if ((u8)sy + 1 < BOARD_H) g_Shadow[playerIdx][(u8)sy + 1][(u8)sx] = 0xFF;
+                RestoreTile(tx2, tyTop); RestoreTile(tx2 + 1, tyTop);
+                VDP_Poke_GM2(tx2, tyTop + 1, base); VDP_Poke_GM2(tx2 + 1, tyTop + 1, base + 1);
+                VDP_Poke_GM2(tx2, tyTop + 2, base + 2); VDP_Poke_GM2(tx2 + 1, tyTop + 2, base + 3);
+                g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = tyTop;
             }
         }
     }
 
-    // Walls are part of the screen layout, no need to draw them
-
-    // Next piece preview (2 puyos stacked, in center area)
+    // Next piece preview
     {
         u8 nx, ny;
-        if (playerIdx == 0) {
-            nx = 16; ny = 7;
-        } else {
-            nx = 16; ny = 14;
-        }
+        if (playerIdx == 0) { nx = 16; ny = 7; } else { nx = 16; ny = 14; }
         if (p->nextColor1 != g_ShadowNext[playerIdx][0]) {
             g_ShadowNext[playerIdx][0] = p->nextColor1;
             DrawPuyo16(nx, ny, p->nextColor1);
@@ -617,10 +703,10 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     }
 }
 
-// Draw blob connections: fill corners where same-color puyos are adjacent
-static void Game_DrawConnections(Player* p) {
-    u8 x, y, color, ci, q, bx, by;
-    u8 patBuf[8];
+// Draw connections using pre-computed fixed patterns (1 byte per tile, no pattern writes)
+static void Game_DrawConnections(Player* p, u8 pi) {
+    u8 x, y, bx, by, color, ci, cU, cD, cL, cR, connBase;
+    (void)pi;
     bx = p->boardX;
     by = p->boardY;
 
@@ -629,55 +715,44 @@ static void Game_DrawConnections(Player* p) {
             color = p->board[y][x];
             if (color < 1 || color > PUYO_COUNT) continue;
 
-            // Skip falling pair cells
+            // Skip falling pair cells (and row below when subY!=0)
             if (p->alive && p->puyoColor1 != PUYO_EMPTY) {
-                if (p->puyoX == x && p->puyoY == y) continue;
-                {
-                    i8 sx2 = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
-                    i8 sy2 = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
-                    if ((u8)sx2 == x && (u8)sy2 == y) continue;
+                u8 fpx = p->puyoX, fpy = p->puyoY;
+                i8 fsx = (i8)fpx + Game_GetSatX(p->puyoDir);
+                i8 fsy = (i8)fpy + Game_GetSatY(p->puyoDir);
+                if (p->subY != 0) {
+                    if (x == fpx && (y == fpy || y == fpy + 1)) continue;
+                    if (fsx >= 0 && x == (u8)fsx && (y == (u8)fsy || y == (u8)fsy + 1)) continue;
+                } else {
+                    if (x == fpx && y == fpy) continue;
+                    if (fsx >= 0 && fsy >= 0 && x == (u8)fsx && y == (u8)fsy) continue;
                 }
             }
 
             ci = color - 1;
+            cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
+            cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
+            cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
+            cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
+
+            if (!cU && !cD && !cL && !cR) continue;
+
+            connBase = PAT_CONN_BASE + ci * 6;
             {
-                u8 cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
-                u8 cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
-                u8 cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
-                u8 cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
+                u8 tx = bx + x * 2;
+                u8 ty = by + y * 2;
 
-                if (!cU && !cD && !cL && !cR) continue;
-
-                for (q = 0; q < 4; q++) {
-                    u8 needFill = 0;
-                    u8 tx, ty2, bank, idx, i;
-
-                    if (q == 0 && (cU || cL)) needFill = 1;
-                    if (q == 1 && (cU || cR)) needFill = 1;
-                    if (q == 2 && (cD || cL)) needFill = 1;
-                    if (q == 3 && (cD || cR)) needFill = 1;
-
-                    if (!needFill) continue;
-                    if (g_ConnPool >= 255) continue;
-
-                    for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][q][i];
-
-                    if (q < 2) {
-                        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
-                    } else {
-                        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
-                        if (q == 2 && cL) { patBuf[3] |= 0x80; patBuf[4] |= 0x80; }
-                        if (q == 3 && cR) { patBuf[3] |= 0x01; patBuf[4] |= 0x01; }
-                    }
-
-                    tx = bx + x * 2 + (q & 1);
-                    ty2 = by + y * 2 + (q >> 1);
-                    bank = ty2 / 8;
-                    idx = g_ConnPool++;
-
-                    VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)idx * 8, 8);
-                    VDP_WriteVRAM_16K(g_PuyoCol[ci][q], g_ScreenColorLow + (u16)bank * 0x800 + (u16)idx * 8, 8);
-                    VDP_Poke_GM2(tx, ty2, idx);
+                if (cU || cL)
+                    VDP_Poke_GM2(tx, ty, connBase);
+                if (cU || cR)
+                    VDP_Poke_GM2(tx + 1, ty, connBase + 1);
+                if (cD || cL) {
+                    u8 idx = cL ? connBase + 3 : connBase + 2;
+                    VDP_Poke_GM2(tx, ty + 1, idx);
+                }
+                if (cD || cR) {
+                    u8 idx = cR ? connBase + 5 : connBase + 4;
+                    VDP_Poke_GM2(tx + 1, ty + 1, idx);
                 }
             }
         }
@@ -979,7 +1054,7 @@ static void Game_LockPair(Player* p) {
     p->puyoColor2 = PUYO_EMPTY;
     p->subY = 0;
     SFX_Drop();
-    g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+    g_BoardDirty[p == &g_Player[1] ? 1 : 0] = TRUE;
 
     // Speed progression: every 10 pieces, increase speed
     p->piecesPlaced++;
@@ -1029,20 +1104,22 @@ static void Game_AnimateGravity(Player* p, u8 playerIdx) {
         if (!willFall) break;
 
         // Draw half-step: show falling puyos at +1 tile offset (8px)
+        // Also invalidate shadow for cells that move (source + dest)
         for (x = 0; x < BOARD_W; x++) {
             for (iy = BOARD_H - 2; iy >= 0; iy--) {
                 u8 y = (u8)iy;
                 if (p->board[y][x] != PUYO_EMPTY && p->board[y + 1][x] == PUYO_EMPTY) {
                     u8 base = PAT_PUYO_BASE + (p->board[y][x] - 1) * 4;
-                    u8 ty = by + y * 2 + 1; // offset by 1 tile (8px)
-                    // Clear original position top tile row
+                    u8 ty = by + y * 2 + 1;
                     RestoreTile(bx + x * 2, by + y * 2);
                     RestoreTile(bx + x * 2 + 1, by + y * 2);
-                    // Draw puyo shifted down 8px
                     VDP_Poke_GM2(bx + x * 2,     ty,     base);
                     VDP_Poke_GM2(bx + x * 2 + 1, ty,     base + 1);
                     VDP_Poke_GM2(bx + x * 2,     ty + 1, base + 2);
                     VDP_Poke_GM2(bx + x * 2 + 1, ty + 1, base + 3);
+                    // Invalidate only moved cells
+                    g_Shadow[playerIdx][y][x] = 0xFF;
+                    g_Shadow[playerIdx][y + 1][x] = 0xFF;
                 }
             }
         }
@@ -1050,10 +1127,6 @@ static void Game_AnimateGravity(Player* p, u8 playerIdx) {
 
         // Actually move puyos down 1 row in the board
         Game_GravityStep(p);
-
-        // Redraw affected area
-        Shadow_Invalidate();
-    g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
         Game_DrawBoard(p, playerIdx);
         Halt(); // 1 frame at full position
     }
@@ -1223,6 +1296,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
             totalGarbage += CHAIN_GARBAGE_BASE * chainCount;
 
             Game_DrawBoard(p, playerIdx);
+            Game_DrawConnections(p, playerIdx);
             Game_DrawScore(p);
 
             // Longer pause for bigger chains
@@ -1319,16 +1393,6 @@ static const u8 g_CpuParams[8][4] = {
     { 2, 6, 1, 1 }, // Level 7
     { 1, 6, 1, 1 }, // Level 8: maximum speed
 };
-
-// Find the topmost puyo color in a column
-static u8 CPU_TopColor(Player* p, u8 x) {
-    i8 y;
-    for (y = 0; y < BOARD_H; y++) {
-        if (p->board[y][x] != PUYO_EMPTY)
-            return p->board[y][x];
-    }
-    return PUYO_EMPTY;
-}
 
 // Count how many adjacent same-color puyos are near the top of column x
 static u8 CPU_ScoreColumn(Player* p, u8 x, u8 color) {
@@ -1466,20 +1530,22 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     }
     // Handle garbage falling (non-blocking, 1 row per frame)
     if (p->garbageFalling) {
+        u8 pi = (p == &g_Player[1]) ? 1 : 0;
         if (Game_GravityStep(p)) {
-            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+            g_BoardDirty[pi] = TRUE;
         } else {
             p->garbageFalling = 0;
-            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+            g_BoardDirty[pi] = TRUE;
         }
         return;
     }
 
     if (p->puyoColor1 == PUYO_EMPTY) {
         if (p->pendingGarbage > 0) {
+            u8 pi = (p == &g_Player[1]) ? 1 : 0;
             Game_AddGarbage(p);
             p->garbageFalling = 1;
-            g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
+            g_BoardDirty[pi] = TRUE;
             return;
         }
         Game_SpawnPair(p);
@@ -1650,18 +1716,19 @@ static void Game_UpdateBackground(void) {
 }
 
 static void Game_Update(void) {
-    Game_UpdateBackground();
+    // Logic first (no VRAM writes)
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
-    if (g_BoardDirty[0] || g_BoardDirty[1]) {
-        g_ConnPool = 128;
-        Game_DrawConnections(&g_Player[0]);
-        Game_DrawConnections(&g_Player[1]);
-        g_BoardDirty[0] = FALSE;
-        g_BoardDirty[1] = FALSE;
-    }
+
+    // Wait for VBlank — VRAM writes start during blanking period
+    Halt();
+
+    // All VRAM writes (start during VBlank for flicker-free display)
+    Game_UpdateBackground();
     Game_DrawBoard(&g_Player[0], 0);
     Game_DrawBoard(&g_Player[1], 1);
+    if (g_BoardDirty[0]) { Game_DrawConnections(&g_Player[0], 0); g_BoardDirty[0] = FALSE; }
+    if (g_BoardDirty[1]) { Game_DrawConnections(&g_Player[1], 1); g_BoardDirty[1] = FALSE; }
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
 }
@@ -1687,8 +1754,8 @@ void main(void) {
     g_FrameCount = 0;
 
     while (1) {
-        Halt();
         if (g_GameState == STATE_TITLE) {
+            Halt();
             Game_DrawTitle();
             TitleMusic_Start();
             // Wait for button press while playing title music
