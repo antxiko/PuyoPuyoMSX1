@@ -126,9 +126,11 @@ It started innocently: "the connections flicker sometimes." Nine builds, forty-s
 
 **Build 169** — The final boss: `Shadow_Invalidate()`. During chain combos, `Game_AnimateGravity` was calling `Shadow_Invalidate()` which nuked the ENTIRE shadow table — every cell set to 0xFF, forcing every puyo on the board to be redrawn from scratch, erasing all connections, then redrawing them one frame later. The connections would vanish during every single chain. The fix was surgical: instead of invalidating everything, only invalidate the specific cells that actually moved during gravity (source and destination). Puyos that didn't move kept their shadow clean, their connections untouched, their dignity intact.
 
-Nine builds. One function. Zero dynamic patterns. The connections finally hold.
+**Build 170** — The ghost connections. Everything looked perfect until we noticed a green puyo showing connection edges with no neighbor in sight. The connection code only *wrote* connected quadrants — it never *erased* disconnected ones. When a neighbor vanished (cleared in a combo), the old connection pattern stayed in VRAM like a scar. The fix: write all 4 quadrants of every puyo — connection pattern where adjacent, base pattern where not. No ghosts survive. And one final reordering: cleanup runs *before* the shadow loop, not after, so the shadow redraws on top of cleaned tiles instead of the cleanup erasing what the shadow just painted. Background scroll moved to last — the falling pieces deserve the VBlank, not the wallpaper.
 
-*The Z80 doesn't forgive sloppy VRAM management. But it respects those who learn.*
+Ten builds. One architectural rewrite. 36 pre-computed patterns. Zero dynamic allocations. The connections hold. The pieces land clean. The Z80 breathes.
+
+*We came for a flicker fix. We rebuilt the entire rendering pipeline.*
 
 ---
 

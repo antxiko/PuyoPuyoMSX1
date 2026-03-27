@@ -553,32 +553,7 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         }
     }
 
-    // Only update changed cells (shadow comparison)
-    {
-        u8 skipX1 = 0xFF, skipY1 = 0xFF, skipX2 = 0xFF, skipY2 = 0xFF;
-        if (hasFalling && p->subY != 0) {
-            skipX1 = p->puyoX; skipY1 = p->puyoY;
-            {
-                i8 fsx = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
-                i8 fsy = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
-                if (fsx >= 0 && fsx < BOARD_W && fsy >= 0)
-                    { skipX2 = (u8)fsx; skipY2 = (u8)fsy; }
-            }
-        }
-        for (y = 0; y < BOARD_H; y++) {
-            for (x = 0; x < BOARD_W; x++) {
-                if (x == skipX1 && (y == skipY1 || y == skipY1 + 1)) continue;
-                if (x == skipX2 && (y == skipY2 || y == skipY2 + 1)) continue;
-                if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
-                    g_Shadow[playerIdx][y][x] = visible[y][x];
-                    DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
-                    g_BoardDirty[playerIdx] = TRUE;
-                }
-            }
-        }
-    }
-
-    // --- FALLING PIECE: compute new position, clean only moved tiles, draw new ---
+    // --- STEP 1: Clean previous falling piece position BEFORE shadow loop ---
     {
         u8 prevX1 = g_PrevFallX1[playerIdx], prevY1 = g_PrevFallY1[playerIdx];
         u8 prevX2 = g_PrevFallX2[playerIdx], prevY2 = g_PrevFallY2[playerIdx];
@@ -603,7 +578,7 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
             newX2 = bx + p->puyoX * 2; newY2 = 0;
         }
 
-        // Only clean previous position if it MOVED
+        // Clean + invalidate shadow so shadow loop redraws correctly
         if (prevX1 != 0xFF && (prevX1 != newX1 || prevY1 != newY1)) {
             RestoreTile(prevX1, prevY1);
             RestoreTile(prevX1 + 1, prevY1);
@@ -632,7 +607,32 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         g_PrevFallX2[playerIdx] = 0xFF;
     }
 
-    // Draw falling piece at current position
+    // --- STEP 2: Shadow loop redraws cells that changed (including just-cleaned ones) ---
+    {
+        u8 skipX1 = 0xFF, skipY1 = 0xFF, skipX2 = 0xFF, skipY2 = 0xFF;
+        if (hasFalling && p->subY != 0) {
+            skipX1 = p->puyoX; skipY1 = p->puyoY;
+            {
+                i8 fsx = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+                i8 fsy = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
+                if (fsx >= 0 && fsx < BOARD_W && fsy >= 0)
+                    { skipX2 = (u8)fsx; skipY2 = (u8)fsy; }
+            }
+        }
+        for (y = 0; y < BOARD_H; y++) {
+            for (x = 0; x < BOARD_W; x++) {
+                if (x == skipX1 && (y == skipY1 || y == skipY1 + 1)) continue;
+                if (x == skipX2 && (y == skipY2 || y == skipY2 + 1)) continue;
+                if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
+                    g_Shadow[playerIdx][y][x] = visible[y][x];
+                    DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
+                    g_BoardDirty[playerIdx] = TRUE;
+                }
+            }
+        }
+    }
+
+    // --- STEP 3: Draw falling piece at current position ---
     if (hasFalling && p->subY == 2) {
         u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
         u8 tx1 = bx + p->puyoX * 2;
@@ -735,24 +735,26 @@ static void Game_DrawConnections(Player* p, u8 pi) {
             cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
             cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
 
-            if (!cU && !cD && !cL && !cR) continue;
-
-            connBase = PAT_CONN_BASE + ci * 6;
             {
+                u8 base = PAT_PUYO_BASE + ci * 4;
                 u8 tx = bx + x * 2;
                 u8 ty = by + y * 2;
+                connBase = PAT_CONN_BASE + ci * 6;
 
-                if (cU || cL)
-                    VDP_Poke_GM2(tx, ty, connBase);
-                if (cU || cR)
-                    VDP_Poke_GM2(tx + 1, ty, connBase + 1);
+                // Always write all 4 quadrants: connection pattern or base pattern
+                VDP_Poke_GM2(tx,     ty,     (cU || cL) ? connBase     : base);
+                VDP_Poke_GM2(tx + 1, ty,     (cU || cR) ? connBase + 1 : base + 1);
                 if (cD || cL) {
                     u8 idx = cL ? connBase + 3 : connBase + 2;
                     VDP_Poke_GM2(tx, ty + 1, idx);
+                } else {
+                    VDP_Poke_GM2(tx, ty + 1, base + 2);
                 }
                 if (cD || cR) {
                     u8 idx = cR ? connBase + 5 : connBase + 4;
                     VDP_Poke_GM2(tx + 1, ty + 1, idx);
+                } else {
+                    VDP_Poke_GM2(tx + 1, ty + 1, base + 3);
                 }
             }
         }
@@ -1723,14 +1725,14 @@ static void Game_Update(void) {
     // Wait for VBlank — VRAM writes start during blanking period
     Halt();
 
-    // All VRAM writes (start during VBlank for flicker-free display)
-    Game_UpdateBackground();
+    // VRAM writes — boards first (most visible), then connections, bg scroll last
     Game_DrawBoard(&g_Player[0], 0);
     Game_DrawBoard(&g_Player[1], 1);
     if (g_BoardDirty[0]) { Game_DrawConnections(&g_Player[0], 0); g_BoardDirty[0] = FALSE; }
     if (g_BoardDirty[1]) { Game_DrawConnections(&g_Player[1], 1); g_BoardDirty[1] = FALSE; }
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
+    Game_UpdateBackground();
 }
 
 //=============================================================================
