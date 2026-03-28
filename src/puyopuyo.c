@@ -566,7 +566,6 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                 if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
                     g_Shadow[playerIdx][y][x] = visible[y][x];
                     DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
-                    g_BoardDirty[playerIdx] = TRUE;
                 }
             }
         }
@@ -602,27 +601,34 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         i8 sx = (i8)px + Game_GetSatX(p->puyoDir);
         i8 sy = (i8)py + Game_GetSatY(p->puyoDir);
         if (py < BOARD_H && px < BOARD_W) {
-            u8 tyTop = by + py * 2;
-            u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
             u8 tx1 = bx + px * 2;
-            RestoreTile(tx1, tyTop); RestoreTile(tx1 + 1, tyTop);
-            VDP_Poke_GM2(tx1, tyTop + 1, base); VDP_Poke_GM2(tx1 + 1, tyTop + 1, base + 1);
-            VDP_Poke_GM2(tx1, tyTop + 2, base + 2); VDP_Poke_GM2(tx1 + 1, tyTop + 2, base + 3);
+            u8 tyTop = by + py * 2;
+            // Only draw if position changed (skip = zero VRAM writes = zero flicker)
+            if (g_PrevFallX1[playerIdx] != tx1 || g_PrevFallY1[playerIdx] != tyTop) {
+                u8 base = PAT_PUYO_BASE + (p->puyoColor1 - 1) * 4;
+                RestoreTile(tx1, tyTop); RestoreTile(tx1 + 1, tyTop);
+                VDP_Poke_GM2(tx1, tyTop + 1, base); VDP_Poke_GM2(tx1 + 1, tyTop + 1, base + 1);
+                VDP_Poke_GM2(tx1, tyTop + 2, base + 2); VDP_Poke_GM2(tx1 + 1, tyTop + 2, base + 3);
+            }
             g_PrevFallX1[playerIdx] = tx1; g_PrevFallY1[playerIdx] = tyTop;
         }
         if (sx >= 0 && sx < BOARD_W) {
             u8 tx2 = bx + (u8)sx * 2;
             if (sy == -1) {
-                u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                VDP_Poke_GM2(tx2, 0, base); VDP_Poke_GM2(tx2 + 1, 0, base + 1);
-                VDP_Poke_GM2(tx2, 1, base + 2); VDP_Poke_GM2(tx2 + 1, 1, base + 3);
+                if (g_PrevFallX2[playerIdx] != tx2 || g_PrevFallY2[playerIdx] != 0) {
+                    u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+                    VDP_Poke_GM2(tx2, 0, base); VDP_Poke_GM2(tx2 + 1, 0, base + 1);
+                    VDP_Poke_GM2(tx2, 1, base + 2); VDP_Poke_GM2(tx2 + 1, 1, base + 3);
+                }
                 g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = 0;
             } else if (sy >= 0 && sy < BOARD_H) {
                 u8 tyTop = by + (u8)sy * 2;
-                u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                RestoreTile(tx2, tyTop); RestoreTile(tx2 + 1, tyTop);
-                VDP_Poke_GM2(tx2, tyTop + 1, base); VDP_Poke_GM2(tx2 + 1, tyTop + 1, base + 1);
-                VDP_Poke_GM2(tx2, tyTop + 2, base + 2); VDP_Poke_GM2(tx2 + 1, tyTop + 2, base + 3);
+                if (g_PrevFallX2[playerIdx] != tx2 || g_PrevFallY2[playerIdx] != tyTop) {
+                    u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
+                    RestoreTile(tx2, tyTop); RestoreTile(tx2 + 1, tyTop);
+                    VDP_Poke_GM2(tx2, tyTop + 1, base); VDP_Poke_GM2(tx2 + 1, tyTop + 1, base + 1);
+                    VDP_Poke_GM2(tx2, tyTop + 2, base + 2); VDP_Poke_GM2(tx2 + 1, tyTop + 2, base + 3);
+                }
                 g_PrevFallX2[playerIdx] = tx2; g_PrevFallY2[playerIdx] = tyTop;
             }
         }
