@@ -16,23 +16,25 @@ A real, playable, feature-complete Puyo Puyo VS running on 3.58 MHz and 16KB of 
 
 ## Features
 
-- **Human vs Human** — keyboard + joystick, or two joysticks
-- **Human vs CPU** — 8 difficulty levels, from "learning to walk" to "merciless"
+- **Arcade mode** — fight through 8 CPU difficulty levels, from "learning to walk" to the final boss
+- **VS mode** — two humans on one MSX: keyboard/joystick 1 vs joystick 2
+- **Chain window** — real-time chain counter overlay appears during combos
 - **5 puyo colors** + garbage blocks that fall from the sky
 - **Chain combos** — the soul of Puyo Puyo, with escalating visual effects
-- **Blob connections** — same-color puyos fuse visually when adjacent
-- **Smooth 8px falling** — half-tile precision, not the usual 16px jumps
+- **Blob connections** — same-color puyos fuse visually when adjacent, 30 pre-computed connection tiles
+- **Smooth 8px falling** — half-tile precision at 2x speed, not the usual 16px jumps
 - **Spawn animation** — puyos emerge from the top, 8 pixels at a time
 - **Garbage from above** — animated non-blocking gravity, like the arcade
+- **Zero-flicker rendering** — RAM-buffered name table with VBlank-only differential flush
 - **PT3 tracker music** — 3 channels of AY-3-8910 goodness via VBlank ISR
-- **Diagonal scrolling backgrounds** — each player gets their own direction
+- **Diagonal scrolling backgrounds** — each player gets their own animated pattern
 - **Speed progression** — every 10 pieces, the pressure increases
 - **Explosion effects** — visual burst when groups are cleared
 - **3-2-1-GO countdown** — because every match deserves a proper start
 - **Game over animation** — loser's puyos fade to grey, row by row
 - **Stats screen** — score, max chain, total clears for both players
 - **Custom screen layout** — designed pixel by pixel in our visual editor
-- **ZX0 compressed assets** — tileset, screen layout, and music fit tight
+- **ZX0 compressed assets** — tileset, screen layout, and music squeezed into 31KB of ROM
 
 ---
 

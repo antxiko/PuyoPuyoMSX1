@@ -56,7 +56,7 @@ h3 { margin: 0 0 8px; color: #9090c0; font-size: 16px; }
         <button onclick="exportCArray()">Export C Array</button>
         <button onclick="exportBin()">Export .bin</button>
         <button onclick="loadTileset()">Load PNG</button>
-        <button onclick="saveTileset()">Save Tileset PNG</button>
+        <button id="btnSaveTileset" onclick="saveTileset()">Save Tileset PNG</button>
     </div>
 
     <div class="label">Screen (32x24 = 256x192):</div>
@@ -147,6 +147,8 @@ h3 { margin: 0 0 8px; color: #9090c0; font-size: 16px; }
         <button onclick="tileRotate()">Rotate</button>
         <button onclick="tileClear()">Clear Tile</button>
         <button onclick="tileInvert()">Invert</button>
+        <button onclick="tileCopy()">Copy (C)</button>
+        <button onclick="tilePaste()">Paste (V)</button>
         <button onclick="applyTileEdit()">Apply to Tileset</button>
     </div>
 </div>
@@ -170,6 +172,23 @@ let tilesetImg = null;
 let tilesetCanvas2D = null; // offscreen canvas for pixel manipulation
 let selectedTile = 0;
 let screenMap = new Uint8Array(COLS * ROWS);
+let tilesetDirty = false;
+
+function markTilesetDirty() {
+    if (!tilesetDirty) {
+        tilesetDirty = true;
+        const btn = document.getElementById('btnSaveTileset');
+        btn.style.backgroundColor = '#8B0000';
+        btn.style.color = '#FFF';
+    }
+}
+
+function clearTilesetDirty() {
+    tilesetDirty = false;
+    const btn = document.getElementById('btnSaveTileset');
+    btn.style.backgroundColor = '';
+    btn.style.color = '';
+}
 let isDrawing = false, rightClick = false;
 
 // Tile editor state
@@ -343,7 +362,25 @@ editCanvas.addEventListener('mousedown', function(e) { e.preventDefault(); isEdi
 editCanvas.addEventListener('mousemove', function(e) { if (isEditDrawing) editPlace(e); });
 editCanvas.addEventListener('mouseup', function() { isEditDrawing = false; });
 editCanvas.addEventListener('mouseleave', function() { isEditDrawing = false; });
-editCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+editCanvas.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    let menu = document.getElementById('tile-ctx-menu');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'tile-ctx-menu';
+        menu.style.cssText = 'position:fixed;background:#222;border:1px solid #0f0;padding:4px 0;z-index:9999;min-width:100px;';
+        menu.innerHTML = '<div class="ctx-item" style="padding:4px 16px;cursor:pointer;color:#0f0;" onmousedown="tileCopy();hideCtxMenu()">Copy (C)</div>'
+                       + '<div class="ctx-item" style="padding:4px 16px;cursor:pointer;color:#0f0;" onmousedown="tilePaste();hideCtxMenu()">Paste (V)</div>';
+        document.body.appendChild(menu);
+        menu.querySelectorAll('.ctx-item').forEach(el => {
+            el.addEventListener('mouseenter', function() { this.style.backgroundColor = '#0f0'; this.style.color = '#000'; });
+            el.addEventListener('mouseleave', function() { this.style.backgroundColor = ''; this.style.color = '#0f0'; });
+        });
+    }
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+    menu.style.display = 'block';
+});
 
 // Tile operations
 function tileFlipH() {
@@ -371,6 +408,9 @@ function tileRotate() {
     drawTileEditor();
 }
 function tileClear() { editPixels.fill(editBG); drawTileEditor(); }
+let tileClipboard = null;
+function tileCopy() { tileClipboard = new Uint8Array(editPixels); }
+function tilePaste() { if (tileClipboard) { editPixels.set(tileClipboard); drawTileEditor(); } }
 function tileInvert() {
     for (let i = 0; i < 64; i++)
         editPixels[i] = editPixels[i] === editFG ? editBG : editFG;
@@ -394,6 +434,7 @@ function applyTileEdit() {
     ctx.putImageData(imgData, tx, ty);
     // Use the offscreen canvas directly as the tileset image source
     tilesetImg = tilesetCanvas2D;
+    markTilesetDirty();
     drawTileset(); drawScreen(); updateSelected();
 }
 
@@ -404,6 +445,7 @@ function saveTileset() {
     a.href = tilesetCanvas2D.toDataURL('image/png');
     a.download = 'tileset_tiled.png';
     a.click();
+    clearTilesetDirty();
 }
 
 // --- Screen editor (same as before) ---
@@ -467,6 +509,7 @@ function screenPlace(e) {
     const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
     if (tx<0||tx>=COLS||ty<0||ty>=ROWS) return;
     screenMap[ty*COLS+tx] = rightClick ? 0 : selectedTile;
+    markTilesetDirty();
     drawTileAt(tx, ty);
 }
 scrCanvas.addEventListener('mousedown', function(e) { e.preventDefault(); isDrawing=true; rightClick=(e.button===2); screenPlace(e); });
@@ -1042,6 +1085,16 @@ function sprExportC() {
     document.getElementById('spr-output').scrollIntoView();
     document.getElementById('spr-output').select();
 }
+
+function hideCtxMenu() { const m = document.getElementById('tile-ctx-menu'); if (m) m.style.display = 'none'; }
+document.addEventListener('mousedown', function(e) { if (!e.target.closest('#tile-ctx-menu')) hideCtxMenu(); });
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'c' || e.key === 'C') { tileCopy(); }
+    if (e.key === 'v' || e.key === 'V') { tilePaste(); }
+});
 
 </script>
 </body>

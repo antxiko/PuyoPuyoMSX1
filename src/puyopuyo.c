@@ -39,6 +39,9 @@
 #define STATE_PLAYING   1
 #define STATE_GAMEOVER  2
 
+#define MODE_ARCADE     0
+#define MODE_VS         1
+
 #define DROP_SPEED_INIT    16
 #define DROP_SPEED_MIN     3
 #define DROP_SPEED_SOFT    1
@@ -104,6 +107,7 @@ typedef struct {
 
 static Player g_Player[2];
 static u8 g_GameState;
+static u8 g_GameMode; // MODE_ARCADE or MODE_VS
 
 // PT3 player needs song data in RAM (modifies it in-place)
 static u8 g_PT3Buffer[7845]; // size of largest PT3
@@ -204,18 +208,8 @@ void VDP_InterruptHandler(void) {
     PT3_Decode();
 }
 
-static void TitleMusic_Start(void) {
-    PT3_Pause();
-    PT3_SetNoteTable(PT3_NT2);
-    PT3_Init();
-    ZX0_UnpackToRAM(g_MusicTitle_Zx0, g_PT3Buffer);
-    PT3_InitSong(g_PT3Buffer);
-    PT3_SetLoop(TRUE);
-    PT3_Resume();
-}
-
-static void TitleMusic_Update(void) {
-}
+static void TitleMusic_Start(void) {}
+static void TitleMusic_Update(void) {}
 
 //=============================================================================
 // GAMEPLAY MUSIC PLAYER
@@ -661,6 +655,9 @@ static void Game_DrawTitle(void) {
 
     VDP_Setup();
     VDP_FillScreen_GM2(PAT_EMPTY);
+    // Sync buffer with VRAM (all empty)
+    { u16 i; for (i = 0; i < 768; i++) g_NameBuffer[i] = PAT_EMPTY; }
+    g_NbDirtyCount = 0;
 
     // "PUYO" line 1 - tile row 1, each letter 6 tiles wide + 2 tile gap
     DrawPuyoLetter(1,  1, letP, PUYO_RED);
@@ -668,6 +665,7 @@ static void Game_DrawTitle(void) {
     DrawPuyoLetter(17, 1, letY, PUYO_BLUE);
     DrawPuyoLetter(25, 1, letO, PUYO_YELLOW);
 
+    Halt(); NB_Flush();
     // "PUYO" line 2 - tile row 10, different colors
     DrawPuyoLetter(1,  10, letP, PUYO_PURPLE);
     DrawPuyoLetter(9,  10, letU, PUYO_RED);
@@ -676,9 +674,11 @@ static void Game_DrawTitle(void) {
 
     // "VS" between the two PUYOs - text
 
-    // "PUSH START" at bottom
+    // Menu options
+    Print_SetPosition(11, 19);
+    Print_DrawText("  ARCADE  ");
     Print_SetPosition(11, 21);
-    Print_DrawText("PUSH START");
+    Print_DrawText("    VS    ");
 }
 
 // Animate loser's board turning grey, row by row from top
@@ -1043,21 +1043,64 @@ static void Game_FlashCleared(Player* p, u8 playerIdx) {
     }
 }
 
-// Show chain text in center area
-static void Game_ShowChain(u8 chainCount) {
-    Print_SetPosition(CENTER_X, 10);
-    Print_DrawChar('0' + chainCount);
-    Print_SetPosition(CENTER_X, 11);
-    Print_DrawChar('C');
+// Chain window: 10x5 tiles
+static const u8 g_ChainWindow[50] = {
+    61, 62, 61, 62, 61, 62, 61, 62, 61, 62,
+    62,  0,  0,  0,  0,  0,  0,  0,  0, 61,
+    61, 80, 80,152, 99,104, 97,105,110, 62,
+    62,  0,  0,  0,  0,  0,  0,  0,  0, 61,
+    61, 62, 61, 62, 61, 62, 61, 62, 61, 62
+};
+#define CHAIN_WIN_W 10
+#define CHAIN_WIN_H 5
+static u8 g_ChainSaved[50]; // saved tiles under chain window
+static u8 g_ChainWinX;      // current window position
+static u8 g_ChainWinActive;
+
+static void Game_ShowChainWindow(u8 playerIdx) {
+    u8 wx, x, y;
+    wx = (playerIdx == 0) ? 3 : 21;
+    g_ChainWinX = wx;
+    g_ChainWinActive = 1;
+    // Save tiles underneath
+    for (y = 0; y < CHAIN_WIN_H; y++)
+        for (x = 0; x < CHAIN_WIN_W; x++)
+            g_ChainSaved[y * CHAIN_WIN_W + x] = g_NameBuffer[(u16)(3 + y) * 32 + (wx + x)];
+    // Draw window
+    for (y = 0; y < CHAIN_WIN_H; y++)
+        for (x = 0; x < CHAIN_WIN_W; x++)
+            VDP_Poke_GM2(wx + x, 3 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
 }
 
-// Clear chain text
-static void Game_ClearChainText(void) {
-    Print_SetPosition(CENTER_X, 10);
-    Print_DrawChar(' ');
-    Print_SetPosition(CENTER_X, 11);
-    Print_DrawChar(' ');
+// Redraw chain window on top (call after Game_DrawBoard to prevent overwrite)
+static void Game_RedrawChainWindow(u8 playerIdx, u8 chainCount) {
+    u8 x, y, wx;
+    if (!g_ChainWinActive) return;
+    wx = g_ChainWinX;
+    for (y = 0; y < CHAIN_WIN_H; y++)
+        for (x = 0; x < CHAIN_WIN_W; x++)
+            VDP_Poke_GM2(wx + x, 3 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
+    VDP_Poke_GM2(wx + 1, 5, 80 + (chainCount / 10));
+    VDP_Poke_GM2(wx + 2, 5, 80 + (chainCount % 10));
 }
+
+static void Game_UpdateChainNumber(u8 playerIdx, u8 chainCount) {
+    u8 wx = (playerIdx == 0) ? 3 : 21;
+    // 2 digits with leading zero at relative (1,2) = absolute (wx+1, 5)
+    VDP_Poke_GM2(wx + 1, 5, 80 + (chainCount / 10));
+    VDP_Poke_GM2(wx + 2, 5, 80 + (chainCount % 10));
+}
+
+static void Game_HideChainWindow(void) {
+    u8 x, y;
+    if (!g_ChainWinActive) return;
+    // Restore saved tiles
+    for (y = 0; y < CHAIN_WIN_H; y++)
+        for (x = 0; x < CHAIN_WIN_W; x++)
+            VDP_Poke_GM2(g_ChainWinX + x, 3 + y, g_ChainSaved[y * CHAIN_WIN_W + x]);
+    g_ChainWinActive = 0;
+}
+
 
 // Flash walls of a player's board
 
@@ -1075,6 +1118,8 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
     u8 chainCount = 0, totalGarbage = 0, cleared;
     u8 playerIdx = (p == &g_Player[0]) ? 0 : 1;
     u8 oppIdx = (playerIdx == 0) ? 1 : 0;
+
+    Game_ShowChainWindow(playerIdx);
 
     while (TRUE) {
         Game_AnimateGravity(p, playerIdx);
@@ -1113,6 +1158,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         if (cleared == 0) break;
 
         chainCount++;
+        Game_UpdateChainNumber(playerIdx, chainCount);
         p->score += cleared * 10 * chainCount;
         p->totalCleared += cleared;
 
@@ -1128,16 +1174,13 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
             if (ci > 4) ci = 4;
             VDP_SetColor(borderColors[ci]);
 
-            // Show chain count in center (bigger display for bigger chains)
-            if (chainCount > 1) {
-                Game_ShowChain(chainCount);
-            }
 
             totalGarbage += CHAIN_GARBAGE_BASE * chainCount;
 
             Game_DrawBoard(p, playerIdx);
             Game_DrawConnections(p, playerIdx);
             Game_DrawScore(p);
+            Game_RedrawChainWindow(playerIdx, chainCount);
             Halt(); NB_Flush();
 
             // Longer pause for bigger chains
@@ -1155,9 +1198,9 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 
         // Restore border
         VDP_SetColor(COLOR_BLACK);
-        Game_ClearChainText();
     }
 
+    Game_HideChainWindow();
     p->chainCount = chainCount;
     if (chainCount > p->maxChain) p->maxChain = chainCount;
 
@@ -1351,8 +1394,8 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     }
     if (dir & JOY_INPUT_DIR_UP) { btnUp = TRUE; dir &= ~JOY_INPUT_DIR_UP; }
 
-    // CPU takes over player 2 if joystick is idle
-    if (joyPort == JOY_PORT_2 && dir == 0 && !btnA && !btnB && p->puyoColor1 != PUYO_EMPTY) {
+    // CPU takes over player 2 if joystick is idle (arcade mode only)
+    if (g_CpuLevel != 0xFF && joyPort == JOY_PORT_2 && dir == 0 && !btnA && !btnB && p->puyoColor1 != PUYO_EMPTY) {
         u8 speed = g_CpuParams[g_CpuLevel][0];
         u8 fastDrop = g_CpuParams[g_CpuLevel][3];
         g_CpuDelay++;
@@ -1392,8 +1435,8 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         Game_SpawnPair(p);
         if (!p->alive) return;
         p->inputDelay = 3;
-        // CPU decides target for new piece
-        if (joyPort == JOY_PORT_2) CPU_DecideMove(p);
+        // CPU decides target for new piece (arcade mode only)
+        if (g_CpuLevel != 0xFF && joyPort == JOY_PORT_2) CPU_DecideMove(p);
         return;
     }
     if (p->inputDelay > 0) p->inputDelay--;
@@ -1450,7 +1493,9 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
 static void Game_Init(void) {
     Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
     Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
-    g_CpuLevel = 7; // Level 8 (0-indexed)
+    // CPU level: set on first init, preserved between rounds in arcade
+    if (g_GameMode == MODE_VS)
+        g_CpuLevel = 0xFF; // VS mode: no CPU
     // Load gameplay screen layout from compressed data
     ZX0_UnpackToRAM(g_GameScreen_Zx0, g_ScreenLayout);
     VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
@@ -1521,7 +1566,7 @@ static void Game_UpdateBackground(void) {
     u8 bank, i;
 
     frameDiv++;
-    if ((frameDiv & 7) != 0) return; // update every 8 frames
+    if ((frameDiv & 1) != 0) return; // update every 2 frames (4x speed)
 
     g_BgStep++;
 
@@ -1604,23 +1649,48 @@ void main(void) {
         if (g_GameState == STATE_TITLE) {
             Halt();
             Game_DrawTitle();
+            Halt(); NB_Flush();
             TitleMusic_Start();
-            // Wait for button press while playing title music
+            // Menu selection
             {
-                u8 joy1, joy2;
+                u8 joy1, joy2, dir, sel, prevSel, inputDelay;
+                sel = 0; // 0=ARCADE, 1=VS
+                prevSel = 0xFF;
+                inputDelay = 0;
                 while (1) {
                     Halt();
                     TitleMusic_Update();
                     joy1 = Joystick_Read(JOY_PORT_1);
                     joy2 = Joystick_Read(JOY_PORT_2);
-                    if (JOY_GET_A(joy1) || JOY_GET_A(joy2)) break;
-                    if (JOY_GET_B(joy1) || JOY_GET_B(joy2)) break;
-                    if (Keyboard_IsKeyPressed(KEY_SPACE)) break;
+                    dir = JOY_GET_DIR(joy1);
+                    if (Keyboard_IsKeyPressed(KEY_UP)) dir |= JOY_INPUT_DIR_UP;
+                    if (Keyboard_IsKeyPressed(KEY_DOWN)) dir |= JOY_INPUT_DIR_DOWN;
+
+                    if (inputDelay > 0) inputDelay--;
+                    if (inputDelay == 0) {
+                        if (dir & JOY_INPUT_DIR_UP) { sel = 0; inputDelay = 10; }
+                        if (dir & JOY_INPUT_DIR_DOWN) { sel = 1; inputDelay = 10; }
+                    }
+
+                    // Draw cursor
+                    if (sel != prevSel) {
+                        Print_SetPosition(10, 19);
+                        Print_DrawChar(sel == 0 ? '>' : ' ');
+                        Print_SetPosition(10, 21);
+                        Print_DrawChar(sel == 1 ? '>' : ' ');
+                        prevSel = sel;
+                    }
+
+                    if (JOY_GET_A(joy1) || JOY_GET_A(joy2) ||
+                        JOY_GET_B(joy1) || JOY_GET_B(joy2) ||
+                        Keyboard_IsKeyPressed(KEY_SPACE)) break;
                 }
+                g_GameMode = sel;
             }
             Music_Stop();
             WaitFrames(10);
             g_GameState = STATE_PLAYING;
+            if (g_GameMode == MODE_ARCADE) g_CpuLevel = 0;
             VDP_Setup();
             Game_Init();
             Music_Start();
@@ -1641,8 +1711,19 @@ void main(void) {
             PT3_Silence();
             Game_DrawStatsScreen();
             WaitButton();
-            g_GameState = STATE_TITLE;
-            VDP_Setup();
+
+            if (g_GameMode == MODE_ARCADE && g_Player[0].alive && g_CpuLevel < 7) {
+                // P1 won — advance to next CPU level
+                g_CpuLevel++;
+                g_GameState = STATE_PLAYING;
+                VDP_Setup();
+                Game_Init();
+                Music_Start();
+            } else {
+                // VS mode, P1 lost, or beat final boss — back to title
+                g_GameState = STATE_TITLE;
+                VDP_Setup();
+            }
         }
     }
 }
