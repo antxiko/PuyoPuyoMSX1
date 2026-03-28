@@ -128,9 +128,19 @@ It started innocently: "the connections flicker sometimes." Nine builds, forty-s
 
 **Build 170** — The ghost connections. Everything looked perfect until we noticed a green puyo showing connection edges with no neighbor in sight. The connection code only *wrote* connected quadrants — it never *erased* disconnected ones. When a neighbor vanished (cleared in a combo), the old connection pattern stayed in VRAM like a scar. The fix: write all 4 quadrants of every puyo — connection pattern where adjacent, base pattern where not. No ghosts survive. And one final reordering: cleanup runs *before* the shadow loop, not after, so the shadow redraws on top of cleaned tiles instead of the cleanup erasing what the shadow just painted. Background scroll moved to last — the falling pieces deserve the VBlank, not the wallpaper.
 
-Ten builds. One architectural rewrite. 36 pre-computed patterns. Zero dynamic allocations. The connections hold. The pieces land clean. The Z80 breathes.
+**Build 170** — The ghost connections. Everything looked perfect until we noticed a green puyo showing connection edges with no neighbor in sight. The connection code only *wrote* connected quadrants — it never *erased* disconnected ones. When a neighbor vanished (cleared in a combo), the old connection pattern stayed in VRAM like a scar. The fix: write all 4 quadrants of every puyo — connection pattern where adjacent, base pattern where not. No ghosts survive.
 
-*We came for a flicker fix. We rebuilt the entire rendering pipeline.*
+**Build 177** — The connection spam revelation. We discovered that every 8 frames, when the piece transitioned between subY states, the shadow loop was setting `g_BoardDirty = TRUE`. This triggered a FULL connection redraw — every puyo on both boards, 4 tiles each — creating periodic VRAM bursts that caused the persistent flickering everyone thought was "just how MSX1 works." The fix: remove `g_BoardDirty` from the shadow loop entirely. Connections only redraw when the board actually changes (piece locks, gravity, garbage). Inline connection restoration in the shadow loop handles cells that get redrawn without triggering a full board connection pass.
+
+**Build 179** — The Name Buffer. The nuclear option. We stopped fighting the VDP and changed the rules. Instead of writing to VRAM directly during the game loop, ALL name table writes go to a 768-byte RAM buffer (`g_NameBuffer`). A dirty list tracks which tiles changed. After `Halt()`, `NB_Flush()` writes ONLY the changed tiles to VRAM — during VBlank, when the display is off. The CPU never touches the name table outside of VBlank again. Flickering eliminated by definition. The entire rendering architecture — from direct VRAM pokes to buffered differential updates — was rebuilt in a single session.
+
+**Build 180** — The phantom connections. One last bug: falling pieces showed connection patterns before landing. The inline connection code in the shadow loop was checking `visible[y][x]` (which includes the falling piece overlay) instead of `p->board[y][x]` (which only has placed puyos). One condition added: `p->board[y][x] == color`. Connections now appear exactly when puyos lock — not a frame before, not a frame after.
+
+Twenty builds. Three architectural rewrites. One RAM buffer that changed everything.
+
+From 17 bytes per connection per frame to 1. From hundreds of VRAM writes during active display to zero. From "it flickers and we don't know why" to "it cannot flicker by construction."
+
+*The TMS9918A was never the problem. We were.*
 
 ---
 

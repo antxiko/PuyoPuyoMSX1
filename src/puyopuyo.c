@@ -104,7 +104,6 @@ typedef struct {
 
 static Player g_Player[2];
 static u8 g_GameState;
-static u8 g_FrameCount;
 
 // PT3 player needs song data in RAM (modifies it in-place)
 static u8 g_PT3Buffer[7845]; // size of largest PT3
@@ -118,6 +117,26 @@ static u8 g_ShadowNext[2][2];
 static u8 g_PrevFallX1[2], g_PrevFallY1[2]; // main puyo tile coords
 static u8 g_PrevFallX2[2], g_PrevFallY2[2]; // satellite tile coords
 
+// Name table buffer: CPU writes here, flush to VRAM during VBlank
+static u8 g_NameBuffer[768];
+#define NB_DIRTY_MAX 128
+static u16 g_NbDirtyIdx[NB_DIRTY_MAX];
+static u8 g_NbDirtyCount;
+
+static void NB_Flush(void) {
+    u8 i;
+    for (i = 0; i < g_NbDirtyCount; i++)
+        VDP_Poke_16K(g_NameBuffer[g_NbDirtyIdx[i]], g_ScreenLayoutLow + g_NbDirtyIdx[i]);
+    g_NbDirtyCount = 0;
+}
+
+static void NB_Init(void) {
+    u16 i;
+    for (i = 0; i < 768; i++)
+        g_NameBuffer[i] = g_ScreenLayout[i];
+    g_NbDirtyCount = 0;
+}
+
 //=============================================================================
 // 16x16 PUYO PATTERNS WITH FACES
 // Each puyo = 4 quadrants (TL,TR,BL,BR), each 8x8
@@ -125,163 +144,6 @@ static u8 g_PrevFallX2[2], g_PrevFallY2[2]; // satellite tile coords
 // Eye rows use bg=WHITE so holes in pattern become white eyes
 // Mouth rows use bg=BLACK so holes become dark mouth
 //=============================================================================
-
-// Pattern data: [5 types][4 quadrants][8 rows]
-// Types: 0=Red/Happy, 1=Green/Surprised, 2=Blue/Sleepy, 3=Yellow/Angry, 4=Garbage
-static const u8 g_PuyoPat[6][4][8] = {
-    // RED (Q0)
-    {
-        { 0x07, 0x1F, 0x3F, 0x30, 0x38, 0x24, 0x26, 0x1C }, // TL
-        { 0xE0, 0xF8, 0xFC, 0x0C, 0x1C, 0x24, 0x64, 0x38 }, // TR
-        { 0xFF, 0xFF, 0xFF, 0x7F, 0x7F, 0x3F, 0x1F, 0x03 }, // BL
-        { 0xFF, 0xFF, 0xFF, 0xFE, 0xFE, 0xFC, 0xF8, 0xC0 }, // BR
-    },
-    // GREEN (Q1)
-    {
-        { 0x07, 0x3F, 0x7F, 0x0C, 0x1E, 0x22, 0x22, 0x22 }, // TL
-        { 0xE0, 0xFC, 0xFE, 0x30, 0x78, 0x44, 0x44, 0x44 }, // TR
-        { 0x1C, 0xFF, 0xFF, 0x7F, 0x7F, 0x3F, 0x0F, 0x03 }, // BL
-        { 0x38, 0xFF, 0xFF, 0xFE, 0xFE, 0xFC, 0xF8, 0xC0 }, // BR
-    },
-    // BLUE (Q2)
-    {
-        { 0x07, 0x1F, 0x3F, 0x7F, 0x1C, 0x22, 0x14, 0x1C }, // TL
-        { 0xE0, 0xF8, 0xFC, 0xFE, 0x38, 0x44, 0x28, 0x38 }, // TR
-        { 0xFF, 0xFF, 0xFF, 0x7F, 0x3F, 0x1F, 0x0F, 0x03 }, // BL
-        { 0xFF, 0xFF, 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xC0 }, // BR
-    },
-    // YELLOW (Q3)
-    {
-        { 0x07, 0x1F, 0x7F, 0x7F, 0x1C, 0x22, 0x22, 0x22 }, // TL
-        { 0xE0, 0xF8, 0xFE, 0xFE, 0x38, 0x44, 0x44, 0x44 }, // TR
-        { 0x1C, 0xFF, 0xFF, 0x7F, 0x7F, 0x1F, 0x0F, 0x03 }, // BL
-        { 0x38, 0xFF, 0xFF, 0xFE, 0xFC, 0xFC, 0xF0, 0xC0 }, // BR
-    },
-    // PURPLE (Q4) - from morado.png
-    {
-        { 0x0F, 0x3F, 0x3F, 0x7F, 0x18, 0x24, 0x22, 0x1C }, // TL
-        { 0xF0, 0xFC, 0xFC, 0xFE, 0x18, 0x24, 0x44, 0x38 }, // TR
-        { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x3F, 0x3F, 0x0F }, // BL
-        { 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0xFC, 0xFC, 0xF0 }, // BR
-    },
-    // GARBAGE - piedra (stone face from piedra.png)
-    {
-        { 0x0F, 0x3B, 0x7F, 0xE7, 0xDB, 0xDA, 0xCB, 0xC3 }, // TL
-        { 0xF0, 0xFC, 0xFE, 0xE7, 0xDB, 0xDB, 0xCB, 0xC3 }, // TR
-        { 0xE7, 0xFF, 0xFF, 0xBE, 0xFF, 0x77, 0x3F, 0x1E }, // BL
-        { 0xE7, 0xFD, 0xFF, 0xFF, 0xFF, 0xF6, 0xFC, 0xF8 }, // BR
-    },
-};
-
-// Color data per row: [5 types][4 quadrants][8 rows]
-// Most rows: puyo_color on BLACK (body)
-// Eye rows: puyo_color on WHITE (holes = white eyes)
-// Mouth rows: puyo_color on BLACK (holes = dark mouth)
-// Body rows: fg=body_color, bg=BLACK
-// Eye rows: fg=WHITE, bg=body_color (white eyes on body, pupils=body color covered by black sprites)
-#define RC COLOR_MERGE(COLOR_MEDIUM_RED, COLOR_BLACK)
-#define RE COLOR_MERGE(COLOR_WHITE, COLOR_MEDIUM_RED)
-#define GC COLOR_MERGE(COLOR_DARK_GREEN, COLOR_BLACK)
-#define GE COLOR_MERGE(COLOR_WHITE, COLOR_DARK_GREEN)
-#define BC COLOR_MERGE(COLOR_LIGHT_BLUE, COLOR_BLACK)
-#define BE COLOR_MERGE(COLOR_WHITE, COLOR_LIGHT_BLUE)
-#define YC COLOR_MERGE(COLOR_DARK_YELLOW, COLOR_BLACK)
-#define YE COLOR_MERGE(COLOR_WHITE, COLOR_DARK_YELLOW)
-#define MC COLOR_MERGE(COLOR_MAGENTA, COLOR_BLACK)
-#define ME COLOR_MERGE(COLOR_WHITE, COLOR_MAGENTA)
-#define XC COLOR_MERGE(COLOR_GRAY, COLOR_BLACK)
-
-static const u8 g_PuyoCol[6][4][8] = {
-    // RED (Q0)
-    {
-        { RC, RC, RC, RE, RE, RE, RE, RE }, // TL
-        { RC, RC, RC, RE, RE, RE, RE, RE }, // TR
-        { RC, RC, RC, RC, RC, RC, RC, RC }, // BL
-        { RC, RC, RC, RC, RC, RC, RC, RC }, // BR
-    },
-    // GREEN (Q1)
-    {
-        { GC, GC, GC, GE, GE, GE, GE, GE }, // TL
-        { GC, GC, GC, GE, GE, GE, GE, GE }, // TR
-        { GE, GC, GC, GC, GC, GC, GC, GC }, // BL
-        { GE, GC, GC, GC, GC, GC, GC, GC }, // BR
-    },
-    // BLUE (Q2)
-    {
-        { BC, BC, BC, BC, BE, BE, BE, BE }, // TL
-        { BC, BC, BC, BC, BE, BE, BE, BE }, // TR
-        { BC, BC, BC, BC, BC, BC, BC, BC }, // BL
-        { BC, BC, BC, BC, BC, BC, BC, BC }, // BR
-    },
-    // YELLOW (Q3)
-    {
-        { YC, YC, YC, YC, YE, YE, YE, YE }, // TL
-        { YC, YC, YC, YC, YE, YE, YE, YE }, // TR
-        { YE, YC, YC, YC, YC, YC, YC, YC }, // BL
-        { YE, YC, YC, YC, YC, YC, YC, YC }, // BR
-    },
-    // PURPLE (Q4)
-    {
-        { MC, MC, MC, MC, ME, ME, ME, ME }, // TL
-        { MC, MC, MC, MC, ME, ME, ME, ME }, // TR
-        { MC, MC, MC, MC, MC, MC, MC, MC }, // BL
-        { MC, MC, MC, MC, MC, MC, MC, MC }, // BR
-    },
-    // GARBAGE
-    {
-        { XC, XC, XC, XC, XC, XC, XC, XC },
-        { XC, XC, XC, XC, XC, XC, XC, XC },
-        { XC, XC, XC, XC, XC, XC, XC, XC },
-        { XC, XC, XC, XC, XC, XC, XC, XC },
-    },
-};
-
-#undef RC
-#undef RE
-#undef GC
-#undef GE
-#undef BC
-#undef BE
-#undef YC
-#undef YE
-#undef MC
-#undef ME
-#undef XC
-
-// Pupil sprite patterns: 8x8 sprites, BLACK color
-// [4 puyo types][2 eyes: left TL + right TR][8 rows]
-// Only top half of puyo has pupils (TL and TR tiles)
-static const u8 g_PupilSprite[4][2][8] = {
-    // RED pupils
-    { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00 },   // left eye
-      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00 } },  // right eye
-    // GREEN pupils
-    { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C, 0x00 },
-      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18 } },
-    // BLUE pupils
-    { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00 },
-      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00 } },
-    // YELLOW pupils
-    { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x14, 0x0C },
-      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x28, 0x18 } },
-};
-
-
-static const u8 g_PatEmptyTile[8] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-static const u8 g_PatWallTile[8] = {
-    0xFF, 0x81, 0xBD, 0xA5, 0xA5, 0xBD, 0x81, 0xFF
-};
-
-// Explosion burst pattern (8x8 star)
-static const u8 g_PatExplode[8] = {
-    0x08, 0x49, 0x2A, 0x1C, 0x1C, 0x2A, 0x49, 0x08
-};
-
-static const u8 g_WallColor = COLOR_MERGE(COLOR_WHITE, COLOR_DARK_BLUE);
-static const u8 g_EmptyColor = COLOR_MERGE(COLOR_BLACK, COLOR_BLACK);
 
 //=============================================================================
 // FONT
@@ -427,6 +289,18 @@ static void VDP_Setup(void) {
 }
 
 
+// Redirect all name table writes to RAM buffer during gameplay
+#undef VDP_Poke_GM2
+#define VDP_Poke_GM2(x, y, v) do { \
+    u16 _idx = (u16)(y) * 32 + (x); \
+    u8 _v = (v); \
+    if (g_NameBuffer[_idx] != _v) { \
+        g_NameBuffer[_idx] = _v; \
+        if (g_NbDirtyCount < NB_DIRTY_MAX) \
+            g_NbDirtyIdx[g_NbDirtyCount++] = _idx; \
+    } \
+} while(0)
+
 //=============================================================================
 // DRAW FUNCTIONS - 16x16 puyos (2x2 tiles each)
 //=============================================================================
@@ -564,8 +438,26 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                 if (x == skipX1 && (y == skipY1 || y == skipY1 + 1)) continue;
                 if (x == skipX2 && (y == skipY2 || y == skipY2 + 1)) continue;
                 if (visible[y][x] != g_Shadow[playerIdx][y][x]) {
-                    g_Shadow[playerIdx][y][x] = visible[y][x];
-                    DrawPuyo16(bx + x * 2, by + y * 2, visible[y][x]);
+                    u8 color = visible[y][x];
+                    g_Shadow[playerIdx][y][x] = color;
+                    DrawPuyo16(bx + x * 2, by + y * 2, color);
+                    // Restore connections only for PLACED puyos (not falling piece)
+                    if (color >= 1 && color <= PUYO_COUNT && p->board[y][x] == color) {
+                        u8 ci = color - 1;
+                        u8 cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
+                        u8 cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
+                        u8 cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
+                        u8 cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
+                        if (cU || cD || cL || cR) {
+                            u8 base = PAT_PUYO_BASE + ci * 4;
+                            u8 connBase = PAT_CONN_BASE + ci * 6;
+                            u8 tx = bx + x * 2, ty = by + y * 2;
+                            VDP_Poke_GM2(tx,     ty,     (cU || cL) ? connBase     : base);
+                            VDP_Poke_GM2(tx + 1, ty,     (cU || cR) ? connBase + 1 : base + 1);
+                            if (cD || cL) { VDP_Poke_GM2(tx, ty + 1, cL ? connBase + 3 : connBase + 2); }
+                            if (cD || cR) { VDP_Poke_GM2(tx + 1, ty + 1, cR ? connBase + 5 : connBase + 4); }
+                        }
+                    }
                 }
             }
         }
@@ -1071,12 +963,12 @@ static void Game_AnimateGravity(Player* p, u8 playerIdx) {
                 }
             }
         }
-        Halt(); // 1 frame at half position
+        Halt(); NB_Flush(); // 1 frame at half position
 
         // Actually move puyos down 1 row in the board
         Game_GravityStep(p);
         Game_DrawBoard(p, playerIdx);
-        Halt(); // 1 frame at full position
+        Halt(); NB_Flush(); // 1 frame at full position
     }
 }
 
@@ -1212,7 +1104,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 
             if (groupsFound) {
                 // Show flash for a moment
-                Halt(); Halt(); Halt();
+                Halt(); NB_Flush(); Halt(); Halt();
             }
         }
 
@@ -1246,6 +1138,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
             Game_DrawBoard(p, playerIdx);
             Game_DrawConnections(p, playerIdx);
             Game_DrawScore(p);
+            Halt(); NB_Flush();
 
             // Longer pause for bigger chains
             flashFrames = 4 + (chainCount > 2 ? chainCount * 2 : 0);
@@ -1519,7 +1412,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (btnUp || btnA) { Game_RotatePair(p, 1); p->rotateDelay = 8; }
         else if (btnB) { Game_RotatePair(p, -1); p->rotateDelay = 8; }
     }
-    currentSpeed = p->dropSpeed / 2;
+    currentSpeed = p->dropSpeed / 4;
     if (currentSpeed < 1) currentSpeed = 1;
     if (dir & JOY_INPUT_DIR_DOWN) currentSpeed = DROP_SPEED_SOFT;
     p->dropTimer++;
@@ -1557,10 +1450,11 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
 static void Game_Init(void) {
     Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
     Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
-    g_CpuLevel = 2; // Level 3 (0-indexed)
+    g_CpuLevel = 7; // Level 8 (0-indexed)
     // Load gameplay screen layout from compressed data
     ZX0_UnpackToRAM(g_GameScreen_Zx0, g_ScreenLayout);
     VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
+    NB_Init(); // sync RAM buffer with VRAM
     Game_InitBgScroll();
     Shadow_Invalidate();
     g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
@@ -1568,9 +1462,10 @@ static void Game_Init(void) {
     Game_DrawBoard(&g_Player[1], 1);
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
+    Halt(); NB_Flush(); // initial flush
 
     // Wait for screen to be visible before countdown
-    Halt(); Halt();
+    Halt();
 
     // Countdown 3-2-1-GO
     Print_SetPosition(14, 1);
@@ -1670,16 +1565,19 @@ static void Game_Update(void) {
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
 
-    // Wait for VBlank — VRAM writes start during blanking period
-    Halt();
-
-    // VRAM writes — boards first (most visible), then connections, bg scroll last
+    // All draw calls write to g_NameBuffer (RAM), not VRAM
     Game_DrawBoard(&g_Player[0], 0);
     Game_DrawBoard(&g_Player[1], 1);
     if (g_BoardDirty[0]) { Game_DrawConnections(&g_Player[0], 0); g_BoardDirty[0] = FALSE; }
     if (g_BoardDirty[1]) { Game_DrawConnections(&g_Player[1], 1); g_BoardDirty[1] = FALSE; }
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
+
+    // Wait for VBlank, then flush only changed tiles to VRAM
+    Halt();
+    NB_Flush();
+
+    // Pattern table writes (bg scroll) go direct to VRAM (not name table)
     Game_UpdateBackground();
 }
 
@@ -1701,7 +1599,6 @@ static void WaitButton(void) {
 void main(void) {
     VDP_Setup();
     g_GameState = STATE_TITLE;
-    g_FrameCount = 0;
 
     while (1) {
         if (g_GameState == STATE_TITLE) {
