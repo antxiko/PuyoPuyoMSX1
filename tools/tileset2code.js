@@ -133,36 +133,61 @@ for (let tileIdx = 0; tileIdx < numTiles; tileIdx++) {
     colors.push(col);
 }
 
+// Write raw binary, compress with ZX0, generate C header with compressed data
+const zx0Path = path.join(baseDir, 'MSXgl/tools/compress/ZX0/zx0.exe');
+const tmpDir = path.join(baseDir, 'assets');
+
+// Write pattern binary (2048 bytes = 256 tiles x 8 bytes)
+const patBuf = Buffer.alloc(2048);
+for (let i = 0; i < numTiles; i++)
+    for (let r = 0; r < 8; r++)
+        patBuf[i * 8 + r] = patterns[i][r];
+const patBinFile = path.join(tmpDir, '_tileset_pat.bin');
+fs.writeFileSync(patBinFile, patBuf);
+
+// Write color binary (2048 bytes)
+const colBuf = Buffer.alloc(2048);
+for (let i = 0; i < numTiles; i++)
+    for (let r = 0; r < 8; r++)
+        colBuf[i * 8 + r] = colors[i][r];
+const colBinFile = path.join(tmpDir, '_tileset_col.bin');
+fs.writeFileSync(colBinFile, colBuf);
+
+// Compress with ZX0
+const patZx0File = patBinFile + '.zx0';
+const colZx0File = colBinFile + '.zx0';
+execSync(`"${zx0Path}" -f "${patBinFile}" "${patZx0File}"`, { encoding: 'utf8' });
+execSync(`"${zx0Path}" -f "${colBinFile}" "${colZx0File}"`, { encoding: 'utf8' });
+
+const patZx0 = fs.readFileSync(patZx0File);
+const colZx0 = fs.readFileSync(colZx0File);
+
+console.log(`Pattern: 2048 -> ${patZx0.length} bytes (ZX0)`);
+console.log(`Color:   2048 -> ${colZx0.length} bytes (ZX0)`);
+
 // Generate C header
-let output = `// Auto-generated from ${inputFile}\n`;
-output += `// ${numTiles} tiles, ${COLS}x${ROWS} grid\n`;
-output += `// Pattern + Color data for MSX Screen 2 (3 banks identical)\n`;
+function buf2cArray(buf) {
+    const bytes = [];
+    for (let i = 0; i < buf.length; i++)
+        bytes.push('0x' + buf[i].toString(16).toUpperCase().padStart(2, '0'));
+    const lines = [];
+    for (let i = 0; i < bytes.length; i += 16)
+        lines.push('    ' + bytes.slice(i, i + 16).join(', '));
+    return lines.join(',\n');
+}
+
+let output = `// Auto-generated from ${path.basename(inputFile)}\n`;
+output += `// ${numTiles} tiles, ZX0 compressed pattern + color data\n`;
 output += `#pragma once\n\n`;
-
-output += `static const u8 g_TilesetPatterns[${numTiles}][8] = {\n`;
-for (let i = 0; i < numTiles; i++) {
-    output += `    { ${patterns[i].map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(', ')} },`;
-    if (i < 32) {
-        // Add comment for known tiles
-        const names = { 0: 'empty', 25: 'wall', 26: 'bg', 31: 'explode' };
-        if (i >= 1 && i <= 4) output += ` // red ${['TL','TR','BL','BR'][i-1]}`;
-        else if (i >= 5 && i <= 8) output += ` // green ${['TL','TR','BL','BR'][i-5]}`;
-        else if (i >= 9 && i <= 12) output += ` // blue ${['TL','TR','BL','BR'][i-9]}`;
-        else if (i >= 13 && i <= 16) output += ` // yellow ${['TL','TR','BL','BR'][i-13]}`;
-        else if (i >= 17 && i <= 20) output += ` // purple ${['TL','TR','BL','BR'][i-17]}`;
-        else if (i >= 21 && i <= 24) output += ` // garbage ${['TL','TR','BL','BR'][i-21]}`;
-        else if (i >= 27 && i <= 30) output += ` // grey ${['TL','TR','BL','BR'][i-27]}`;
-        else if (names[i]) output += ` // ${names[i]}`;
-    }
-    output += '\n';
-}
-output += `};\n\n`;
-
-output += `static const u8 g_TilesetColors[${numTiles}][8] = {\n`;
-for (let i = 0; i < numTiles; i++) {
-    output += `    { ${colors[i].map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(', ')} },\n`;
-}
-output += `};\n`;
+output += `static const u8 g_TilesetPat_Zx0[] = {\n${buf2cArray(patZx0)}\n};\n\n`;
+output += `static const u8 g_TilesetCol_Zx0[] = {\n${buf2cArray(colZx0)}\n};\n`;
 
 fs.writeFileSync(outputFile, output);
-console.log(`Written ${outputFile} (${numTiles} tiles, ${fs.statSync(outputFile).size} bytes)`);
+
+// Cleanup temp files
+fs.unlinkSync(patBinFile);
+fs.unlinkSync(colBinFile);
+fs.unlinkSync(patZx0File);
+fs.unlinkSync(colZx0File);
+
+console.log(`Written ${outputFile} (${fs.statSync(outputFile).size} bytes)`);

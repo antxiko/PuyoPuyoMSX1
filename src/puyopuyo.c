@@ -60,8 +60,10 @@
 #define PAT_GRAY_BASE   27  // grey puyo (4 quadrants: 27,28,29,30)
 #define PAT_EXPLODE     31  // explosion burst pattern
 // Font starts at 32
-#define PAT_CONN_BASE   61  // connection patterns: 6 per color, 6 colors = 36 (61-96)
+#define PAT_CONN_BASE   226 // connection patterns: 6 per color, 5 colors = 30 (226-255)
 // Per color offset: 0=Q0top, 1=Q1top, 2=Q2bot, 3=Q2botL, 4=Q3bot, 5=Q3botR
+// Red 226-231, Green 232-237, Blue 238-243, Yellow 244-249, Purple 250-255
+// No garbage connections needed
 #define PAT_BG_P1       59  // P1 background tile (scroll diagonal down-right)
 #define PAT_BG_P2       60  // P2 background tile (scroll diagonal down-left)
 
@@ -422,70 +424,8 @@ static void VDP_Setup(void) {
         VDP_WriteVRAM_16K(g_PT3Buffer, colBase, 2048);
     }
 
-    // Pre-compute connection patterns into VRAM
-    Game_InitConnPatterns();
 }
 
-// Pre-compute connection patterns into VRAM indices PAT_CONN_BASE..PAT_CONN_BASE+35
-static void Game_InitConnPatterns(void) {
-    u8 ci, bank;
-    u8 patBuf[8];
-
-    for (ci = 0; ci < 6; ci++) {
-        u8 baseIdx = PAT_CONN_BASE + ci * 6;
-        u8 i;
-
-        // Variant 0: Q0 (TL) top-filled - rows 0-2 = 0xFF
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][0][i];
-        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][0], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx) * 8, 8);
-        }
-
-        // Variant 1: Q1 (TR) top-filled - rows 0-2 = 0xFF
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][1][i];
-        patBuf[0] = 0xFF; patBuf[1] = 0xFF; patBuf[2] = 0xFF;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 1) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][1], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 1) * 8, 8);
-        }
-
-        // Variant 2: Q2 (BL) bottom-filled - rows 5-7 = 0xFF
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][2][i];
-        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 2) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][2], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 2) * 8, 8);
-        }
-
-        // Variant 3: Q2 (BL) bottom-filled + left edge
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][2][i];
-        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
-        patBuf[3] |= 0x80; patBuf[4] |= 0x80;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 3) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][2], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 3) * 8, 8);
-        }
-
-        // Variant 4: Q3 (BR) bottom-filled - rows 5-7 = 0xFF
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][3][i];
-        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 4) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][3], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 4) * 8, 8);
-        }
-
-        // Variant 5: Q3 (BR) bottom-filled + right edge
-        for (i = 0; i < 8; i++) patBuf[i] = g_PuyoPat[ci][3][i];
-        patBuf[5] = 0xFF; patBuf[6] = 0xFF; patBuf[7] = 0xFF;
-        patBuf[3] |= 0x01; patBuf[4] |= 0x01;
-        for (bank = 0; bank < 3; bank++) {
-            VDP_WriteVRAM_16K(patBuf, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(baseIdx + 5) * 8, 8);
-            VDP_WriteVRAM_16K(g_PuyoCol[ci][3], g_ScreenColorLow + (u16)bank * 0x800 + (u16)(baseIdx + 5) * 8, 8);
-        }
-    }
-}
 
 //=============================================================================
 // DRAW FUNCTIONS - 16x16 puyos (2x2 tiles each)
@@ -1652,28 +1592,25 @@ static u8 g_BgPatP2[8]; // current pattern for tile 60
 
 static u8 g_BgOrigP1[8]; // original P1 pattern
 static u8 g_BgOrigP2[8]; // original P2 pattern
+static u8 g_BgColOrigP1[8]; // original P1 colors
+static u8 g_BgColOrigP2[8]; // original P2 colors
+static u8 g_BgColP1[8]; // current rotated P1 colors
+static u8 g_BgColP2[8]; // current rotated P2 colors
 static u8 g_BgStep;
 
 static void Game_InitBgScroll(void) {
-    u8 i, bank;
-    u8 uniformCol;
-    // Decompress tileset patterns to read tiles 59/60
+    u8 i;
+    // Read original patterns
     ZX0_UnpackToRAM(g_TilesetPat_Zx0, g_PT3Buffer);
     for (i = 0; i < 8; i++) {
         g_BgOrigP1[i] = g_PT3Buffer[PAT_BG_P1 * 8 + i];
         g_BgOrigP2[i] = g_PT3Buffer[PAT_BG_P2 * 8 + i];
     }
-    // Set uniform color for BG tiles: fg=black(1), bg=dark_blue(4)
-    // This ensures dots are visible on any row after pattern rotation
-    uniformCol = COLOR_MERGE(COLOR_BLACK, COLOR_DARK_BLUE);
-    {
-        u8 colBuf[8];
-        for (i = 0; i < 8; i++) colBuf[i] = uniformCol;
-        for (bank = 0; bank < 3; bank++) {
-            u16 colBase = g_ScreenColorLow + (u16)bank * 0x800;
-            VDP_WriteVRAM_16K(colBuf, colBase + PAT_BG_P1 * 8, 8);
-            VDP_WriteVRAM_16K(colBuf, colBase + PAT_BG_P2 * 8, 8);
-        }
+    // Read original colors
+    ZX0_UnpackToRAM(g_TilesetCol_Zx0, g_PT3Buffer);
+    for (i = 0; i < 8; i++) {
+        g_BgColOrigP1[i] = g_PT3Buffer[PAT_BG_P1 * 8 + i];
+        g_BgColOrigP2[i] = g_PT3Buffer[PAT_BG_P2 * 8 + i];
     }
     g_BgStep = 0;
 }
@@ -1693,6 +1630,7 @@ static void Game_UpdateBackground(void) {
         // P1: diagonal down-right (shift rows down + rotate bits right)
         for (i = 0; i < 8; i++) {
             u8 row = g_BgOrigP1[(i - step) & 7];
+            g_BgColP1[i] = g_BgColOrigP1[(i - step) & 7];
             if (step > 0)
                 g_BgPatP1[i] = (row >> step) | (row << (8 - step));
             else
@@ -1702,6 +1640,7 @@ static void Game_UpdateBackground(void) {
         // P2: diagonal down-left (shift rows down + rotate bits left)
         for (i = 0; i < 8; i++) {
             u8 row = g_BgOrigP2[(i - step) & 7];
+            g_BgColP2[i] = g_BgColOrigP2[(i - step) & 7];
             if (step > 0)
                 g_BgPatP2[i] = (row << step) | (row >> (8 - step));
             else
@@ -1709,11 +1648,14 @@ static void Game_UpdateBackground(void) {
         }
     }
 
-    // Write patterns only to all 3 banks
+    // Write patterns + colors to all 3 banks
     for (bank = 0; bank < 3; bank++) {
         u16 patBase = g_ScreenPatternLow + (u16)bank * 0x800;
+        u16 colBase = g_ScreenColorLow + (u16)bank * 0x800;
         VDP_WriteVRAM_16K(g_BgPatP1, patBase + PAT_BG_P1 * 8, 8);
         VDP_WriteVRAM_16K(g_BgPatP2, patBase + PAT_BG_P2 * 8, 8);
+        VDP_WriteVRAM_16K(g_BgColP1, colBase + PAT_BG_P1 * 8, 8);
+        VDP_WriteVRAM_16K(g_BgColP2, colBase + PAT_BG_P2 * 8, 8);
     }
 }
 
