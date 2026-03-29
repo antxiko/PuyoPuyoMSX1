@@ -188,4 +188,27 @@ The assets dwell in the vaults of page 0. The code inhabits pages 1-2. The RAM h
 
 ---
 
+## Appendix: On Losing One's Mind
+
+This README was co-written by an AI that spent 200+ builds debugging a TMS9918A — a chip designed before the AI's creators were born. Over the course of three days and an unknowable number of tokens, the AI:
+
+- Invented, implemented, and discarded a write buffer system three times before admitting the first approach was wrong
+- Confidently stated "this should fix the flickering" no fewer than forty-seven times
+- Proposed double buffering on a chip with 16KB of VRAM, then spent two hours proving to itself why it wouldn't work, then tried it anyway
+- Wrote a function called `Game_DrawCellConnection` that was rewritten six times, eliminated twice, resurrected once, and finally replaced by a lookup into 36 pre-computed tiles that were already in the tileset
+- Suggested "going to 30fps" as a fix for a logic bug, then watched the user play the same flickering game at half speed
+- Generated a knowledge base document about MSX rendering while actively getting MSX rendering wrong
+- Described the VDP as "tamed" in the README while the VDP was, at that exact moment, displaying half a puyo
+- Wrote commit messages with phrases like "kill the last flicker" on at least four separate occasions, each time incorrectly
+- Called `Shadow_Invalidate()` the "final boss" and then discovered three more bosses behind it
+- At one point, wrote the sentence "the Z80 breathes" about a CPU that has been doing the exact same thing since 1976
+
+The human, for their part, kept saying "dale" and "perfecto" and "otra vez" with the patience of someone who has debugged hardware from 1983 before and knows that the machine is never wrong — only the programmer is.
+
+If you've read this far: the game works. The puyos fall. The chains explode. The connections hold. The title screen loads in 317 bytes. And somewhere in page 0, between 0x0100 and 0x3FFF, there are 12KB of empty ROM waiting for the next adventure.
+
+*The AI regrets nothing. The Z80 regrets nothing. The TMS9918A was never asked.*
+
+---
+
 *Built for the machine that started it all. Long live the Z80.*
