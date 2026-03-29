@@ -516,7 +516,12 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                 u8 tyTop = by + (u8)sy * 2;
                 if (g_PrevFallX2[playerIdx] != tx2 || g_PrevFallY2[playerIdx] != tyTop) {
                     u8 base = PAT_PUYO_BASE + (p->puyoColor2 - 1) * 4;
-                    RestoreTile(tx2, tyTop); RestoreTile(tx2 + 1, tyTop);
+                    // Skip RestoreTile if satellite top overlaps with main bottom
+                    { u8 mainTyBot = by + py * 2 + 2;
+                      if (tyTop != mainTyBot || tx2 != bx + px * 2) {
+                        RestoreTile(tx2, tyTop); RestoreTile(tx2 + 1, tyTop);
+                      }
+                    }
                     VDP_Poke_GM2(tx2, tyTop + 1, base); VDP_Poke_GM2(tx2 + 1, tyTop + 1, base + 1);
                     VDP_Poke_GM2(tx2, tyTop + 2, base + 2); VDP_Poke_GM2(tx2 + 1, tyTop + 2, base + 3);
                 }

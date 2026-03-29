@@ -148,4 +148,44 @@ From 17 bytes per connection per frame to 1. From hundreds of VRAM writes during
 
 ---
 
+## The 64K Expansion — The Dungeon Deepens (builds 194-203)
+
+The adventurers had mapped every corridor of the 48KB dungeon. Every torch was lit, every trap disarmed, every byte accounted for. But the dungeon was full. There was no room for new chambers. The party needed a bigger dungeon.
+
+**Build 194 — The Gate to Page Zero.** The wizard discovered an ancient incantation: `Target = "ROM_64K_ISR"`. With a single rune inscribed in the scroll of `project_config.js`, the cartridge claimed the forbidden page 0 — the domain of the BIOS itself. The BIOS was not slain; it retreated behind interslot calls, still answering when summoned. But now, behind the ISR sentinel at 0x0038, lay 15,750 bytes of virgin ROM. A new floor of the dungeon, untouched.
+
+**Build 197 — The Great Treasure Migration.** The party moved all their provisions — tileset patterns, colors, music scrolls, screen maps — from the crowded upper halls (pages 1-2) down into the vaults of page 0. Each treasure chest, compressed with the ZX0 enchantment, could be read with nothing more than a pointer. No bank switching. No interslot rituals. Just `const void*` and courage. 3,400 bytes freed above. 12,000 bytes still empty below.
+
+**Build 200 — The Title Screen of Legend.** A master artisan crafted 64 new tiles — an entire alphabet of puyo runes. Loaded into VRAM slots 0-63, the same 11×5 map was invoked twice: once blessed with the green flame of bank 0, once cursed with the red fire of bank 1. Screen 2's independent color tables — a power forged into the TMS9918A in the First Age of 1983 — wielded at last as the ancients intended. Cost: 317 bytes. The old letter-drawing function and its lookup tables? Cast into the void.
+
+**Build 202 — The Herald's Entrance.** Before the title, a herald appears: "COMPILA!" rendered in its own 64-tile alphabet (256 bytes). A "!" sprite rises from the abyss. Press any button and the herald steps aside. Wait too long on the title screen and the attract mode awakens: two CPU champions at maximum difficulty, locked in eternal combat. Any key breaks the spell and returns the player to the menu. The arcade ritual, complete.
+
+**Build 203 — The Phantom Limb.** A ghost haunted the rotation spell. When the falling pair rotated from horizontal to vertical at half-step, the satellite puyo's cleansing RestoreTile struck the main puyo's bottom row — for they shared the cursed tile row `tyTop+2`. A single ward was added: if the satellite's top overlaps the main's bottom, the RestoreTile is suppressed. The pair now rotates clean. The ghost is banished.
+
+---
+
+## The Architecture — The Dungeon Map
+
+After 200+ expeditions, the dungeon's defenses look like this:
+
+```
+CPU writes to g_NameBuffer[768] (RAM)
+     ↓ (any order, any time during the frame)
+Halt() — wait for VBlank
+     ↓
+VDP_WriteVRAM_16K(g_NameBuffer, 0x1800, 768) — full LDIRVM
+     ↓
+VDP scans top-to-bottom — all tiles consistent
+```
+
+No cursed dirty lists. No shadow enchantments on the name table. No RestoreTile-then-draw race traps. Just 768 bytes teleported once per frame, always ahead of the VDP's scanning eye. The shadow system survives only as a ward on the board cells — a relic of the old ways, still useful. Everything else writes freely to the buffer, unafraid.
+
+The assets dwell in the vaults of page 0. The code inhabits pages 1-2. The RAM holds page 3 — stack, variables, the PT3 music scroll. The ISR stands guard at 0x0038. Four kingdoms, each sovereign, none trespassing. A flat 64KB ROM with no mapper — compatible with the MSX Simple 64K ROM Cartridge, a vessel forged for exactly this purpose.
+
+50Hz PAL realms receive automatic speed compensation: every 5th frame, the game skips the Halt and runs an extra logic tick. 6 updates per 5 VBlanks. The player cannot tell the difference. Time flows equally for all.
+
+*200+ expeditions. One Z80. The game runs at 2x speed on hardware forged in 1983, with zero flicker, attract mode, chain combos, and a title screen conjured from 317 bytes of compressed runes. The dungeon is conquered. But the Z80 hungers for more.*
+
+---
+
 *Built for the machine that started it all. Long live the Z80.*
