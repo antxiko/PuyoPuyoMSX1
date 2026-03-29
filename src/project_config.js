@@ -19,10 +19,7 @@ ProjModules = [ ProjName ];
 LibModules = [ "system", "bios", "vdp", "print", "input", "memory", "math", "psg", "pt3/pt3_player", "compress/zx0" ];
 
 Machine = "1";
-Target = "ROM_48K";
-
-// Hook VDP interrupt to call VDP_InterruptHandler
-InstallRAMISR = true;
+Target = "ROM_64K_ISR";
 
 Optim = "Speed";
 

@@ -107,6 +107,8 @@ typedef struct {
 static Player g_Player[2];
 static u8 g_GameState;
 static u8 g_GameMode; // MODE_ARCADE or MODE_VS
+static u8 g_Is50Hz;   // 1 = PAL 50Hz, 0 = NTSC 60Hz
+static u8 g_FrameSkip; // counter for 50Hz compensation
 
 // PT3 player needs song data in RAM (modifies it in-place)
 static u8 g_PT3Buffer[7845]; // size of largest PT3
@@ -342,7 +344,7 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     u8 x, y;
     u8 bx = p->boardX;
     u8 by = p->boardY;
-    u8 visible[BOARD_H][BOARD_W];
+    static u8 visible[BOARD_H][BOARD_W];
     u8 hasFalling = (p->alive && p->puyoColor1 != PUYO_EMPTY);
 
     // Build visible state (board only, no falling pair)
@@ -1131,7 +1133,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 
         // Visual effects - more spectacular for bigger chains
         {
-            u8 borderColors[] = { COLOR_LIGHT_GREEN, COLOR_LIGHT_YELLOW, COLOR_LIGHT_RED, COLOR_MAGENTA, COLOR_WHITE };
+            static const u8 borderColors[] = { COLOR_LIGHT_GREEN, COLOR_LIGHT_YELLOW, COLOR_LIGHT_RED, COLOR_MAGENTA, COLOR_WHITE };
             u8 ci = chainCount - 1;
             u8 flashFrames;
             if (ci > 4) ci = 4;
@@ -1578,7 +1580,18 @@ static void Game_Update(void) {
         }
     } }
 
-    // Wait for VBlank, then flush only changed tiles to VRAM
+    // 50Hz compensation: skip Halt every 5th frame (6 updates per 5 VBlanks ≈ 60Hz)
+    if (g_Is50Hz) {
+        g_FrameSkip++;
+        if (g_FrameSkip >= 5) {
+            g_FrameSkip = 0;
+            NB_Flush();
+            Game_UpdateBackground();
+            return; // skip Halt — run next frame immediately
+        }
+    }
+
+    // Wait for VBlank, then flush
     Halt();
     NB_Flush();
 
@@ -1601,8 +1614,26 @@ static void WaitButton(void) {
     }
 }
 
+// Detect 50Hz vs 60Hz by counting VBlanks during a timed loop
+static void DetectHz(void) {
+    u16 i;
+    u8 start, end;
+    // JIFFY counter at 0xFC9E is incremented by VBlank ISR
+    Halt(); // sync to VBlank
+    start = *((volatile u8*)0xFC9E);
+    // Busy-wait ~500ms: 3.58MHz, ~18 cycles/iteration, 100000 iterations ≈ 503ms
+    for (i = 0; i < 50000u; i++) {
+        __asm nop __endasm;
+    }
+    end = *((volatile u8*)0xFC9E);
+    // At 60Hz: ~30 VBlanks in 500ms. At 50Hz: ~25 VBlanks.
+    g_Is50Hz = ((u8)(end - start) < 28) ? 1 : 0;
+    g_FrameSkip = 0;
+}
+
 void main(void) {
     VDP_Setup();
+    DetectHz();
     g_GameState = STATE_TITLE;
 
     while (1) {
