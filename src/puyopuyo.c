@@ -42,6 +42,7 @@
 
 #define MODE_ARCADE     0
 #define MODE_VS         1
+#define MODE_ATTRACT    2
 
 #define DROP_SPEED_INIT    16
 #define DROP_SPEED_MIN     3
@@ -615,6 +616,65 @@ static void Game_DrawScore(Player* p) {
     VDP_Poke_GM2(sx + 2, sy, 80 + (p->score / 100) % 10);
     VDP_Poke_GM2(sx + 3, sy, 80 + (p->score / 10) % 10);
 
+}
+
+static void Game_DrawProducers(void) {
+    u8 x, y, bank;
+
+    VDP_Setup();
+
+    // Load producers tileset into tiles 0-63
+    ZX0_UnpackToRAM((const void*)PROD_PAT_ZX0_ABS, g_PT3Buffer);
+    for (bank = 0; bank < 3; bank++)
+        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenPatternLow + (u16)bank * 0x800, 512);
+    ZX0_UnpackToRAM((const void*)PROD_COL_ZX0_ABS, g_PT3Buffer);
+    for (bank = 0; bank < 3; bank++)
+        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + (u16)bank * 0x800, 512);
+
+    // "!" sprite pattern
+    { static const u8 excl[] = { 0x38, 0x38, 0x38, 0x38, 0x38, 0x00, 0x38, 0x00 };
+      VDP_WriteVRAM_16K(excl, g_SpritePatternLow, 8);
+    }
+
+    // Fill screen black
+    VDP_FillScreen_GM2(0);
+    { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = 0; }
+    g_NbDirtyCount = 0;
+
+    // Decompress map (18x2) and draw centered
+    ZX0_UnpackToRAM((const void*)PROD_MAP_ZX0_ABS, g_PT3Buffer);
+    { u8 ox = 7, oy = 11;
+      for (y = 0; y < 2; y++)
+        for (x = 0; x < 18; x++)
+            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 18 + x]);
+    }
+
+    // Flush map
+    Halt(); NB_Flush();
+
+    // Animate "!" sprite from bottom up to map height
+    { u8 sprX = (7 + 18) * 8;  // right of map (pixel X)
+      u8 targetY = 11 * 8;      // map row (pixel Y)
+      u8 sprY = 192;            // start from bottom
+      VDP_SetSpriteFlag(VDP_SPRITE_SIZE_8);
+      while (sprY > targetY) {
+        sprY -= 2;
+        VDP_SetSpriteSM1(0, sprX, sprY, 0, COLOR_WHITE);
+        Halt();
+      }
+    }
+
+    // Wait for button
+    {
+        u8 joy1;
+        while (1) {
+            Halt();
+            joy1 = Joystick_Read(JOY_PORT_1);
+            if (JOY_GET_A(joy1) || JOY_GET_B(joy1)) break;
+            if (Keyboard_IsKeyPressed(KEY_SPACE)) break;
+        }
+    }
+    WaitFrames(10);
 }
 
 static void Game_DrawTitle(void) {
@@ -1391,7 +1451,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     if (dir & JOY_INPUT_DIR_UP) { btnUp = TRUE; dir &= ~JOY_INPUT_DIR_UP; }
 
     // CPU takes over player 2 if joystick is idle (arcade mode only)
-    if (g_CpuLevel != 0xFF && joyPort == JOY_PORT_2 && dir == 0 && !btnA && !btnB && p->puyoColor1 != PUYO_EMPTY) {
+    if (g_CpuLevel != 0xFF && (joyPort == JOY_PORT_2 || g_GameMode == MODE_ATTRACT) && dir == 0 && !btnA && !btnB && p->puyoColor1 != PUYO_EMPTY) {
         u8 speed = g_CpuParams[g_CpuLevel][0];
         u8 fastDrop = g_CpuParams[g_CpuLevel][3];
         g_CpuDelay++;
@@ -1432,7 +1492,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (!p->alive) return;
         p->inputDelay = 3;
         // CPU decides target for new piece (arcade mode only)
-        if (g_CpuLevel != 0xFF && joyPort == JOY_PORT_2) CPU_DecideMove(p);
+        if (g_CpuLevel != 0xFF && (joyPort == JOY_PORT_2 || g_GameMode == MODE_ATTRACT)) CPU_DecideMove(p);
         return;
     }
     if (p->inputDelay > 0) p->inputDelay--;
@@ -1615,6 +1675,20 @@ static void Game_UpdateBackground(void) {
 }
 
 static void Game_Update(void) {
+    // Attract mode: any input → back to title
+    if (g_GameMode == MODE_ATTRACT) {
+        u8 j1 = Joystick_Read(JOY_PORT_1);
+        u8 j2 = Joystick_Read(JOY_PORT_2);
+        if (JOY_GET_DIR(j1) || JOY_GET_A(j1) || JOY_GET_B(j1) ||
+            JOY_GET_DIR(j2) || JOY_GET_A(j2) || JOY_GET_B(j2) ||
+            Keyboard_IsKeyPressed(KEY_SPACE) || Keyboard_IsKeyPressed(KEY_UP) ||
+            Keyboard_IsKeyPressed(KEY_DOWN) || Keyboard_IsKeyPressed(KEY_LEFT) ||
+            Keyboard_IsKeyPressed(KEY_RIGHT)) {
+            g_Player[0].alive = 0;
+            g_Player[1].alive = 0;
+        }
+    }
+
     // Logic first (no VRAM writes)
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
@@ -1698,6 +1772,7 @@ static void DetectHz(void) {
 void main(void) {
     VDP_Setup();
     DetectHz();
+    Game_DrawProducers();
     g_GameState = STATE_TITLE;
 
     while (1) {
@@ -1708,12 +1783,15 @@ void main(void) {
             TitleMusic_Start();
             // Menu selection
             {
-                u8 joy1, joy2, dir, sel, prevSel, inputDelay, cpuLvl, prevLvl;
-                sel = 0; // 0=ARCADE, 1=VS
-                cpuLvl = 0; // CPU level 1-8 (0-indexed)
+                u8 joy1, joy2, dir, sel, prevSel, inputDelay, cpuLvl, prevLvl, attract;
+                u16 idleTimer;
+                sel = 0;
+                cpuLvl = 0;
                 prevSel = 0xFF;
                 prevLvl = 0xFF;
                 inputDelay = 0;
+                idleTimer = 0;
+                attract = 0;
                 while (1) {
                     Halt(); NB_Flush();
                     TitleMusic_Update();
@@ -1724,6 +1802,18 @@ void main(void) {
                     if (Keyboard_IsKeyPressed(KEY_DOWN)) dir |= JOY_INPUT_DIR_DOWN;
                     if (Keyboard_IsKeyPressed(KEY_LEFT)) dir |= JOY_INPUT_DIR_LEFT;
                     if (Keyboard_IsKeyPressed(KEY_RIGHT)) dir |= JOY_INPUT_DIR_RIGHT;
+
+                    // Any input resets idle timer
+                    if (dir || JOY_GET_A(joy1) || JOY_GET_B(joy1) ||
+                        JOY_GET_A(joy2) || JOY_GET_B(joy2) ||
+                        Keyboard_IsKeyPressed(KEY_SPACE)) {
+                        idleTimer = 0;
+                    } else {
+                        idleTimer++;
+                    }
+
+                    // Attract mode after ~5 seconds idle
+                    if (idleTimer > 300) { attract = 1; break; }
 
                     if (inputDelay > 0) inputDelay--;
                     if (inputDelay == 0) {
@@ -1739,7 +1829,6 @@ void main(void) {
                     if (sel != prevSel || cpuLvl != prevLvl) {
                         VDP_Poke_GM2(10, 19, sel == 0 ? '>'+32 : 0);
                         VDP_Poke_GM2(10, 21, sel == 1 ? '>'+32 : 0);
-                        // Show CPU level next to ARCADE
                         VDP_Poke_GM2(20, 19, sel == 0 ? 80 + cpuLvl + 1 : 0);
                         prevSel = sel;
                         prevLvl = cpuLvl;
@@ -1749,8 +1838,15 @@ void main(void) {
                         JOY_GET_B(joy1) || JOY_GET_B(joy2) ||
                         Keyboard_IsKeyPressed(KEY_SPACE)) break;
                 }
-                g_GameMode = sel;
-                if (sel == 0) g_CpuLevel = cpuLvl;
+
+                if (attract) {
+                    // Attract mode: CPU vs CPU
+                    g_GameMode = MODE_ATTRACT;
+                    g_CpuLevel = 7; // max difficulty
+                } else {
+                    g_GameMode = sel;
+                    if (sel == 0) g_CpuLevel = cpuLvl;
+                }
             }
             Music_Stop();
             WaitFrames(10);
@@ -1768,6 +1864,14 @@ void main(void) {
             }
         }
         else if (g_GameState == STATE_GAMEOVER) {
+            if (g_GameMode == MODE_ATTRACT) {
+                // Attract over → back to title immediately
+                Music_Stop();
+                g_GameState = STATE_TITLE;
+                VDP_Setup();
+                continue;
+            }
+
             Game_DrawGameOver();
             SFX_Victory();
             WaitFrames(60);
