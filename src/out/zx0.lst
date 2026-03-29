@@ -1,0 +1,104 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module zx0
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _ZX0_UnpackToRAM
+                                     12 ;--------------------------------------------------------
+                                     13 ; special function registers
+                                     14 ;--------------------------------------------------------
+                                     15 ;--------------------------------------------------------
+                                     16 ; ram data
+                                     17 ;--------------------------------------------------------
+                                     18 	.area _DATA
+                                     19 ;--------------------------------------------------------
+                                     20 ; ram data
+                                     21 ;--------------------------------------------------------
+                                     22 	.area _INITIALIZED
+                                     23 ;--------------------------------------------------------
+                                     24 ; absolute external ram data
+                                     25 ;--------------------------------------------------------
+                                     26 	.area _DABS (ABS)
+                                     27 ;--------------------------------------------------------
+                                     28 ; global & static initialisations
+                                     29 ;--------------------------------------------------------
+                                     30 	.area _HOME
+                                     31 	.area _GSINIT
+                                     32 	.area _GSFINAL
+                                     33 	.area _GSINIT
+                                     34 ;--------------------------------------------------------
+                                     35 ; Home
+                                     36 ;--------------------------------------------------------
+                                     37 	.area _HOME
+                                     38 	.area _HOME
+                                     39 ;--------------------------------------------------------
+                                     40 ; code
+                                     41 ;--------------------------------------------------------
+                                     42 	.area _CODE
+                                     43 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/zx0.c:19: void ZX0_UnpackToRAM(const void* source, void* dest)
+                                     44 ;	---------------------------------
+                                     45 ; Function ZX0_UnpackToRAM
+                                     46 ; ---------------------------------
+    00000000                         47 _ZX0_UnpackToRAM::
+                                     48 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/zx0.c:85: __endasm;
+    00000000                         49 	dzx0_standard:
+    00000000 01 FF FF         [10]   50 	ld	bc, #0xFFFF
+    00000003 C5               [11]   51 	push	bc
+    00000004 03               [ 6]   52 	inc	bc
+    00000005 3E 80            [ 7]   53 	ld	a, #0x80
+    00000007                         54 	dzx0s_literals:
+    00000007 CDr35r00         [17]   55 	call	dzx0s_elias
+    0000000A ED B0            [21]   56 	ldir
+    0000000C 87               [ 4]   57 	add	a, a
+    0000000D 38 0D            [12]   58 	jr	c, dzx0s_new_offset
+    0000000F CDr35r00         [17]   59 	call	dzx0s_elias
+    00000012                         60 	dzx0s_copy:
+    00000012 E3               [19]   61 	ex	(sp), hl
+    00000013 E5               [11]   62 	push	hl
+    00000014 19               [11]   63 	add	hl, de
+    00000015 ED B0            [21]   64 	ldir
+    00000017 E1               [10]   65 	pop	hl
+    00000018 E3               [19]   66 	ex	(sp), hl
+    00000019 87               [ 4]   67 	add	a, a
+    0000001A 30 EB            [12]   68 	jr	nc, dzx0s_literals
+    0000001C                         69 	dzx0s_new_offset:
+    0000001C C1               [10]   70 	pop	bc
+    0000001D 0E FE            [ 7]   71 	ld	c, #0xFE
+    0000001F CDr36r00         [17]   72 	call	dzx0s_elias_loop
+    00000022 0C               [ 4]   73 	inc	c
+    00000023 C8               [11]   74 	ret	z
+    00000024 41               [ 4]   75 	ld	b, c
+    00000025 4E               [ 7]   76 	ld	c, (hl)
+    00000026 23               [ 6]   77 	inc	hl
+    00000027 CB 18            [ 8]   78 	rr	b
+    00000029 CB 19            [ 8]   79 	rr	c
+    0000002B C5               [11]   80 	push	bc
+    0000002C 01 01 00         [10]   81 	ld	bc, #1
+    0000002F D4r3Dr00         [17]   82 	call	nc, dzx0s_elias_backtrack
+    00000032 03               [ 6]   83 	inc	bc
+    00000033 18 DD            [12]   84 	jr	dzx0s_copy
+    00000035                         85 	dzx0s_elias:
+    00000035 0C               [ 4]   86 	inc	c
+    00000036                         87 	dzx0s_elias_loop:
+    00000036 87               [ 4]   88 	add	a, a
+    00000037 20 03            [12]   89 	jr	nz, dzx0s_elias_skip
+    00000039 7E               [ 7]   90 	ld	a, (hl)
+    0000003A 23               [ 6]   91 	inc	hl
+    0000003B 17               [ 4]   92 	rla
+    0000003C                         93 	dzx0s_elias_skip:
+    0000003C D8               [11]   94 	ret	c
+    0000003D                         95 	dzx0s_elias_backtrack:
+    0000003D 87               [ 4]   96 	add	a, a
+    0000003E CB 11            [ 8]   97 	rl	c
+    00000040 CB 10            [ 8]   98 	rl	b
+    00000042 18 F2            [12]   99 	jr	dzx0s_elias_loop
+                                    100 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/zx0.c:86: }
+    00000044 C9               [10]  101 	ret
+                                    102 	.area _CODE
+                                    103 	.area _INITIALIZER
+                                    104 	.area _CABS (ABS)

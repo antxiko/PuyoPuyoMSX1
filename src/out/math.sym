@@ -1,0 +1,51 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+    .__.$$$.                                                    =   00002710 L
+    .__.ABS.                                                    =   00000000 G
+    .__.CPU.                                                    =   00000000 L
+    .__.H$L.                                                    =   00000000 L
+  0 _Math_Div10                                                     00000000 GR
+  0 _Math_Div10_16b                                                 0000000C GR
+  0 _Math_Flip                                                      0000004D GR
+  0 _Math_Flip_16b                                                  0000005F GR
+  0 _Math_GetRandom16                                               000000AF GR
+  0 _Math_GetRandom8                                                00000090 GR
+  0 _Math_Mod10                                                     00000020 GR
+  0 _Math_Mod10_16b                                                 00000034 GR
+  0 _Math_Negative16                                                0000006A GR
+  0 _Math_SetRandomSeed16                                           000000A0 GR
+  0 _Math_SetRandomSeed8                                            00000083 GR
+  0 _Math_SignedDiv16                                               00000078 GR
+  0 _Math_SignedDiv2                                                0000007E GR
+  0 _Math_SignedDiv32                                               00000076 GR
+  0 _Math_SignedDiv4                                                0000007C GR
+  0 _Math_SignedDiv64                                               00000074 GR
+  0 _Math_SignedDiv8                                                0000007A GR
+  0 _Math_SignedDiv_ASM                                             00000074 GR
+  0 _Math_Swap                                                      00000071 GR
+  7 __xinit__g_RandomSeed16                                         00000002 R
+  7 __xinit__g_RandomSeed8                                          00000000 R
+  2 _g_RandomSeed16                                                 00000002 GR
+  2 _g_RandomSeed8                                                  00000000 GR
+  0 label_0                                                         00000019 R
+  0 label_1                                                         0000001D R
+  0 xrnd                                                            000000AF R
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+Area Table
+
+   0 _CODE                                      size       C4   flags    0
+   1 _DATA                                      size        0   flags    0
+   2 _INITIALIZED                               size        4   flags    0
+   3 _DABS                                      size        0   flags    8
+   4 _HOME                                      size        0   flags    0
+   5 _GSINIT                                    size        0   flags    0
+   6 _GSFINAL                                   size        0   flags    0
+   7 _INITIALIZER                               size        4   flags    0
+   8 _CABS                                      size        0   flags    8
+

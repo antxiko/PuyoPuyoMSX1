@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-openmsx": {
+      "command": "npx",
+      "args": ["@nataliapc/mcp-openmsx"],
+      "env": {
+        "OPENMSX_EXECUTABLE": "C:\\Program Files\\openMSX\\openmsx.exe",
+        "OPENMSX_SHARE_DIR": "C:\\Program Files\\openMSX\\share"
+      }
+    }
+  }
+}

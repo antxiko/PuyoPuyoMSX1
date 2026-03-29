@@ -1,0 +1,692 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module system
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _g_SLTSL
+                                     12 	.globl _g_GRPACY
+                                     13 	.globl _g_GRPACX
+                                     14 	.globl _g_LOGOPR
+                                     15 	.globl _g_CMASK
+                                     16 	.globl _g_CLOC
+                                     17 	.globl _g_FNKSTR
+                                     18 	.globl _g_ATRBYT
+                                     19 	.globl _g_BDRCLR
+                                     20 	.globl _g_BAKCLR
+                                     21 	.globl _g_FORCLR
+                                     22 	.globl _g_CSRX
+                                     23 	.globl _g_CSRY
+                                     24 	.globl _g_CLIKSW
+                                     25 	.globl _g_MLTPAT
+                                     26 	.globl _g_MLTATR
+                                     27 	.globl _g_MLTCGP
+                                     28 	.globl _g_MLTCOL
+                                     29 	.globl _g_MLTNAM
+                                     30 	.globl _g_GRPPAT
+                                     31 	.globl _g_GRPATR
+                                     32 	.globl _g_GRPCGP
+                                     33 	.globl _g_GRPCOL
+                                     34 	.globl _g_GRPNAM
+                                     35 	.globl _g_T32PAT
+                                     36 	.globl _g_T32ATR
+                                     37 	.globl _g_T32CGP
+                                     38 	.globl _g_T32COL
+                                     39 	.globl _g_T32NAM
+                                     40 	.globl _g_TXTPAT
+                                     41 	.globl _g_TXTATR
+                                     42 	.globl _g_TXTCGP
+                                     43 	.globl _g_TXTCOL
+                                     44 	.globl _g_TXTNAM
+                                     45 	.globl _g_CLMLST
+                                     46 	.globl _g_CRTCNT
+                                     47 	.globl _g_LINLEN
+                                     48 	.globl _g_LINL32
+                                     49 	.globl _g_LINL40
+                                     50 	.globl _g_CHAR_16
+                                     51 	.globl _g_MSXMID
+                                     52 	.globl _g_MSXVER
+                                     53 	.globl _g_ROMVersion
+                                     54 	.globl _g_BASRVN
+                                     55 	.globl _g_VDP_DW
+                                     56 	.globl _g_VDP_DR
+                                     57 	.globl _g_CGTABL
+                                     58 	.globl _g_SVFFFD
+                                     59 	.globl _g_RG27SAV
+                                     60 	.globl _g_RG26SAV
+                                     61 	.globl _g_RG25SAV
+                                     62 	.globl _g_SVFFF8
+                                     63 	.globl _g_MINROM
+                                     64 	.globl _g_RG23SAV
+                                     65 	.globl _g_RG22SAV
+                                     66 	.globl _g_RG21SAV
+                                     67 	.globl _g_RG20SAV
+                                     68 	.globl _g_RG19SAV
+                                     69 	.globl _g_RG18SAV
+                                     70 	.globl _g_RG17SAV
+                                     71 	.globl _g_RG16SAV
+                                     72 	.globl _g_RG15SAV
+                                     73 	.globl _g_RG14SAV
+                                     74 	.globl _g_RG13SAV
+                                     75 	.globl _g_RG12SAV
+                                     76 	.globl _g_RG11SAV
+                                     77 	.globl _g_RG10SAV
+                                     78 	.globl _g_RG09SAV
+                                     79 	.globl _g_RG08SAV
+                                     80 	.globl _g_PROCNM
+                                     81 	.globl _g_SLTWRK
+                                     82 	.globl _g_SLTATR
+                                     83 	.globl _g_SLTTBL
+                                     84 	.globl _g_EXPTBL
+                                     85 	.globl _g_MNROM
+                                     86 	.globl _g_DRWANG
+                                     87 	.globl _g_DRWSCL
+                                     88 	.globl _g_DRWFLG
+                                     89 	.globl _g_GYPOS
+                                     90 	.globl _g_GXPOS
+                                     91 	.globl _g_BRDATR
+                                     92 	.globl _g_CASPRV
+                                     93 	.globl _g_OLDSCR
+                                     94 	.globl _g_SCRMOD
+                                     95 	.globl _g_FLBMEM
+                                     96 	.globl _g_KANAMD
+                                     97 	.globl _g_KANAST
+                                     98 	.globl _g_CAPST
+                                     99 	.globl _g_CSTYLE
+                                    100 	.globl _g_CSRSW
+                                    101 	.globl _g_INSFLG
+                                    102 	.globl _g_ESCCNT
+                                    103 	.globl _g_GRPHED
+                                    104 	.globl _g_WINWID
+                                    105 	.globl _g_LOWLIM
+                                    106 	.globl _g_INTCNT
+                                    107 	.globl _g_INTVAL
+                                    108 	.globl _g_JIFFY
+                                    109 	.globl _g_PADX
+                                    110 	.globl _g_PADY
+                                    111 	.globl _g_INTFLG
+                                    112 	.globl _g_RTYCNT
+                                    113 	.globl _g_TRPTBL
+                                    114 	.globl _g_HIMEM
+                                    115 	.globl _g_BOTTOM
+                                    116 	.globl _g_PATWRK
+                                    117 	.globl _g_LINWRK
+                                    118 	.globl _g_KEYBUF
+                                    119 	.globl _g_NEWKEY
+                                    120 	.globl _g_OLDKEY
+                                    121 	.globl _g_CLIKFL
+                                    122 	.globl _g_ONGSBF
+                                    123 	.globl _g_FNKFLG
+                                    124 	.globl _g_FNKSWI
+                                    125 	.globl _g_CODSAV
+                                    126 	.globl _g_FSTPOS
+                                    127 	.globl _g_LINTTB
+                                    128 	.globl _g_BASROM
+                                    129 	.globl _g_ENSTOP
+                                    130 	.globl _g_VCBC
+                                    131 	.globl _g_VCBB
+                                    132 	.globl _g_VCBA
+                                    133 	.globl _g_PLYCNT
+                                    134 	.globl _g_MUSICF
+                                    135 	.globl _g_QUEUEN
+                                    136 	.globl _g_MCLPTR
+                                    137 	.globl _g_MCLLEN
+                                    138 	.globl _g_SAVVOL
+                                    139 	.globl _g_VOICEN
+                                    140 	.globl _g_SAVSP
+                                    141 	.globl _g_PRSCNT
+                                    142 	.globl _g_LSTMOD
+                                    143 	.globl _g_LSTCOM
+                                    144 	.globl _g_COMMSK
+                                    145 	.globl _g_ESTBLS
+                                    146 	.globl _g_FLAGS
+                                    147 	.globl _g_ERRORS
+                                    148 	.globl _g_DATCNT
+                                    149 	.globl _g_DEVNUM
+                                    150 	.globl _g_OLDINT
+                                    151 	.globl _g_OLDSTT
+                                    152 	.globl _g_MEXBIh
+                                    153 	.globl _g_RSIQLN
+                                    154 	.globl _g_RSFCB
+                                    155 	.globl _g_TOCNT
+                                    156 	.globl _g_RSTMP
+                                    157 	.globl _g_YSAVE
+                                    158 	.globl _g_XSAVE
+                                    159 	.globl _g_NORUSE
+                                    160 	.globl _g_MODE
+                                    161 	.globl _g_ROMA
+                                    162 	.globl _g_CHRCNT
+                                    163 	.globl _g_EXBRSA
+                                    164 	.globl _g_AVCSAV
+                                    165 	.globl _g_ACPAGE
+                                    166 	.globl _g_DPPAGE
+                                    167 	.globl _g_RS2IQ
+                                    168 	.globl _g_VOICCQ
+                                    169 	.globl _g_VOICBQ
+                                    170 	.globl _g_VOICAQ
+                                    171 	.globl _g_QUEBAK
+                                    172 	.globl _g_QUETAB
+                                    173 	.globl _g_ASPCT2
+                                    174 	.globl _g_ASPCT1
+                                    175 	.globl _g_HEADER
+                                    176 	.globl _g_HIGH
+                                    177 	.globl _g_LOW
+                                    178 	.globl _g_CS240
+                                    179 	.globl _g_CS120
+                                    180 	.globl _g_GETPNT
+                                    181 	.globl _g_PUTPNT
+                                    182 	.globl _g_REPCNT
+                                    183 	.globl _g_SCNCNT
+                                    184 	.globl _g_FRCNEW
+                                    185 	.globl _g_QUEUES
+                                    186 	.globl _g_MINUPD
+                                    187 	.globl _g_MAXUPD
+                                    188 	.globl _g_TRGFLG
+                                    189 	.globl _g_STATFL
+                                    190 	.globl _g_RG7SAV
+                                    191 	.globl _g_RG6SAV
+                                    192 	.globl _g_RG5SAV
+                                    193 	.globl _g_RG4SAV
+                                    194 	.globl _g_RG3SAV
+                                    195 	.globl _g_RG2SAV
+                                    196 	.globl _g_RG1SAV
+                                    197 	.globl _g_RG0SAV
+                                    198 	.globl _g_CNSDFG
+                                    199 	.globl _g_USRTAB
+                                    200 	.globl _g_CLPRIM
+                                    201 	.globl _g_WRPRIM
+                                    202 	.globl _g_RDPRIM
+                                    203 	.globl _Sys_GetPageSlot
+                                    204 	.globl _Sys_SetPageSlot
+                                    205 	.globl _Sys_SetPage0Slot
+                                    206 	.globl _Sys_CheckSlot
+                                    207 ;--------------------------------------------------------
+                                    208 ; special function registers
+                                    209 ;--------------------------------------------------------
+                         000000A8   210 _g_PortPrimarySlot	=	0x00a8
+                         000000A9   211 _g_PortReadKeyboard	=	0x00a9
+                         000000AA   212 _g_PortAccessKeyboard	=	0x00aa
+                         000000AB   213 _g_PortControl	=	0x00ab
+                         00000098   214 _g_VDP_DataPort	=	0x0098
+                         00000099   215 _g_VDP_RegPort	=	0x0099
+                         00000099   216 _g_VDP_AddrPort	=	0x0099
+                         00000099   217 _g_VDP_StatPort	=	0x0099
+                         000000A0   218 _g_PSG_RegPort	=	0x00a0
+                         000000A1   219 _g_PSG_DataPort	=	0x00a1
+                         000000A2   220 _g_PSG_StatPort	=	0x00a2
+                         00000010   221 _g_PSG_Ext_RegPort	=	0x0010
+                         00000011   222 _g_PSG_Ext_DataPort	=	0x0011
+                         00000012   223 _g_PSG_Ext_StatPort	=	0x0012
+                         0000007C   224 _g_MSXMusic_IndexPort	=	0x007c
+                         0000007D   225 _g_MSXMusic_DataPort	=	0x007d
+                         000000C0   226 _g_MSXAudio_IndexPort	=	0x00c0
+                         000000C1   227 _g_MSXAudio_DataPort	=	0x00c1
+                         000000C2   228 _g_MSXAudio_IndexPort2	=	0x00c2
+                         000000C3   229 _g_MSXAudio_DataPort2	=	0x00c3
+                         000000B4   230 _g_RTC_AddrPort	=	0x00b4
+                         000000B5   231 _g_RTC_DataPort	=	0x00b5
+                                    232 ;--------------------------------------------------------
+                                    233 ; ram data
+                                    234 ;--------------------------------------------------------
+                                    235 	.area _DATA
+                         0000F3AE   236 _g_LINL40	=	0xf3ae
+                         0000F3AF   237 _g_LINL32	=	0xf3af
+                         0000F3B0   238 _g_LINLEN	=	0xf3b0
+                         0000F3B1   239 _g_CRTCNT	=	0xf3b1
+                         0000F3B2   240 _g_CLMLST	=	0xf3b2
+                         0000F3B3   241 _g_TXTNAM	=	0xf3b3
+                         0000F3B5   242 _g_TXTCOL	=	0xf3b5
+                         0000F3B7   243 _g_TXTCGP	=	0xf3b7
+                         0000F3B9   244 _g_TXTATR	=	0xf3b9
+                         0000F3BB   245 _g_TXTPAT	=	0xf3bb
+                         0000F3BD   246 _g_T32NAM	=	0xf3bd
+                         0000F3BF   247 _g_T32COL	=	0xf3bf
+                         0000F3C1   248 _g_T32CGP	=	0xf3c1
+                         0000F3C3   249 _g_T32ATR	=	0xf3c3
+                         0000F3C5   250 _g_T32PAT	=	0xf3c5
+                         0000F3C7   251 _g_GRPNAM	=	0xf3c7
+                         0000F3C9   252 _g_GRPCOL	=	0xf3c9
+                         0000F3CB   253 _g_GRPCGP	=	0xf3cb
+                         0000F3CD   254 _g_GRPATR	=	0xf3cd
+                         0000F3CF   255 _g_GRPPAT	=	0xf3cf
+                         0000F3D1   256 _g_MLTNAM	=	0xf3d1
+                         0000F3D3   257 _g_MLTCOL	=	0xf3d3
+                         0000F3D5   258 _g_MLTCGP	=	0xf3d5
+                         0000F3D7   259 _g_MLTATR	=	0xf3d7
+                         0000F3D9   260 _g_MLTPAT	=	0xf3d9
+                         0000F3DB   261 _g_CLIKSW	=	0xf3db
+                         0000F3DC   262 _g_CSRY	=	0xf3dc
+                         0000F3DD   263 _g_CSRX	=	0xf3dd
+                         0000F3E9   264 _g_FORCLR	=	0xf3e9
+                         0000F3EA   265 _g_BAKCLR	=	0xf3ea
+                         0000F3EB   266 _g_BDRCLR	=	0xf3eb
+                         0000F3F2   267 _g_ATRBYT	=	0xf3f2
+                         0000F87F   268 _g_FNKSTR	=	0xf87f
+                         0000F92A   269 _g_CLOC	=	0xf92a
+                         0000F92C   270 _g_CMASK	=	0xf92c
+                         0000FB02   271 _g_LOGOPR	=	0xfb02
+                         0000FCB7   272 _g_GRPACX	=	0xfcb7
+                         0000FCB9   273 _g_GRPACY	=	0xfcb9
+                         0000FFFF   274 _g_SLTSL	=	0xffff
+                                    275 ;--------------------------------------------------------
+                                    276 ; ram data
+                                    277 ;--------------------------------------------------------
+                                    278 	.area _INITIALIZED
+                                    279 ;--------------------------------------------------------
+                                    280 ; absolute external ram data
+                                    281 ;--------------------------------------------------------
+                                    282 	.area _DABS (ABS)
+                                    283 ;--------------------------------------------------------
+                                    284 ; global & static initialisations
+                                    285 ;--------------------------------------------------------
+                                    286 	.area _HOME
+                                    287 	.area _GSINIT
+                                    288 	.area _GSFINAL
+                                    289 	.area _GSINIT
+                                    290 ;--------------------------------------------------------
+                                    291 ; Home
+                                    292 ;--------------------------------------------------------
+                                    293 	.area _HOME
+                                    294 	.area _HOME
+                                    295 ;--------------------------------------------------------
+                                    296 ; code
+                                    297 ;--------------------------------------------------------
+                                    298 	.area _CODE
+                                    299 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:12: u8 Sys_GetPageSlot(u8 page)
+                                    300 ;	---------------------------------
+                                    301 ; Function Sys_GetPageSlot
+                                    302 ; ---------------------------------
+    00000000                        303 _Sys_GetPageSlot::
+    00000000 5F               [ 4]  304 	ld	e, a
+                                    305 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:15: u8 slot = (g_PortPrimarySlot >> (page * 2)) & 0x03;
+    00000001 CB 23            [ 8]  306 	sla	e
+    00000003 43               [ 4]  307 	ld	b, e
+    00000004 DB A8            [11]  308 	in	a, (_g_PortPrimarySlot)
+    00000006 4F               [ 4]  309 	ld	c, a
+    00000007 04               [ 4]  310 	inc	b
+    00000008 C3r0Dr00         [10]  311 	jp	00113$
+    0000000B                        312 00112$:
+    0000000B CB 39            [ 8]  313 	srl	c
+    0000000D                        314 00113$:
+    0000000D 10 FC            [13]  315 	djnz	00112$
+    0000000F 79               [ 4]  316 	ld	a, c
+    00000010 E6 03            [ 7]  317 	and	a, #0x03
+    00000012 4F               [ 4]  318 	ld	c, a
+                                    319 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:18: if (g_EXPTBL[slot] & SLOT_EXP)
+    00000013 21 C1 FC         [10]  320 	ld	hl, #_g_EXPTBL+0
+    00000016 06 00            [ 7]  321 	ld	b, #0x00
+    00000018 09               [11]  322 	add	hl, bc
+    00000019 7E               [ 7]  323 	ld	a, (hl)
+    0000001A 07               [ 4]  324 	rlca
+    0000001B 30 34            [12]  325 	jr	NC, 00102$
+                                    326 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:20: u8 prevSlot = g_PortPrimarySlot; // Backup current primary slots register
+    0000001D DB A8            [11]  327 	in	a, (_g_PortPrimarySlot)
+    0000001F 47               [ 4]  328 	ld	b, a
+                                    329 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.h:141: inline void DisableInterrupt() { __asm__("di"); }
+    00000020 F3               [ 4]  330 	di
+                                    331 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:22: g_PortPrimarySlot = (prevSlot & 0x3F) | (slot << 6); // Select primary slot in page 3
+    00000021 78               [ 4]  332 	ld	a, b
+    00000022 E6 3F            [ 7]  333 	and	a, #0x3f
+    00000024 6F               [ 4]  334 	ld	l, a
+                                    335 ;	spillPairReg hl
+                                    336 ;	spillPairReg hl
+    00000025 79               [ 4]  337 	ld	a, c
+    00000026 0F               [ 4]  338 	rrca
+    00000027 0F               [ 4]  339 	rrca
+    00000028 E6 C0            [ 7]  340 	and	a, #0xc0
+    0000002A B5               [ 4]  341 	or	a, l
+    0000002B D3 A8            [11]  342 	out	(_g_PortPrimarySlot), a
+                                    343 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:23: slot |= SLOT_EXP;
+    0000002D CB F9            [ 8]  344 	set	7, c
+                                    345 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:24: slot |= (((~g_SLTSL) >> (page * 2)) & 0x03) << 2;
+    0000002F 3A FF FF         [13]  346 	ld	a, (_g_SLTSL+0)
+    00000032 6F               [ 4]  347 	ld	l, a
+                                    348 ;	spillPairReg hl
+                                    349 ;	spillPairReg hl
+    00000033 26 00            [ 7]  350 	ld	h, #0x00
+                                    351 ;	spillPairReg hl
+                                    352 ;	spillPairReg hl
+    00000035 7D               [ 4]  353 	ld	a, l
+    00000036 2F               [ 4]  354 	cpl
+    00000037 6F               [ 4]  355 	ld	l, a
+                                    356 ;	spillPairReg hl
+                                    357 ;	spillPairReg hl
+    00000038 7C               [ 4]  358 	ld	a, h
+    00000039 2F               [ 4]  359 	cpl
+    0000003A 67               [ 4]  360 	ld	h, a
+                                    361 ;	spillPairReg hl
+                                    362 ;	spillPairReg hl
+    0000003B 1C               [ 4]  363 	inc	e
+    0000003C C3r43r00         [10]  364 	jp	00116$
+    0000003F                        365 00115$:
+    0000003F CB 2C            [ 8]  366 	sra	h
+    00000041 CB 1D            [ 8]  367 	rr	l
+    00000043                        368 00116$:
+    00000043 1D               [ 4]  369 	dec	e
+    00000044 20 F9            [12]  370 	jr	NZ, 00115$
+    00000046 7D               [ 4]  371 	ld	a, l
+    00000047 E6 03            [ 7]  372 	and	a, #0x03
+    00000049 87               [ 4]  373 	add	a, a
+    0000004A 87               [ 4]  374 	add	a, a
+    0000004B B1               [ 4]  375 	or	a, c
+    0000004C 4F               [ 4]  376 	ld	c, a
+                                    377 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:25: g_PortPrimarySlot = prevSlot; // Restore primary slots register
+    0000004D 78               [ 4]  378 	ld	a, b
+    0000004E D3 A8            [11]  379 	out	(_g_PortPrimarySlot), a
+                                    380 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.h:137: inline void EnableInterrupt() { __asm__("ei"); }
+    00000050 FB               [ 4]  381 	ei
+                                    382 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:26: EnableInterrupt();
+    00000051                        383 00102$:
+                                    384 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:28: return slot;
+    00000051 79               [ 4]  385 	ld	a, c
+                                    386 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:29: }
+    00000052 C9               [10]  387 	ret
+                         0000F380   388 _g_RDPRIM	=	0xf380
+                         0000F385   389 _g_WRPRIM	=	0xf385
+                         0000F38C   390 _g_CLPRIM	=	0xf38c
+                         0000F39A   391 _g_USRTAB	=	0xf39a
+                         0000F3DE   392 _g_CNSDFG	=	0xf3de
+                         0000F3DF   393 _g_RG0SAV	=	0xf3df
+                         0000F3E0   394 _g_RG1SAV	=	0xf3e0
+                         0000F3E1   395 _g_RG2SAV	=	0xf3e1
+                         0000F3E2   396 _g_RG3SAV	=	0xf3e2
+                         0000F3E3   397 _g_RG4SAV	=	0xf3e3
+                         0000F3E4   398 _g_RG5SAV	=	0xf3e4
+                         0000F3E5   399 _g_RG6SAV	=	0xf3e5
+                         0000F3E6   400 _g_RG7SAV	=	0xf3e6
+                         0000F3E7   401 _g_STATFL	=	0xf3e7
+                         0000F3E8   402 _g_TRGFLG	=	0xf3e8
+                         0000F3EC   403 _g_MAXUPD	=	0xf3ec
+                         0000F3EF   404 _g_MINUPD	=	0xf3ef
+                         0000F3F3   405 _g_QUEUES	=	0xf3f3
+                         0000F3F5   406 _g_FRCNEW	=	0xf3f5
+                         0000F3F6   407 _g_SCNCNT	=	0xf3f6
+                         0000F3F7   408 _g_REPCNT	=	0xf3f7
+                         0000F3F8   409 _g_PUTPNT	=	0xf3f8
+                         0000F3FA   410 _g_GETPNT	=	0xf3fa
+                         0000F3FC   411 _g_CS120	=	0xf3fc
+                         0000F401   412 _g_CS240	=	0xf401
+                         0000F406   413 _g_LOW	=	0xf406
+                         0000F408   414 _g_HIGH	=	0xf408
+                         0000F40A   415 _g_HEADER	=	0xf40a
+                         0000F40B   416 _g_ASPCT1	=	0xf40b
+                         0000F40D   417 _g_ASPCT2	=	0xf40d
+                         0000F959   418 _g_QUETAB	=	0xf959
+                         0000F971   419 _g_QUEBAK	=	0xf971
+                         0000F975   420 _g_VOICAQ	=	0xf975
+                         0000F9F5   421 _g_VOICBQ	=	0xf9f5
+                         0000FA75   422 _g_VOICCQ	=	0xfa75
+                         0000FAF5   423 _g_RS2IQ	=	0xfaf5
+                         0000FAF5   424 _g_DPPAGE	=	0xfaf5
+                         0000FAF6   425 _g_ACPAGE	=	0xfaf6
+                         0000FAF7   426 _g_AVCSAV	=	0xfaf7
+                         0000FAF8   427 _g_EXBRSA	=	0xfaf8
+                         0000FAF9   428 _g_CHRCNT	=	0xfaf9
+                         0000FAFA   429 _g_ROMA	=	0xfafa
+                         0000FAFC   430 _g_MODE	=	0xfafc
+                         0000FAFD   431 _g_NORUSE	=	0xfafd
+                         0000FAFE   432 _g_XSAVE	=	0xfafe
+                         0000FB00   433 _g_YSAVE	=	0xfb00
+                         0000FB03   434 _g_RSTMP	=	0xfb03
+                         0000FB03   435 _g_TOCNT	=	0xfb03
+                         0000FB04   436 _g_RSFCB	=	0xfb04
+                         0000FB06   437 _g_RSIQLN	=	0xfb06
+                         0000FB07   438 _g_MEXBIh	=	0xfb07
+                         0000FB0C   439 _g_OLDSTT	=	0xfb0c
+                         0000FB0C   440 _g_OLDINT	=	0xfb0c
+                         0000FB16   441 _g_DEVNUM	=	0xfb16
+                         0000FB17   442 _g_DATCNT	=	0xfb17
+                         0000FB1A   443 _g_ERRORS	=	0xfb1a
+                         0000FB1B   444 _g_FLAGS	=	0xfb1b
+                         0000FB1C   445 _g_ESTBLS	=	0xfb1c
+                         0000FB1D   446 _g_COMMSK	=	0xfb1d
+                         0000FB1E   447 _g_LSTCOM	=	0xfb1e
+                         0000FB1F   448 _g_LSTMOD	=	0xfb1f
+                         0000FB35   449 _g_PRSCNT	=	0xfb35
+                         0000FB36   450 _g_SAVSP	=	0xfb36
+                         0000FB38   451 _g_VOICEN	=	0xfb38
+                         0000FB39   452 _g_SAVVOL	=	0xfb39
+                         0000FB3B   453 _g_MCLLEN	=	0xfb3b
+                         0000FB3C   454 _g_MCLPTR	=	0xfb3c
+                         0000FB3E   455 _g_QUEUEN	=	0xfb3e
+                         0000FB3F   456 _g_MUSICF	=	0xfb3f
+                         0000FB40   457 _g_PLYCNT	=	0xfb40
+                         0000FB41   458 _g_VCBA	=	0xfb41
+                         0000FB66   459 _g_VCBB	=	0xfb66
+                         0000FB8B   460 _g_VCBC	=	0xfb8b
+                         0000FBB0   461 _g_ENSTOP	=	0xfbb0
+                         0000FBB1   462 _g_BASROM	=	0xfbb1
+                         0000FBB2   463 _g_LINTTB	=	0xfbb2
+                         0000FBCA   464 _g_FSTPOS	=	0xfbca
+                         0000FBCC   465 _g_CODSAV	=	0xfbcc
+                         0000FBCD   466 _g_FNKSWI	=	0xfbcd
+                         0000FBCE   467 _g_FNKFLG	=	0xfbce
+                         0000FBD8   468 _g_ONGSBF	=	0xfbd8
+                         0000FBD9   469 _g_CLIKFL	=	0xfbd9
+                         0000FBDA   470 _g_OLDKEY	=	0xfbda
+                         0000FBE5   471 _g_NEWKEY	=	0xfbe5
+                         0000FBF0   472 _g_KEYBUF	=	0xfbf0
+                         0000FC18   473 _g_LINWRK	=	0xfc18
+                         0000FC40   474 _g_PATWRK	=	0xfc40
+                         0000FC48   475 _g_BOTTOM	=	0xfc48
+                         0000FC4A   476 _g_HIMEM	=	0xfc4a
+                         0000FC4C   477 _g_TRPTBL	=	0xfc4c
+                         0000FC9A   478 _g_RTYCNT	=	0xfc9a
+                         0000FC9B   479 _g_INTFLG	=	0xfc9b
+                         0000FC9C   480 _g_PADY	=	0xfc9c
+                         0000FC9D   481 _g_PADX	=	0xfc9d
+                         0000FC9E   482 _g_JIFFY	=	0xfc9e
+                         0000FCA0   483 _g_INTVAL	=	0xfca0
+                         0000FCA2   484 _g_INTCNT	=	0xfca2
+                         0000FCA4   485 _g_LOWLIM	=	0xfca4
+                         0000FCA5   486 _g_WINWID	=	0xfca5
+                         0000FCA6   487 _g_GRPHED	=	0xfca6
+                         0000FCA7   488 _g_ESCCNT	=	0xfca7
+                         0000FCA8   489 _g_INSFLG	=	0xfca8
+                         0000FCA9   490 _g_CSRSW	=	0xfca9
+                         0000FCAA   491 _g_CSTYLE	=	0xfcaa
+                         0000FCAB   492 _g_CAPST	=	0xfcab
+                         0000FCAC   493 _g_KANAST	=	0xfcac
+                         0000FCAD   494 _g_KANAMD	=	0xfcad
+                         0000FCAE   495 _g_FLBMEM	=	0xfcae
+                         0000FCAF   496 _g_SCRMOD	=	0xfcaf
+                         0000FCB0   497 _g_OLDSCR	=	0xfcb0
+                         0000FCB1   498 _g_CASPRV	=	0xfcb1
+                         0000FCB2   499 _g_BRDATR	=	0xfcb2
+                         0000FCB3   500 _g_GXPOS	=	0xfcb3
+                         0000FCB5   501 _g_GYPOS	=	0xfcb5
+                         0000FCBB   502 _g_DRWFLG	=	0xfcbb
+                         0000FCBC   503 _g_DRWSCL	=	0xfcbc
+                         0000FCBD   504 _g_DRWANG	=	0xfcbd
+                         0000FCC1   505 _g_MNROM	=	0xfcc1
+                         0000FCC1   506 _g_EXPTBL	=	0xfcc1
+                         0000FCC5   507 _g_SLTTBL	=	0xfcc5
+                         0000FCC9   508 _g_SLTATR	=	0xfcc9
+                         0000FD09   509 _g_SLTWRK	=	0xfd09
+                         0000FD89   510 _g_PROCNM	=	0xfd89
+                         0000FFE7   511 _g_RG08SAV	=	0xffe7
+                         0000FFE8   512 _g_RG09SAV	=	0xffe8
+                         0000FFE9   513 _g_RG10SAV	=	0xffe9
+                         0000FFEA   514 _g_RG11SAV	=	0xffea
+                         0000FFEB   515 _g_RG12SAV	=	0xffeb
+                         0000FFEC   516 _g_RG13SAV	=	0xffec
+                         0000FFED   517 _g_RG14SAV	=	0xffed
+                         0000FFEE   518 _g_RG15SAV	=	0xffee
+                         0000FFEF   519 _g_RG16SAV	=	0xffef
+                         0000FFF0   520 _g_RG17SAV	=	0xfff0
+                         0000FFF1   521 _g_RG18SAV	=	0xfff1
+                         0000FFF2   522 _g_RG19SAV	=	0xfff2
+                         0000FFF3   523 _g_RG20SAV	=	0xfff3
+                         0000FFF4   524 _g_RG21SAV	=	0xfff4
+                         0000FFF5   525 _g_RG22SAV	=	0xfff5
+                         0000FFF6   526 _g_RG23SAV	=	0xfff6
+                         0000FFF7   527 _g_MINROM	=	0xfff7
+                         0000FFF8   528 _g_SVFFF8	=	0xfff8
+                         0000FFFA   529 _g_RG25SAV	=	0xfffa
+                         0000FFFB   530 _g_RG26SAV	=	0xfffb
+                         0000FFFC   531 _g_RG27SAV	=	0xfffc
+                         0000FFFD   532 _g_SVFFFD	=	0xfffd
+                         00000004   533 _g_CGTABL	=	0x0004
+                         00000006   534 _g_VDP_DR	=	0x0006
+                         00000007   535 _g_VDP_DW	=	0x0007
+                         0000002B   536 _g_BASRVN	=	0x002b
+                         0000002B   537 _g_ROMVersion	=	0x002b
+                         0000002D   538 _g_MSXVER	=	0x002d
+                         0000002E   539 _g_MSXMID	=	0x002e
+                         00000034   540 _g_CHAR_16	=	0x0034
+                                    541 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:33: void Sys_SetPageSlot(u8 page, u8 slotId)
+                                    542 ;	---------------------------------
+                                    543 ; Function Sys_SetPageSlot
+                                    544 ; ---------------------------------
+    00000053                        545 _Sys_SetPageSlot::
+                                    546 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:36: slotId;
+                                    547 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:60: }
+    00000053 C9               [10]  548 	ret
+                                    549 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:64: void Sys_SetPage0Slot(u8 slotId) __NAKED
+                                    550 ;	---------------------------------
+                                    551 ; Function Sys_SetPage0Slot
+                                    552 ; ---------------------------------
+    00000054                        553 _Sys_SetPage0Slot::
+                                    554 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:134: __endasm;
+    00000054 4F               [ 4]  555 	ld	c, a
+    00000055 E6 80            [ 7]  556 	and	#0b10000000
+    00000057 CAr8Br00         [10]  557 	jp	z, SetNonExpendedSlot
+    0000005A                        558 	SetExpendedSlot:
+    0000005A 79               [ 4]  559 	ld	a, c
+    0000005B E6 03            [ 7]  560 	and	#0b00000011
+    0000005D 57               [ 4]  561 	ld	d, a
+    0000005E 0F               [ 4]  562 	rrca	
+    0000005F 0F               [ 4]  563 	rrca 
+    00000060 E6 C0            [ 7]  564 	and a, #0xC0
+    00000062 B2               [ 4]  565 	or	d
+    00000063 57               [ 4]  566 	ld	d, a
+    00000064 DB A8            [11]  567 	in	a, (0xA8)
+    00000066 47               [ 4]  568 	ld	b, a
+    00000067 E6 3C            [ 7]  569 	and	#0b00111100
+    00000069 B2               [ 4]  570 	or	d
+    0000006A F3               [ 4]  571 	di
+    0000006B D3 A8            [11]  572 	out	(0xA8), a
+    0000006D 79               [ 4]  573 	ld	a, c
+    0000006E 0F               [ 4]  574 	rrca	
+    0000006F 0F               [ 4]  575 	rrca 
+    00000070 E6 3F            [ 7]  576 	and a, #0x3F
+    00000072 E6 03            [ 7]  577 	and	#0b00000011
+    00000074 57               [ 4]  578 	ld	d, a
+    00000075 3A FF FF         [13]  579 	ld	a,(0xFFFF)
+    00000078 2F               [ 4]  580 	cpl
+    00000079 E6 FC            [ 7]  581 	and	#0b11111100
+    0000007B B2               [ 4]  582 	or	d
+    0000007C 32 FF FF         [13]  583 	ld	(0xFFFF), a
+    0000007F 78               [ 4]  584 	ld	a, b
+    00000080 E6 C0            [ 7]  585 	and	#0b11000000
+    00000082 47               [ 4]  586 	ld	b, a
+    00000083 DB A8            [11]  587 	in	a, (0xA8)
+    00000085 E6 3F            [ 7]  588 	and	#0b00111111
+    00000087 B0               [ 4]  589 	or	b
+    00000088 D3 A8            [11]  590 	out	(0xA8), a
+    0000008A C9               [10]  591 	ret
+    0000008B                        592 	SetNonExpendedSlot:
+    0000008B 79               [ 4]  593 	ld	a, c
+    0000008C E6 03            [ 7]  594 	and	#0b00000011
+    0000008E 57               [ 4]  595 	ld	d, a
+    0000008F DB A8            [11]  596 	in	a, (0xA8)
+    00000091 47               [ 4]  597 	ld	b, a
+    00000092 E6 FC            [ 7]  598 	and	#0b11111100
+    00000094 B2               [ 4]  599 	or	d
+    00000095 F3               [ 4]  600 	di
+    00000096 D3 A8            [11]  601 	out	(0xA8), a
+    00000098 C9               [10]  602 	ret
+                                    603 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:135: }
+                                    604 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:139: u8 Sys_CheckSlot(CheckSlotCallback cb)
+                                    605 ;	---------------------------------
+                                    606 ; Function Sys_CheckSlot
+                                    607 ; ---------------------------------
+    00000099                        608 _Sys_CheckSlot::
+    00000099 DD E5            [15]  609 	push	ix
+    0000009B DD 21 00 00      [14]  610 	ld	ix,#0
+    0000009F DD 39            [15]  611 	add	ix,sp
+    000000A1 3B               [ 6]  612 	dec	sp
+                                    613 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:141: for (u8 slot = 0; slot < 4; ++slot)
+    000000A2 01 00 00         [10]  614 	ld	bc, #0x0
+    000000A5                        615 00114$:
+    000000A5 78               [ 4]  616 	ld	a, b
+    000000A6 D6 04            [ 7]  617 	sub	a, #0x04
+    000000A8 30 4D            [12]  618 	jr	NC, 00109$
+                                    619 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:143: if (g_EXPTBL[slot] & SLOT_EXP)
+    000000AA 11 C1 FC         [10]  620 	ld	de, #_g_EXPTBL+0
+    000000AD 7B               [ 4]  621 	ld	a, e
+    000000AE 80               [ 4]  622 	add	a, b
+    000000AF 5F               [ 4]  623 	ld	e, a
+    000000B0 30 01            [12]  624 	jr	NC, 00153$
+    000000B2 14               [ 4]  625 	inc	d
+    000000B3                        626 00153$:
+    000000B3 1A               [ 7]  627 	ld	a, (de)
+    000000B4 07               [ 4]  628 	rlca
+    000000B5 30 2C            [12]  629 	jr	NC, 00107$
+                                    630 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:145: for (u8 sub = 0; sub < 4; ++sub)
+    000000B7 78               [ 4]  631 	ld	a, b
+    000000B8 E6 03            [ 7]  632 	and	a, #0x03
+    000000BA DD 77 FF         [19]  633 	ld	-1 (ix), a
+    000000BD 0E 00            [ 7]  634 	ld	c, #0x00
+    000000BF                        635 00111$:
+                                    636 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:147: u8 slotId = SLOTEX(slot, sub);
+    000000BF 79               [ 4]  637 	ld	a,c
+    000000C0 FE 04            [ 7]  638 	cp	a,#0x04
+    000000C2 30 2E            [12]  639 	jr	NC, 00115$
+    000000C4 E6 03            [ 7]  640 	and	a, #0x03
+    000000C6 87               [ 4]  641 	add	a, a
+    000000C7 87               [ 4]  642 	add	a, a
+    000000C8 DD B6 FF         [19]  643 	or	a, -1 (ix)
+    000000CB 5F               [ 4]  644 	ld	e, a
+    000000CC CB FB            [ 8]  645 	set	7, e
+                                    646 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:148: if (cb(slotId))
+    000000CE E5               [11]  647 	push	hl
+    000000CF C5               [11]  648 	push	bc
+    000000D0 D5               [11]  649 	push	de
+    000000D1 7B               [ 4]  650 	ld	a, e
+    000000D2 CDr00r00         [17]  651 	call	___sdcc_call_hl
+    000000D5 D1               [10]  652 	pop	de
+    000000D6 C1               [10]  653 	pop	bc
+    000000D7 E1               [10]  654 	pop	hl
+    000000D8 B7               [ 4]  655 	or	a, a
+    000000D9 28 04            [12]  656 	jr	Z, 00112$
+                                    657 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:149: return slotId;
+    000000DB 7B               [ 4]  658 	ld	a, e
+    000000DC C3rF9r00         [10]  659 	jp	00116$
+    000000DF                        660 00112$:
+                                    661 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:145: for (u8 sub = 0; sub < 4; ++sub)
+    000000DF 0C               [ 4]  662 	inc	c
+    000000E0 C3rBFr00         [10]  663 	jp	00111$
+    000000E3                        664 00107$:
+                                    665 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:152: else if (cb(slot))
+    000000E3 E5               [11]  666 	push	hl
+    000000E4 C5               [11]  667 	push	bc
+    000000E5 78               [ 4]  668 	ld	a, b
+    000000E6 CDr00r00         [17]  669 	call	___sdcc_call_hl
+    000000E9 C1               [10]  670 	pop	bc
+    000000EA E1               [10]  671 	pop	hl
+    000000EB B7               [ 4]  672 	or	a, a
+    000000EC 28 04            [12]  673 	jr	Z, 00115$
+                                    674 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:153: return slot;
+    000000EE 79               [ 4]  675 	ld	a, c
+    000000EF C3rF9r00         [10]  676 	jp	00116$
+    000000F2                        677 00115$:
+                                    678 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:141: for (u8 slot = 0; slot < 4; ++slot)
+    000000F2 04               [ 4]  679 	inc	b
+    000000F3 48               [ 4]  680 	ld	c, b
+    000000F4 C3rA5r00         [10]  681 	jp	00114$
+    000000F7                        682 00109$:
+                                    683 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:155: return SLOT_NOTFOUND;
+    000000F7 3E FF            [ 7]  684 	ld	a, #0xff
+    000000F9                        685 00116$:
+                                    686 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/system.c:156: }
+    000000F9 33               [ 6]  687 	inc	sp
+    000000FA DD E1            [14]  688 	pop	ix
+    000000FC C9               [10]  689 	ret
+                                    690 	.area _CODE
+                                    691 	.area _INITIALIZER
+                                    692 	.area _CABS (ABS)

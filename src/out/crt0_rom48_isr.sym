@@ -1,0 +1,63 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+    .__.$$$.=   00002710 L   |     .__.ABS.=   00000000 G   |     .__.CPU.=   00000000 L
+    .__.H$L.=   00000000 L   |     ADDR_BOO=   00000000     |     APP_SIGN=   00000001 
+    APP_SIGN=   00005356     |     APP_SIGN=   00005050     |     CHECK_MS=   00000000 
+    CHGET   =   0000009F     |     CHPUT   =   000000A2     |     CLS     =   000000C3 
+    DOS_ISR =   00000000     |     DOS_PARS=   00000001     |     ENASLT  =   00000024 
+    EXPTBL  =   0000FCC1     |     HIMEM   =   0000FC4A     |     H_STKE  =   0000FEDA 
+    INITXT  =   0000006C     |     ISR_ALL =   00000001     |     ISR_NONE=   00000000 
+    ISR_SET_=   00000000     |     ISR_V999=   00000004     |     ISR_VBLA=   00000002 
+    ISR_VHBL=   00000003     |     KEY_BS  =   00000020     |     KEY_ESC =   00000004 
+    KEY_F4  =   00000001     |     KEY_F5  =   00000002     |     KEY_RETU=   00000080 
+    KEY_SELE=   00000040     |     KEY_STOP=   00000010     |     KEY_TAB =   00000008 
+    LINL40  =   0000F3AE     |     MSX1    =   00000000     |     MSX2    =   00000001 
+    MSX2P   =   00000002     |     MSX2PP  =   00000004     |     MSX2S   =   00000005 
+    MSXTR   =   00000003     |     MSXVER  =   0000002D     |     PPI_A   =   000000A8 
+    PPI_B   =   000000A9     |     PPI_C   =   000000AA     |     PPI_MODE=   000000AB 
+    RAM0_ISR=   00000001     |     RAM0_NON=   00000000     |     RAM0_SEG=   00000002 
+    ROMVER  =   0000002B     |     ROM_ASCI=   0000000A     |     ROM_ASCI=   0000000C 
+    ROM_ASCI=   00000002     |     ROM_BCAL=   00000000     |     ROM_DELA=   00000000 
+    ROM_ISR =   00000002     |     ROM_KONA=   00000003     |     ROM_KONA=   00000004 
+    ROM_MAPP=   00000000     |     ROM_MAPP=   0000000A     |     ROM_MAPP=   00000002 
+    ROM_NEO1=   0000000B     |     ROM_NEO8=   00000005     |     ROM_PLAI=   00000000 
+    ROM_RAMI=   00000000     |     ROM_SKIP=   00000000     |     ROM_SKIP=   00000004 
+    ROM_YAMA=   00000006     |     RSLREG  =   00000138     |     SETTXT  =   00000078 
+    SLTSL   =   0000FFFF     |     START_AD=   00004000     |     V9_P06  =   00000066 
+    VDP_A   =   00000099     |     VDP_S   =   00000099     |     YAMA_CFG=   00007FFD 
+    YAMA_CFG=   00000002     |     YAMA_CFG=   00000008     |     YAMA_CFG=   00000001 
+    YAMA_CFG=   00000004     |     YAMA_ENA=   00007FFF     |     YAMA_ENA=   00000001 
+    YAMA_ENA=   00000010     |     YAMA_OFF=   00007FFE     |     _VDP_Int    ******** GX
+  0 _g_AppSi    00000010 GR  |   2 _g_First    00000000 GR  |   0 _g_Heade    00000000 GR
+  A _g_HeapS    00000000 GR  |   9 _g_LastA    00000000 GR  |   A _g_ROMSl    00000002 GR
+  A _g_Versi    00000004 GR  |   A _g_Versi    00000003 GR  |     _main       ******** GX
+  0 crt0_ini    00000014 R   |   0 crt0_ini    00000062 R   |   4 crt0_int    0000005F R
+  4 crt0_int    0000005B R   |   4 crt0_int    00000038 GR  |   0 crt0_p1_    0000002F GR
+  0 crt0_rom    00000000 GR  |   0 crt0_ski    00000072 R   |   0 crt0_sta    00000072 R
+    l__INITI    ******** GX  |     s__GSFIN    ******** GX  |     s__HEADE    ******** GX
+    s__HEAP     ******** GX  |     s__INITI    ******** GX  |     s__INITI    ******** GX
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+Area Table
+
+   0 _CODE      size       77   flags    0
+   1 _HEADER    size        0   flags    8
+   2 _HEADER0   size        0   flags    8
+   3 _DRIVER    size        0   flags    8
+   4 _DRIVER1   size       27   flags    8
+   5 _HOME      size        0   flags    0
+   6 _RODATA    size        0   flags    0
+   7 _INITIAL   size        0   flags    0
+   8 _GSINIT    size        0   flags    0
+   9 _GSFINAL   size        0   flags    0
+   A _DATA      size        5   flags    0
+   B _INITIAL   size        0   flags    0
+   C _BSEG      size        0   flags    0
+   D _BSS       size        0   flags    0
+   E _HEAP      size        0   flags    0
+

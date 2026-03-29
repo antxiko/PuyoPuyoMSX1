@@ -1,0 +1,315 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module math
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _Math_SignedDiv_ASM
+                                     12 	.globl _g_RandomSeed16
+                                     13 	.globl _g_RandomSeed8
+                                     14 	.globl _Math_Div10
+                                     15 	.globl _Math_Div10_16b
+                                     16 	.globl _Math_Mod10
+                                     17 	.globl _Math_Mod10_16b
+                                     18 	.globl _Math_Flip
+                                     19 	.globl _Math_Flip_16b
+                                     20 	.globl _Math_Negative16
+                                     21 	.globl _Math_Swap
+                                     22 	.globl _Math_SetRandomSeed8
+                                     23 	.globl _Math_GetRandom8
+                                     24 	.globl _Math_SetRandomSeed16
+                                     25 	.globl _Math_GetRandom16
+                                     26 ;--------------------------------------------------------
+                                     27 ; special function registers
+                                     28 ;--------------------------------------------------------
+                                     29 ;--------------------------------------------------------
+                                     30 ; ram data
+                                     31 ;--------------------------------------------------------
+                                     32 	.area _DATA
+                                     33 ;--------------------------------------------------------
+                                     34 ; ram data
+                                     35 ;--------------------------------------------------------
+                                     36 	.area _INITIALIZED
+    00000000                         37 _g_RandomSeed8::
+    00000000                         38 	.ds 2
+    00000002                         39 _g_RandomSeed16::
+    00000002                         40 	.ds 2
+                                     41 ;--------------------------------------------------------
+                                     42 ; absolute external ram data
+                                     43 ;--------------------------------------------------------
+                                     44 	.area _DABS (ABS)
+                                     45 ;--------------------------------------------------------
+                                     46 ; global & static initialisations
+                                     47 ;--------------------------------------------------------
+                                     48 	.area _HOME
+                                     49 	.area _GSINIT
+                                     50 	.area _GSFINAL
+                                     51 	.area _GSINIT
+                                     52 ;--------------------------------------------------------
+                                     53 ; Home
+                                     54 ;--------------------------------------------------------
+                                     55 	.area _HOME
+                                     56 	.area _HOME
+                                     57 ;--------------------------------------------------------
+                                     58 ; code
+                                     59 ;--------------------------------------------------------
+                                     60 	.area _CODE
+                                     61 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:26: i8 Math_Div10(i8 val) __NAKED __FASTCALL __PRESERVES(a, b, c, iyl, iyh)
+                                     62 ;	---------------------------------
+                                     63 ; Function Math_Div10
+                                     64 ; ---------------------------------
+    00000000                         65 _Math_Div10::
+                                     66 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:42: __endasm;
+    00000000 16 00            [ 7]   67 	ld	d, #0
+    00000002 62               [ 4]   68 	ld	h, d
+    00000003 5D               [ 4]   69 	ld	e, l
+    00000004 29               [11]   70 	add	hl, hl
+    00000005 19               [11]   71 	add	hl, de
+    00000006 29               [11]   72 	add	hl, hl
+    00000007 29               [11]   73 	add	hl, hl
+    00000008 19               [11]   74 	add	hl, de
+    00000009 29               [11]   75 	add	hl, hl
+    0000000A 6C               [ 4]   76 	ld	l, h
+    0000000B C9               [10]   77 	ret
+                                     78 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:43: }
+                                     79 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:47: i16 Math_Div10_16b(i16 val) __NAKED __FASTCALL __PRESERVES(b, d, e, iyl, iyh)
+                                     80 ;	---------------------------------
+                                     81 ; Function Math_Div10_16b
+                                     82 ; ---------------------------------
+    0000000C                         83 _Math_Div10_16b::
+                                     84 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:70: __endasm;
+    0000000C 01 0A 0D         [10]   85 	ld	bc, #0x0D0A
+    0000000F AF               [ 4]   86 	xor	a
+    00000010 29               [11]   87 	add	hl, hl
+    00000011 17               [ 4]   88 	rla
+    00000012 29               [11]   89 	add	hl, hl
+    00000013 17               [ 4]   90 	rla
+    00000014 29               [11]   91 	add	hl, hl
+    00000015 17               [ 4]   92 	rla
+    00000016 29               [11]   93 	add	hl, hl
+    00000017 17               [ 4]   94 	rla
+    00000018 B9               [ 4]   95 	cp	c
+    00000019                         96 	label_0:
+    00000019 38 02            [12]   97 	jr	c, label_0 + #4
+    0000001B 91               [ 4]   98 	sub	c
+    0000001C 2C               [ 4]   99 	inc	l
+    0000001D                        100 	label_1:
+    0000001D 10 F7            [13]  101 	djnz	label_1 - #7
+    0000001F C9               [10]  102 	ret
+                                    103 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:71: }
+                                    104 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:83: u8 Math_Mod10(u8 val) __NAKED __PRESERVES(b, c, d, e, iyl, iyh)
+                                    105 ;	---------------------------------
+                                    106 ; Function Math_Mod10
+                                    107 ; ---------------------------------
+    00000020                        108 _Math_Mod10::
+                                    109 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:105: __endasm;
+    00000020 67               [ 4]  110 	ld	h, a
+    00000021 0F               [ 4]  111 	rrca
+    00000022 0F               [ 4]  112 	rrca
+    00000023 0F               [ 4]  113 	rrca
+    00000024 0F               [ 4]  114 	rrca
+    00000025 84               [ 4]  115 	add	a, h
+    00000026 CE 00            [ 7]  116 	adc	a, #0
+    00000028 27               [ 4]  117 	daa
+    00000029 6F               [ 4]  118 	ld	l, a
+    0000002A 94               [ 4]  119 	sub	h
+    0000002B 1F               [ 4]  120 	rra
+    0000002C 9F               [ 4]  121 	sbc	a, a
+    0000002D E6 05            [ 7]  122 	and	#5
+    0000002F 85               [ 4]  123 	add	a, l
+    00000030 27               [ 4]  124 	daa
+    00000031 E6 0F            [ 7]  125 	and	#0x0F
+    00000033 C9               [10]  126 	ret
+                                    127 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:106: }
+                                    128 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:114: u8 Math_Mod10_16b(u16 val) __NAKED __FASTCALL __PRESERVES(b, c, d, e, iyl, iyh)
+                                    129 ;	---------------------------------
+                                    130 ; Function Math_Mod10_16b
+                                    131 ; ---------------------------------
+    00000034                        132 _Math_Mod10_16b::
+                                    133 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:140: __endasm;
+    00000034 7C               [ 4]  134 	ld	a, h
+    00000035 85               [ 4]  135 	add	a, l
+    00000036 CE 00            [ 7]  136 	adc	a, #0
+    00000038 67               [ 4]  137 	ld	h, a
+    00000039 0F               [ 4]  138 	rrca
+    0000003A 0F               [ 4]  139 	rrca
+    0000003B 0F               [ 4]  140 	rrca
+    0000003C 0F               [ 4]  141 	rrca
+    0000003D 84               [ 4]  142 	add	a, h
+    0000003E CE 00            [ 7]  143 	adc	a, #0
+    00000040 27               [ 4]  144 	daa
+    00000041 67               [ 4]  145 	ld	h, a
+    00000042 95               [ 4]  146 	sub	l
+    00000043 1F               [ 4]  147 	rra
+    00000044 9F               [ 4]  148 	sbc	a, a
+    00000045 E6 05            [ 7]  149 	and	#5
+    00000047 84               [ 4]  150 	add	a, h
+    00000048 27               [ 4]  151 	daa
+    00000049 E6 0F            [ 7]  152 	and	#0x0F
+    0000004B 6F               [ 4]  153 	ld	l, a
+    0000004C C9               [10]  154 	ret
+                                    155 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:141: }
+                                    156 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:152: u8 Math_Flip(u8 val) __NAKED __PRESERVES(c, d, e, h, l, iyl, iyh)
+                                    157 ;	---------------------------------
+                                    158 ; Function Math_Flip
+                                    159 ; ---------------------------------
+    0000004D                        160 _Math_Flip::
+                                    161 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:174: __endasm;
+    0000004D 47               [ 4]  162 	ld	b, a
+    0000004E 07               [ 4]  163 	rlca
+    0000004F 07               [ 4]  164 	rlca
+    00000050 A8               [ 4]  165 	xor	b
+    00000051 E6 AA            [ 7]  166 	and	#0xAA
+    00000053 A8               [ 4]  167 	xor	b
+    00000054 47               [ 4]  168 	ld	b, a
+    00000055 07               [ 4]  169 	rlca
+    00000056 07               [ 4]  170 	rlca
+    00000057 07               [ 4]  171 	rlca
+    00000058 CB 08            [ 8]  172 	rrc	b
+    0000005A A8               [ 4]  173 	xor	b
+    0000005B E6 66            [ 7]  174 	and	#0x66
+    0000005D A8               [ 4]  175 	xor	b
+    0000005E C9               [10]  176 	ret
+                                    177 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:175: }
+                                    178 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:179: u16 Math_Flip_16b(u16 val) __NAKED __PRESERVES(c, iyl, iyh)
+                                    179 ;	---------------------------------
+                                    180 ; Function Math_Flip_16b
+                                    181 ; ---------------------------------
+    0000005F                        182 _Math_Flip_16b::
+                                    183 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:191: __endasm;
+    0000005F 7C               [ 4]  184 	ld	a, h
+    00000060 CDr4Dr00         [17]  185 	call	_Math_Flip
+    00000063 5F               [ 4]  186 	ld	e, a
+    00000064 7D               [ 4]  187 	ld	a, l
+    00000065 CDr4Dr00         [17]  188 	call	_Math_Flip
+    00000068 57               [ 4]  189 	ld	d, a
+    00000069 C9               [10]  190 	ret
+                                    191 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:192: }
+                                    192 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:196: i16 Math_Negative16(i16 val) __NAKED __FASTCALL __PRESERVES(b, c, d, e, iyl, iyh)
+                                    193 ;	---------------------------------
+                                    194 ; Function Math_Negative16
+                                    195 ; ---------------------------------
+    0000006A                        196 _Math_Negative16::
+                                    197 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:208: __endasm;
+    0000006A AF               [ 4]  198 	xor	a
+    0000006B 95               [ 4]  199 	sub	l
+    0000006C 6F               [ 4]  200 	ld	l, a
+    0000006D 9F               [ 4]  201 	sbc	a, a
+    0000006E 94               [ 4]  202 	sub	h
+    0000006F 67               [ 4]  203 	ld	h, a
+    00000070 C9               [10]  204 	ret
+                                    205 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:209: }
+                                    206 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:213: u16 Math_Swap(u16 val) __NAKED __PRESERVES(a, b, c, iyl, iyh)
+                                    207 ;	---------------------------------
+                                    208 ; Function Math_Swap
+                                    209 ; ---------------------------------
+    00000071                        210 _Math_Swap::
+                                    211 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:221: __endasm;
+    00000071 5C               [ 4]  212 	ld	e, h
+    00000072 55               [ 4]  213 	ld	d, l
+    00000073 C9               [10]  214 	ret
+                                    215 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:222: }
+                                    216 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:230: void Math_SignedDiv_ASM() __NAKED __PRESERVES(b, c, d, e, h, l, iyl, iyh)
+                                    217 ;	---------------------------------
+                                    218 ; Function Math_SignedDiv_ASM
+                                    219 ; ---------------------------------
+    00000074                        220 _Math_SignedDiv_ASM::
+                                    221 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:248: __endasm;
+    00000074                        222 	_Math_SignedDiv64::
+    00000074 CB 2F            [ 8]  223 	sra	a
+    00000076                        224 	_Math_SignedDiv32::
+    00000076 CB 2F            [ 8]  225 	sra	a
+    00000078                        226 	_Math_SignedDiv16::
+    00000078 CB 2F            [ 8]  227 	sra	a
+    0000007A                        228 	_Math_SignedDiv8::
+    0000007A CB 2F            [ 8]  229 	sra	a
+    0000007C                        230 	_Math_SignedDiv4::
+    0000007C CB 2F            [ 8]  231 	sra	a
+    0000007E                        232 	_Math_SignedDiv2::
+    0000007E CB 2F            [ 8]  233 	sra	a
+    00000080 F0               [11]  234 	ret	p
+    00000081 3C               [ 4]  235 	inc	a
+    00000082 C9               [10]  236 	ret
+                                    237 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:249: }
+                                    238 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:320: void Math_SetRandomSeed8(u8 seed) { g_RandomSeed8 = (u16)seed; }
+                                    239 ;	---------------------------------
+                                    240 ; Function Math_SetRandomSeed8
+                                    241 ; ---------------------------------
+    00000083                        242 _Math_SetRandomSeed8::
+    00000083 4F               [ 4]  243 	ld	c, a
+    00000084 FD 21r00r00      [14]  244 	ld	iy, #_g_RandomSeed8
+    00000088 FD 71 00         [19]  245 	ld	0 (iy), c
+    0000008B FD 36 01 00      [19]  246 	ld	1 (iy), #0x00
+    0000008F C9               [10]  247 	ret
+                                    248 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:325: u8 Math_GetRandom8() __NAKED
+                                    249 ;	---------------------------------
+                                    250 ; Function Math_GetRandom8
+                                    251 ; ---------------------------------
+    00000090                        252 _Math_GetRandom8::
+                                    253 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:350: __endasm;
+    00000090 2Ar00r00         [16]  254 	ld	hl, (_g_RandomSeed8)
+    00000093 ED 5F            [ 9]  255 	ld	a, r
+    00000095 57               [ 4]  256 	ld	d, a
+    00000096 5F               [ 4]  257 	ld	e, a
+    00000097 19               [11]  258 	add	hl, de
+    00000098 AD               [ 4]  259 	xor	l
+    00000099 87               [ 4]  260 	add	a
+    0000009A AC               [ 4]  261 	xor	h
+    0000009B 6F               [ 4]  262 	ld	l, a
+    0000009C 22r00r00         [16]  263 	ld	(_g_RandomSeed8), hl
+    0000009F C9               [10]  264 	ret
+                                    265 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:351: }
+                                    266 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:415: void Math_SetRandomSeed16(u16 seed)
+                                    267 ;	---------------------------------
+                                    268 ; Function Math_SetRandomSeed16
+                                    269 ; ---------------------------------
+    000000A0                        270 _Math_SetRandomSeed16::
+                                    271 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:417: if (seed)
+    000000A0 7C               [ 4]  272 	ld	a, h
+    000000A1 B5               [ 4]  273 	or	a, l
+    000000A2 28 04            [12]  274 	jr	Z, 00102$
+                                    275 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:418: g_RandomSeed16 = seed;
+    000000A4 22r02r00         [16]  276 	ld	(_g_RandomSeed16), hl
+    000000A7 C9               [10]  277 	ret
+    000000A8                        278 00102$:
+                                    279 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:420: g_RandomSeed16 = 0x7FFF;
+    000000A8 21 FF 7F         [10]  280 	ld	hl, #0x7fff
+    000000AB 22r02r00         [16]  281 	ld	(_g_RandomSeed16), hl
+                                    282 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:421: }
+    000000AE C9               [10]  283 	ret
+                                    284 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:434: u16 Math_GetRandom16() __NAKED __FASTCALL
+                                    285 ;	---------------------------------
+                                    286 ; Function Math_GetRandom16
+                                    287 ; ---------------------------------
+    000000AF                        288 _Math_GetRandom16::
+                                    289 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:455: __endasm;
+    000000AF                        290 	xrnd:
+    000000AF 2Ar02r00         [16]  291 	ld	hl, (_g_RandomSeed16)
+    000000B2 7C               [ 4]  292 	ld	a, h
+    000000B3 1F               [ 4]  293 	rra
+    000000B4 7D               [ 4]  294 	ld	a, l
+    000000B5 1F               [ 4]  295 	rra
+    000000B6 AC               [ 4]  296 	xor	h
+    000000B7 67               [ 4]  297 	ld	h, a
+    000000B8 7D               [ 4]  298 	ld	a, l
+    000000B9 1F               [ 4]  299 	rra
+    000000BA 7C               [ 4]  300 	ld	a, h
+    000000BB 1F               [ 4]  301 	rra
+    000000BC AD               [ 4]  302 	xor	l
+    000000BD 6F               [ 4]  303 	ld	l, a
+    000000BE AC               [ 4]  304 	xor	h
+    000000BF 67               [ 4]  305 	ld	h, a
+    000000C0 22r02r00         [16]  306 	ld	(_g_RandomSeed16), hl
+    000000C3 C9               [10]  307 	ret
+                                    308 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/math.c:461: }
+                                    309 	.area _CODE
+                                    310 	.area _INITIALIZER
+    00000000                        311 __xinit__g_RandomSeed8:
+    00000000 01 00                  312 	.dw #0x0001
+    00000002                        313 __xinit__g_RandomSeed16:
+    00000002 01 00                  314 	.dw #0x0001
+                                    315 	.area _CABS (ABS)

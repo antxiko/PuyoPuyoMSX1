@@ -1,0 +1,802 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module pletter
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _g_SLTSL
+                                     12 	.globl _g_GRPACY
+                                     13 	.globl _g_GRPACX
+                                     14 	.globl _g_LOGOPR
+                                     15 	.globl _g_CMASK
+                                     16 	.globl _g_CLOC
+                                     17 	.globl _g_FNKSTR
+                                     18 	.globl _g_ATRBYT
+                                     19 	.globl _g_BDRCLR
+                                     20 	.globl _g_BAKCLR
+                                     21 	.globl _g_FORCLR
+                                     22 	.globl _g_CSRX
+                                     23 	.globl _g_CSRY
+                                     24 	.globl _g_CLIKSW
+                                     25 	.globl _g_MLTPAT
+                                     26 	.globl _g_MLTATR
+                                     27 	.globl _g_MLTCGP
+                                     28 	.globl _g_MLTCOL
+                                     29 	.globl _g_MLTNAM
+                                     30 	.globl _g_GRPPAT
+                                     31 	.globl _g_GRPATR
+                                     32 	.globl _g_GRPCGP
+                                     33 	.globl _g_GRPCOL
+                                     34 	.globl _g_GRPNAM
+                                     35 	.globl _g_T32PAT
+                                     36 	.globl _g_T32ATR
+                                     37 	.globl _g_T32CGP
+                                     38 	.globl _g_T32COL
+                                     39 	.globl _g_T32NAM
+                                     40 	.globl _g_TXTPAT
+                                     41 	.globl _g_TXTATR
+                                     42 	.globl _g_TXTCGP
+                                     43 	.globl _g_TXTCOL
+                                     44 	.globl _g_TXTNAM
+                                     45 	.globl _g_CLMLST
+                                     46 	.globl _g_CRTCNT
+                                     47 	.globl _g_LINLEN
+                                     48 	.globl _g_LINL32
+                                     49 	.globl _g_LINL40
+                                     50 	.globl _g_SVFFFD
+                                     51 	.globl _g_RG27SAV
+                                     52 	.globl _g_RG26SAV
+                                     53 	.globl _g_RG25SAV
+                                     54 	.globl _g_SVFFF8
+                                     55 	.globl _g_MINROM
+                                     56 	.globl _g_RG23SAV
+                                     57 	.globl _g_RG22SAV
+                                     58 	.globl _g_RG21SAV
+                                     59 	.globl _g_RG20SAV
+                                     60 	.globl _g_RG19SAV
+                                     61 	.globl _g_RG18SAV
+                                     62 	.globl _g_RG17SAV
+                                     63 	.globl _g_RG16SAV
+                                     64 	.globl _g_RG15SAV
+                                     65 	.globl _g_RG14SAV
+                                     66 	.globl _g_RG13SAV
+                                     67 	.globl _g_RG12SAV
+                                     68 	.globl _g_RG11SAV
+                                     69 	.globl _g_RG10SAV
+                                     70 	.globl _g_RG09SAV
+                                     71 	.globl _g_RG08SAV
+                                     72 	.globl _g_PROCNM
+                                     73 	.globl _g_SLTWRK
+                                     74 	.globl _g_SLTATR
+                                     75 	.globl _g_SLTTBL
+                                     76 	.globl _g_EXPTBL
+                                     77 	.globl _g_MNROM
+                                     78 	.globl _g_DRWANG
+                                     79 	.globl _g_DRWSCL
+                                     80 	.globl _g_DRWFLG
+                                     81 	.globl _g_GYPOS
+                                     82 	.globl _g_GXPOS
+                                     83 	.globl _g_BRDATR
+                                     84 	.globl _g_CASPRV
+                                     85 	.globl _g_OLDSCR
+                                     86 	.globl _g_SCRMOD
+                                     87 	.globl _g_FLBMEM
+                                     88 	.globl _g_KANAMD
+                                     89 	.globl _g_KANAST
+                                     90 	.globl _g_CAPST
+                                     91 	.globl _g_CSTYLE
+                                     92 	.globl _g_CSRSW
+                                     93 	.globl _g_INSFLG
+                                     94 	.globl _g_ESCCNT
+                                     95 	.globl _g_GRPHED
+                                     96 	.globl _g_WINWID
+                                     97 	.globl _g_LOWLIM
+                                     98 	.globl _g_INTCNT
+                                     99 	.globl _g_INTVAL
+                                    100 	.globl _g_JIFFY
+                                    101 	.globl _g_PADX
+                                    102 	.globl _g_PADY
+                                    103 	.globl _g_INTFLG
+                                    104 	.globl _g_RTYCNT
+                                    105 	.globl _g_TRPTBL
+                                    106 	.globl _g_HIMEM
+                                    107 	.globl _g_BOTTOM
+                                    108 	.globl _g_PATWRK
+                                    109 	.globl _g_LINWRK
+                                    110 	.globl _g_KEYBUF
+                                    111 	.globl _g_NEWKEY
+                                    112 	.globl _g_OLDKEY
+                                    113 	.globl _g_CLIKFL
+                                    114 	.globl _g_ONGSBF
+                                    115 	.globl _g_FNKFLG
+                                    116 	.globl _g_FNKSWI
+                                    117 	.globl _g_CODSAV
+                                    118 	.globl _g_FSTPOS
+                                    119 	.globl _g_LINTTB
+                                    120 	.globl _g_BASROM
+                                    121 	.globl _g_ENSTOP
+                                    122 	.globl _g_VCBC
+                                    123 	.globl _g_VCBB
+                                    124 	.globl _g_VCBA
+                                    125 	.globl _g_PLYCNT
+                                    126 	.globl _g_MUSICF
+                                    127 	.globl _g_QUEUEN
+                                    128 	.globl _g_MCLPTR
+                                    129 	.globl _g_MCLLEN
+                                    130 	.globl _g_SAVVOL
+                                    131 	.globl _g_VOICEN
+                                    132 	.globl _g_SAVSP
+                                    133 	.globl _g_PRSCNT
+                                    134 	.globl _g_LSTMOD
+                                    135 	.globl _g_LSTCOM
+                                    136 	.globl _g_COMMSK
+                                    137 	.globl _g_ESTBLS
+                                    138 	.globl _g_FLAGS
+                                    139 	.globl _g_ERRORS
+                                    140 	.globl _g_DATCNT
+                                    141 	.globl _g_DEVNUM
+                                    142 	.globl _g_OLDINT
+                                    143 	.globl _g_OLDSTT
+                                    144 	.globl _g_MEXBIh
+                                    145 	.globl _g_RSIQLN
+                                    146 	.globl _g_RSFCB
+                                    147 	.globl _g_TOCNT
+                                    148 	.globl _g_RSTMP
+                                    149 	.globl _g_YSAVE
+                                    150 	.globl _g_XSAVE
+                                    151 	.globl _g_NORUSE
+                                    152 	.globl _g_MODE
+                                    153 	.globl _g_ROMA
+                                    154 	.globl _g_CHRCNT
+                                    155 	.globl _g_EXBRSA
+                                    156 	.globl _g_AVCSAV
+                                    157 	.globl _g_ACPAGE
+                                    158 	.globl _g_DPPAGE
+                                    159 	.globl _g_RS2IQ
+                                    160 	.globl _g_VOICCQ
+                                    161 	.globl _g_VOICBQ
+                                    162 	.globl _g_VOICAQ
+                                    163 	.globl _g_QUEBAK
+                                    164 	.globl _g_QUETAB
+                                    165 	.globl _g_ASPCT2
+                                    166 	.globl _g_ASPCT1
+                                    167 	.globl _g_HEADER
+                                    168 	.globl _g_HIGH
+                                    169 	.globl _g_LOW
+                                    170 	.globl _g_CS240
+                                    171 	.globl _g_CS120
+                                    172 	.globl _g_GETPNT
+                                    173 	.globl _g_PUTPNT
+                                    174 	.globl _g_REPCNT
+                                    175 	.globl _g_SCNCNT
+                                    176 	.globl _g_FRCNEW
+                                    177 	.globl _g_QUEUES
+                                    178 	.globl _g_MINUPD
+                                    179 	.globl _g_MAXUPD
+                                    180 	.globl _g_TRGFLG
+                                    181 	.globl _g_STATFL
+                                    182 	.globl _g_RG7SAV
+                                    183 	.globl _g_RG6SAV
+                                    184 	.globl _g_RG5SAV
+                                    185 	.globl _g_RG4SAV
+                                    186 	.globl _g_RG3SAV
+                                    187 	.globl _g_RG2SAV
+                                    188 	.globl _g_RG1SAV
+                                    189 	.globl _g_RG0SAV
+                                    190 	.globl _g_CNSDFG
+                                    191 	.globl _g_USRTAB
+                                    192 	.globl _g_CLPRIM
+                                    193 	.globl _g_WRPRIM
+                                    194 	.globl _g_RDPRIM
+                                    195 	.globl _Pletter_UnpackToRAM
+                                    196 	.globl _Pletter_UnpackToVRAM
+                                    197 ;--------------------------------------------------------
+                                    198 ; special function registers
+                                    199 ;--------------------------------------------------------
+                         000000A8   200 _g_PortPrimarySlot	=	0x00a8
+                         000000A9   201 _g_PortReadKeyboard	=	0x00a9
+                         000000AA   202 _g_PortAccessKeyboard	=	0x00aa
+                         000000AB   203 _g_PortControl	=	0x00ab
+                         00000098   204 _g_VDP_DataPort	=	0x0098
+                         00000099   205 _g_VDP_RegPort	=	0x0099
+                         00000099   206 _g_VDP_AddrPort	=	0x0099
+                         00000099   207 _g_VDP_StatPort	=	0x0099
+                         000000A0   208 _g_PSG_RegPort	=	0x00a0
+                         000000A1   209 _g_PSG_DataPort	=	0x00a1
+                         000000A2   210 _g_PSG_StatPort	=	0x00a2
+                         00000010   211 _g_PSG_Ext_RegPort	=	0x0010
+                         00000011   212 _g_PSG_Ext_DataPort	=	0x0011
+                         00000012   213 _g_PSG_Ext_StatPort	=	0x0012
+                         0000007C   214 _g_MSXMusic_IndexPort	=	0x007c
+                         0000007D   215 _g_MSXMusic_DataPort	=	0x007d
+                         000000C0   216 _g_MSXAudio_IndexPort	=	0x00c0
+                         000000C1   217 _g_MSXAudio_DataPort	=	0x00c1
+                         000000C2   218 _g_MSXAudio_IndexPort2	=	0x00c2
+                         000000C3   219 _g_MSXAudio_DataPort2	=	0x00c3
+                         000000B4   220 _g_RTC_AddrPort	=	0x00b4
+                         000000B5   221 _g_RTC_DataPort	=	0x00b5
+                                    222 ;--------------------------------------------------------
+                                    223 ; ram data
+                                    224 ;--------------------------------------------------------
+                                    225 	.area _DATA
+                         0000F3AE   226 _g_LINL40	=	0xf3ae
+                         0000F3AF   227 _g_LINL32	=	0xf3af
+                         0000F3B0   228 _g_LINLEN	=	0xf3b0
+                         0000F3B1   229 _g_CRTCNT	=	0xf3b1
+                         0000F3B2   230 _g_CLMLST	=	0xf3b2
+                         0000F3B3   231 _g_TXTNAM	=	0xf3b3
+                         0000F3B5   232 _g_TXTCOL	=	0xf3b5
+                         0000F3B7   233 _g_TXTCGP	=	0xf3b7
+                         0000F3B9   234 _g_TXTATR	=	0xf3b9
+                         0000F3BB   235 _g_TXTPAT	=	0xf3bb
+                         0000F3BD   236 _g_T32NAM	=	0xf3bd
+                         0000F3BF   237 _g_T32COL	=	0xf3bf
+                         0000F3C1   238 _g_T32CGP	=	0xf3c1
+                         0000F3C3   239 _g_T32ATR	=	0xf3c3
+                         0000F3C5   240 _g_T32PAT	=	0xf3c5
+                         0000F3C7   241 _g_GRPNAM	=	0xf3c7
+                         0000F3C9   242 _g_GRPCOL	=	0xf3c9
+                         0000F3CB   243 _g_GRPCGP	=	0xf3cb
+                         0000F3CD   244 _g_GRPATR	=	0xf3cd
+                         0000F3CF   245 _g_GRPPAT	=	0xf3cf
+                         0000F3D1   246 _g_MLTNAM	=	0xf3d1
+                         0000F3D3   247 _g_MLTCOL	=	0xf3d3
+                         0000F3D5   248 _g_MLTCGP	=	0xf3d5
+                         0000F3D7   249 _g_MLTATR	=	0xf3d7
+                         0000F3D9   250 _g_MLTPAT	=	0xf3d9
+                         0000F3DB   251 _g_CLIKSW	=	0xf3db
+                         0000F3DC   252 _g_CSRY	=	0xf3dc
+                         0000F3DD   253 _g_CSRX	=	0xf3dd
+                         0000F3E9   254 _g_FORCLR	=	0xf3e9
+                         0000F3EA   255 _g_BAKCLR	=	0xf3ea
+                         0000F3EB   256 _g_BDRCLR	=	0xf3eb
+                         0000F3F2   257 _g_ATRBYT	=	0xf3f2
+                         0000F87F   258 _g_FNKSTR	=	0xf87f
+                         0000F92A   259 _g_CLOC	=	0xf92a
+                         0000F92C   260 _g_CMASK	=	0xf92c
+                         0000FB02   261 _g_LOGOPR	=	0xfb02
+                         0000FCB7   262 _g_GRPACX	=	0xfcb7
+                         0000FCB9   263 _g_GRPACY	=	0xfcb9
+                         0000FFFF   264 _g_SLTSL	=	0xffff
+                                    265 ;--------------------------------------------------------
+                                    266 ; ram data
+                                    267 ;--------------------------------------------------------
+                                    268 	.area _INITIALIZED
+                                    269 ;--------------------------------------------------------
+                                    270 ; absolute external ram data
+                                    271 ;--------------------------------------------------------
+                                    272 	.area _DABS (ABS)
+                                    273 ;--------------------------------------------------------
+                                    274 ; global & static initialisations
+                                    275 ;--------------------------------------------------------
+                                    276 	.area _HOME
+                                    277 	.area _GSINIT
+                                    278 	.area _GSFINAL
+                                    279 	.area _GSINIT
+                                    280 ;--------------------------------------------------------
+                                    281 ; Home
+                                    282 ;--------------------------------------------------------
+                                    283 	.area _HOME
+                                    284 	.area _HOME
+                                    285 ;--------------------------------------------------------
+                                    286 ; code
+                                    287 ;--------------------------------------------------------
+                                    288 	.area _CODE
+                                    289 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:92: void Pletter_UnpackToRAM(const void* source, void* dest) __NAKED
+                                    290 ;	---------------------------------
+                                    291 ; Function Pletter_UnpackToRAM
+                                    292 ; ---------------------------------
+    00000000                        293 _Pletter_UnpackToRAM::
+                                    294 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:237: __endasm;
+    00000000 DD E5            [15]  295 	push	ix
+    00000002 CDr08r00         [17]  296 	call	unpack
+    00000005 DD E1            [14]  297 	pop	ix
+    00000007 C9               [10]  298 	ret
+    00000008                        299 	unpack:
+    00000008 7E               [ 7]  300 	ld	a, (hl)
+    00000009 23               [ 6]  301 	inc	hl
+    0000000A D9               [ 4]  302 	exx
+    0000000B 11 00 00         [10]  303 	ld	de, #0
+    0000000E 87               [ 4]  304 	add	a, a
+    0000000F 3C               [ 4]  305 	inc	a
+    00000010 CB 13            [ 8]  306 	rl	e
+    00000012 87               [ 4]  307 	add	a, a
+    00000013 CB 13            [ 8]  308 	rl	e
+    00000015 87               [ 4]  309 	add	a, a
+    00000016 CB 13            [ 8]  310 	rl	e
+    00000018 CB 13            [ 8]  311 	rl	e
+    0000001A 21rA6r00         [10]  312 	ld	hl, #modes
+    0000001D 19               [11]  313 	add	hl, de
+    0000001E 5E               [ 7]  314 	ld	e, (hl)
+    0000001F DD 6B                  315 	.db	0xDD, 0x6B
+    00000021 23               [ 6]  316 	inc	hl
+    00000022 5E               [ 7]  317 	ld	e, (hl)
+    00000023 DD 63                  318 	.db	0xDD, 0x63
+    00000025 1E 01            [ 7]  319 	ld	e, #1
+    00000027 D9               [ 4]  320 	exx
+    00000028 FD 21r2Er00      [14]  321 	ld	iy, #loop
+    0000002C                        322 	literal:
+    0000002C ED A0            [16]  323 	ldi
+    0000002E                        324 	loop:
+    0000002E 87               [ 4]  325 	add	a, a
+    0000002F CCr9Cr00         [17]  326 	call	z, getbit
+    00000032 30 F8            [12]  327 	jr	nc, literal
+    00000034 D9               [ 4]  328 	exx
+    00000035 62               [ 4]  329 	ld	h, d
+    00000036 6B               [ 4]  330 	ld	l, e
+    00000037                        331 	getlen:
+    00000037 87               [ 4]  332 	add	a
+    00000038 CCrA0r00         [17]  333 	call	z, getbitexx
+    0000003B 30 1B            [12]  334 	jr	nc, getlen_lenok
+    0000003D                        335 	getlen_lus:
+    0000003D 87               [ 4]  336 	add	a
+    0000003E CCrA0r00         [17]  337 	call	z, getbitexx
+    00000041 ED 6A            [15]  338 	adc	hl, hl
+    00000043 D8               [11]  339 	ret	c
+    00000044 87               [ 4]  340 	add	a
+    00000045 CCrA0r00         [17]  341 	call	z, getbitexx
+    00000048 30 0E            [12]  342 	jr	nc, getlen_lenok
+    0000004A 87               [ 4]  343 	add	a
+    0000004B CCrA0r00         [17]  344 	call	z, getbitexx
+    0000004E ED 6A            [15]  345 	adc	hl, hl
+    00000050 D8               [11]  346 	ret	c
+    00000051 87               [ 4]  347 	add	a
+    00000052 CCrA0r00         [17]  348 	call	z, getbitexx
+    00000055 DAr3Dr00         [10]  349 	jp	c, getlen_lus
+    00000058                        350 	getlen_lenok:
+    00000058 23               [ 6]  351 	inc	hl
+    00000059 D9               [ 4]  352 	exx
+    0000005A 4E               [ 7]  353 	ld	c, (hl)
+    0000005B 23               [ 6]  354 	inc	hl
+    0000005C 06 00            [ 7]  355 	ld	b, #0
+    0000005E CB 79            [ 8]  356 	bit	7, c
+    00000060 CAr8Dr00         [10]  357 	jp	z, offsok
+    00000063 DD E9            [ 8]  358 	jp	(ix)
+    00000065                        359 	mode6:
+    00000065 87               [ 4]  360 	add	a
+    00000066 CCr9Cr00         [17]  361 	call	z, getbit
+    00000069 CB 10            [ 8]  362 	rl	b
+    0000006B                        363 	mode5:
+    0000006B 87               [ 4]  364 	add	a
+    0000006C CCr9Cr00         [17]  365 	call	z, getbit
+    0000006F CB 10            [ 8]  366 	rl	b
+    00000071                        367 	mode4:
+    00000071 87               [ 4]  368 	add	a
+    00000072 CCr9Cr00         [17]  369 	call	z, getbit
+    00000075 CB 10            [ 8]  370 	rl	b
+    00000077                        371 	mode3:
+    00000077 87               [ 4]  372 	add	a
+    00000078 CCr9Cr00         [17]  373 	call	z, getbit
+    0000007B CB 10            [ 8]  374 	rl	b
+    0000007D                        375 	mode2:
+    0000007D 87               [ 4]  376 	add	a
+    0000007E CCr9Cr00         [17]  377 	call	z, getbit
+    00000081 CB 10            [ 8]  378 	rl	b
+    00000083 87               [ 4]  379 	add	a
+    00000084 CCr9Cr00         [17]  380 	call	z, getbit
+    00000087 30 04            [12]  381 	jr	nc, offsok
+    00000089 B7               [ 4]  382 	or	a
+    0000008A 04               [ 4]  383 	inc	b
+    0000008B CB B9            [ 8]  384 	res	7, c
+    0000008D                        385 	offsok:
+    0000008D 03               [ 6]  386 	inc	bc
+    0000008E E5               [11]  387 	push	hl
+    0000008F D9               [ 4]  388 	exx
+    00000090 E5               [11]  389 	push	hl
+    00000091 D9               [ 4]  390 	exx
+    00000092 6B               [ 4]  391 	ld	l, e
+    00000093 62               [ 4]  392 	ld	h, d
+    00000094 ED 42            [15]  393 	sbc	hl, bc
+    00000096 C1               [10]  394 	pop	bc
+    00000097 ED B0            [21]  395 	ldir
+    00000099 E1               [10]  396 	pop	hl
+    0000009A FD E9            [ 8]  397 	jp	(iy)
+    0000009C                        398 	getbit:
+    0000009C 7E               [ 7]  399 	ld	a, (hl)
+    0000009D 23               [ 6]  400 	inc	hl
+    0000009E 17               [ 4]  401 	rla
+    0000009F C9               [10]  402 	ret
+    000000A0                        403 	getbitexx:
+    000000A0 D9               [ 4]  404 	exx
+    000000A1 7E               [ 7]  405 	ld	a, (hl)
+    000000A2 23               [ 6]  406 	inc	hl
+    000000A3 D9               [ 4]  407 	exx
+    000000A4 17               [ 4]  408 	rla
+    000000A5 C9               [10]  409 	ret
+    000000A6                        410 	modes:
+    000000A6r8Dr00                  411 	.dw	offsok
+    000000A8r7Dr00                  412 	.dw	mode2
+    000000AAr77r00                  413 	.dw	mode3
+    000000ACr71r00                  414 	.dw	mode4
+    000000AEr6Br00                  415 	.dw	mode5
+    000000B0r65r00                  416 	.dw	mode6
+                                    417 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:238: }
+                                    418 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:243: void Pletter_UnpackToVRAM(const void* source, u16 dest)
+                                    419 ;	---------------------------------
+                                    420 ; Function Pletter_UnpackToVRAM
+                                    421 ; ---------------------------------
+    000000B2                        422 _Pletter_UnpackToVRAM::
+                                    423 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:505: __endasm;
+    000000B2 DD E5            [15]  424 	push	ix
+    000000B4 7B               [ 4]  425 	ld	a, e
+    000000B5 D3 99            [11]  426 	out	(0x99), a
+    000000B7 7A               [ 4]  427 	ld	a, d
+    000000B8 F6 40            [ 7]  428 	or	#0x40
+    000000BA D3 99            [11]  429 	out	(0x99), a
+    000000BC 7E               [ 7]  430 	ld	a, (hl)
+    000000BD 23               [ 6]  431 	inc	hl
+    000000BE D9               [ 4]  432 	exx
+    000000BF 11 00 00         [10]  433 	ld	de, #0
+    000000C2 87               [ 4]  434 	add	a, a
+    000000C3 3C               [ 4]  435 	inc	a
+    000000C4 CB 13            [ 8]  436 	rl	e
+    000000C6 87               [ 4]  437 	add	a, a
+    000000C7 CB 13            [ 8]  438 	rl	e
+    000000C9 87               [ 4]  439 	add	a, a
+    000000CA CB 13            [ 8]  440 	rl	e
+    000000CC CB 13            [ 8]  441 	rl	e
+    000000CE 21r87r01         [10]  442 	ld	hl, #v_modes
+    000000D1 19               [11]  443 	add	hl, de
+    000000D2 5E               [ 7]  444 	ld	e, (hl)
+    000000D3 DD 6B                  445 	.db	0xDD, 0x6B
+    000000D5 23               [ 6]  446 	inc	hl
+    000000D6 5E               [ 7]  447 	ld	e, (hl)
+    000000D7 DD 63                  448 	.db	0xDD, 0x63
+    000000D9 1E 01            [ 7]  449 	ld	e, #1
+    000000DB D9               [ 4]  450 	exx
+    000000DC FD 21rE5r00      [14]  451 	ld	iy, #v_loop
+    000000E0                        452 	v_literal:
+    000000E0 0E 98            [ 7]  453 	ld	c, #0x98
+    000000E2 ED A3            [16]  454 	outi
+    000000E4 13               [ 6]  455 	inc	de
+    000000E5                        456 	v_loop:
+    000000E5 87               [ 4]  457 	add	a, a
+    000000E6 CCr9Cr00         [17]  458 	call	z, getbit
+    000000E9 30 F5            [12]  459 	jr	nc, v_literal
+    000000EB D9               [ 4]  460 	exx
+    000000EC 62               [ 4]  461 	ld	h, d
+    000000ED 6B               [ 4]  462 	ld	l, e
+    000000EE                        463 	v_getlen:
+    000000EE 87               [ 4]  464 	add	a, a
+    000000EF CCrA0r00         [17]  465 	call	z, getbitexx
+    000000F2 30 1D            [12]  466 	jr	nc, v_lenok
+    000000F4                        467 	v_lus:
+    000000F4 87               [ 4]  468 	add	a, a
+    000000F5 CCrA0r00         [17]  469 	call	z, getbitexx
+    000000F8 ED 6A            [15]  470 	adc	hl, hl
+    000000FA D8               [11]  471 	ret	c
+    000000FB 87               [ 4]  472 	add	a, a
+    000000FC CCrA0r00         [17]  473 	call	z, getbitexx
+    000000FF 30 10            [12]  474 	jr	nc, v_lenok
+    00000101 87               [ 4]  475 	add	a, a
+    00000102 CCrA0r00         [17]  476 	call	z, getbitexx
+    00000105 ED 6A            [15]  477 	adc	hl, hl
+    00000107 DAr84r01         [10]  478 	jp	c, v_Depack_out
+    0000010A 87               [ 4]  479 	add	a, a
+    0000010B CCrA0r00         [17]  480 	call	z, getbitexx
+    0000010E DArF4r00         [10]  481 	jp	c, v_lus
+    00000111                        482 	v_lenok:
+    00000111 23               [ 6]  483 	inc	hl
+    00000112 D9               [ 4]  484 	exx
+    00000113 4E               [ 7]  485 	ld	c, (hl)
+    00000114 23               [ 6]  486 	inc	hl
+    00000115 06 00            [ 7]  487 	ld	b, #0
+    00000117 CB 79            [ 8]  488 	bit	7, c
+    00000119 CAr4Cr01         [10]  489 	jp	z, v_offsok
+    0000011C DD E9            [ 8]  490 	jp	(ix)
+    0000011E                        491 	v_mode7:
+    0000011E 87               [ 4]  492 	add	a, a
+    0000011F CCr9Cr00         [17]  493 	call	z, getbit
+    00000122 CB 10            [ 8]  494 	rl	b
+    00000124                        495 	v_mode6:
+    00000124 87               [ 4]  496 	add	a, a
+    00000125 CCr9Cr00         [17]  497 	call	z, getbit
+    00000128 CB 10            [ 8]  498 	rl	b
+    0000012A                        499 	v_mode5:
+    0000012A 87               [ 4]  500 	add	a, a
+    0000012B CCr9Cr00         [17]  501 	call	z, getbit
+    0000012E CB 10            [ 8]  502 	rl	b
+    00000130                        503 	v_mode4:
+    00000130 87               [ 4]  504 	add	a, a
+    00000131 CCr9Cr00         [17]  505 	call	z, getbit
+    00000134 CB 10            [ 8]  506 	rl	b
+    00000136                        507 	v_mode3:
+    00000136 87               [ 4]  508 	add	a, a
+    00000137 CCr9Cr00         [17]  509 	call	z, getbit
+    0000013A CB 10            [ 8]  510 	rl	b
+    0000013C                        511 	v_mode2:
+    0000013C 87               [ 4]  512 	add	a, a
+    0000013D CCr9Cr00         [17]  513 	call	z, getbit
+    00000140 CB 10            [ 8]  514 	rl	b
+    00000142 87               [ 4]  515 	add	a, a
+    00000143 CCr9Cr00         [17]  516 	call	z, getbit
+    00000146 30 04            [12]  517 	jr	nc, v_offsok
+    00000148 B7               [ 4]  518 	or	a
+    00000149 04               [ 4]  519 	inc	b
+    0000014A CB B9            [ 8]  520 	res	7, c
+    0000014C                        521 	v_offsok:
+    0000014C 03               [ 6]  522 	inc	bc
+    0000014D E5               [11]  523 	push	hl
+    0000014E D9               [ 4]  524 	exx
+    0000014F E5               [11]  525 	push	hl
+    00000150 D9               [ 4]  526 	exx
+    00000151 6B               [ 4]  527 	ld	l, e
+    00000152 62               [ 4]  528 	ld	h, d
+    00000153 ED 42            [15]  529 	sbc	hl, bc
+    00000155 C1               [10]  530 	pop	bc
+    00000156 F5               [11]  531 	push	af
+    00000157                        532 	v_offsok_loop:
+    00000157 7D               [ 4]  533 	ld	a, l
+                                    534 	.macro	PLETTER_WRITE_12CC
+                                    535 	di
+                                    536 	out	(0x99), a
+                                    537 	ld	a, h
+                                    538 	out	(0x99), a
+                                    539 	in	a, (0x98)
+                                    540 	ex	af, af' ;'
+                                    541 	ld	a, e
+                                    542 	out	(0x99), a
+                                    543 	ld	a, d
+                                    544 	or	#0x40
+                                    545 	out	(0x99), a
+                                    546 	ex	af, af' ;'
+                                    547 	ei
+                                    548 	out	(0x98), a
+                                    549 	.endm
+                                    550 	.macro	PLETTER_WRITE_17CC
+                                    551 	di
+                                    552 	out	(0x99), a
+                                    553 	ld	a, h
+                                    554 	out	(0x99), a
+                                    555 	nop
+                                    556 	in	a, (0x98)
+                                    557 	ex	af, af' ;'
+                                    558 	ld	a, e
+                                    559 	out	(0x99), a
+                                    560 	ld	a, d
+                                    561 	or	#0x40
+                                    562 	out	(0x99), a
+                                    563 	ex	af, af' ;'
+                                    564 	ei
+                                    565 	out	(0x98), a
+                                    566 	.endm
+                                    567 	.macro	PLETTER_WRITE_22CC
+                                    568 	di
+                                    569 	out	(0x99), a
+                                    570 	ld	a, h
+                                    571 	nop
+                                    572 	out	(0x99), a
+                                    573 	nop
+                                    574 	nop
+                                    575 	in	a, (0x98)
+                                    576 	ex	af, af' ;'
+                                    577 	ld	a, e
+                                    578 	out	(0x99), a
+                                    579 	ld	a, d
+                                    580 	or	#0x40
+                                    581 	out	(0x99), a
+                                    582 	ex	af, af' ;'
+                                    583 	nop
+                                    584 	ei
+                                    585 	out	(0x98), a
+                                    586 	.endm
+                                    587 	.macro	PLETTER_WRITE_30CC
+                                    588 	di
+                                    589 	out	(0x99), a
+                                    590 	ld	a, h
+                                    591 	nop
+                                    592 	or	#0
+                                    593 	out	(0x99), a
+                                    594 	nop
+                                    595 	nop
+                                    596 	or	#0
+                                    597 	in	a, (0x98)
+                                    598 	ex	af, af' ;'
+                                    599 	ld	a, e
+                                    600 	or	#0
+                                    601 	out	(0x99), a
+                                    602 	ld	a, d
+                                    603 	nop
+                                    604 	or	#0x40
+                                    605 	out	(0x99), a
+                                    606 	ex	af, af' ;'
+                                    607 	nop
+                                    608 	or	#0
+                                    609 	ei
+                                    610 	out	(0x98), a
+                                    611 	.endm
+    00000158                        612 	PLETTER_WRITE_30CC
+    00000158 F3               [ 4]    1 	di
+    00000159 D3 99            [11]    2 	out	(0x99), a
+    0000015B 7C               [ 4]    3 	ld	a, h
+    0000015C 00               [ 4]    4 	nop
+    0000015D F6 00            [ 7]    5 	or	#0
+    0000015F D3 99            [11]    6 	out	(0x99), a
+    00000161 00               [ 4]    7 	nop
+    00000162 00               [ 4]    8 	nop
+    00000163 F6 00            [ 7]    9 	or	#0
+    00000165 DB 98            [11]   10 	in	a, (0x98)
+    00000167 08               [ 4]   11 	ex	af, af' ;'
+    00000168 7B               [ 4]   12 	ld	a, e
+    00000169 F6 00            [ 7]   13 	or	#0
+    0000016B D3 99            [11]   14 	out	(0x99), a
+    0000016D 7A               [ 4]   15 	ld	a, d
+    0000016E 00               [ 4]   16 	nop
+    0000016F F6 40            [ 7]   17 	or	#0x40
+    00000171 D3 99            [11]   18 	out	(0x99), a
+    00000173 08               [ 4]   19 	ex	af, af' ;'
+    00000174 00               [ 4]   20 	nop
+    00000175 F6 00            [ 7]   21 	or	#0
+    00000177 FB               [ 4]   22 	ei
+    00000178 D3 98            [11]   23 	out	(0x98), a
+    0000017A 13               [ 6]  613 	inc	de
+    0000017B ED A1            [16]  614 	cpi
+    0000017D EAr57r01         [10]  615 	jp	pe, v_offsok_loop
+    00000180 F1               [10]  616 	pop	af
+    00000181 E1               [10]  617 	pop	hl
+    00000182 FD E9            [ 8]  618 	jp	(iy)
+    00000184                        619 	v_Depack_out:
+    00000184 DD E1            [14]  620 	pop	ix
+    00000186 C9               [10]  621 	ret
+    00000187                        622 	v_modes:
+    00000187r4Cr01                  623 	.dw	v_offsok
+    00000189r3Cr01                  624 	.dw	v_mode2
+    0000018Br36r01                  625 	.dw	v_mode3
+    0000018Dr30r01                  626 	.dw	v_mode4
+    0000018Fr2Ar01                  627 	.dw	v_mode5
+    00000191r24r01                  628 	.dw	v_mode6
+    00000193r1Er01                  629 	.dw	v_mode7
+                                    630 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/compress/pletter.c:506: }
+    00000195 C9               [10]  631 	ret
+                         0000F380   632 _g_RDPRIM	=	0xf380
+                         0000F385   633 _g_WRPRIM	=	0xf385
+                         0000F38C   634 _g_CLPRIM	=	0xf38c
+                         0000F39A   635 _g_USRTAB	=	0xf39a
+                         0000F3DE   636 _g_CNSDFG	=	0xf3de
+                         0000F3DF   637 _g_RG0SAV	=	0xf3df
+                         0000F3E0   638 _g_RG1SAV	=	0xf3e0
+                         0000F3E1   639 _g_RG2SAV	=	0xf3e1
+                         0000F3E2   640 _g_RG3SAV	=	0xf3e2
+                         0000F3E3   641 _g_RG4SAV	=	0xf3e3
+                         0000F3E4   642 _g_RG5SAV	=	0xf3e4
+                         0000F3E5   643 _g_RG6SAV	=	0xf3e5
+                         0000F3E6   644 _g_RG7SAV	=	0xf3e6
+                         0000F3E7   645 _g_STATFL	=	0xf3e7
+                         0000F3E8   646 _g_TRGFLG	=	0xf3e8
+                         0000F3EC   647 _g_MAXUPD	=	0xf3ec
+                         0000F3EF   648 _g_MINUPD	=	0xf3ef
+                         0000F3F3   649 _g_QUEUES	=	0xf3f3
+                         0000F3F5   650 _g_FRCNEW	=	0xf3f5
+                         0000F3F6   651 _g_SCNCNT	=	0xf3f6
+                         0000F3F7   652 _g_REPCNT	=	0xf3f7
+                         0000F3F8   653 _g_PUTPNT	=	0xf3f8
+                         0000F3FA   654 _g_GETPNT	=	0xf3fa
+                         0000F3FC   655 _g_CS120	=	0xf3fc
+                         0000F401   656 _g_CS240	=	0xf401
+                         0000F406   657 _g_LOW	=	0xf406
+                         0000F408   658 _g_HIGH	=	0xf408
+                         0000F40A   659 _g_HEADER	=	0xf40a
+                         0000F40B   660 _g_ASPCT1	=	0xf40b
+                         0000F40D   661 _g_ASPCT2	=	0xf40d
+                         0000F959   662 _g_QUETAB	=	0xf959
+                         0000F971   663 _g_QUEBAK	=	0xf971
+                         0000F975   664 _g_VOICAQ	=	0xf975
+                         0000F9F5   665 _g_VOICBQ	=	0xf9f5
+                         0000FA75   666 _g_VOICCQ	=	0xfa75
+                         0000FAF5   667 _g_RS2IQ	=	0xfaf5
+                         0000FAF5   668 _g_DPPAGE	=	0xfaf5
+                         0000FAF6   669 _g_ACPAGE	=	0xfaf6
+                         0000FAF7   670 _g_AVCSAV	=	0xfaf7
+                         0000FAF8   671 _g_EXBRSA	=	0xfaf8
+                         0000FAF9   672 _g_CHRCNT	=	0xfaf9
+                         0000FAFA   673 _g_ROMA	=	0xfafa
+                         0000FAFC   674 _g_MODE	=	0xfafc
+                         0000FAFD   675 _g_NORUSE	=	0xfafd
+                         0000FAFE   676 _g_XSAVE	=	0xfafe
+                         0000FB00   677 _g_YSAVE	=	0xfb00
+                         0000FB03   678 _g_RSTMP	=	0xfb03
+                         0000FB03   679 _g_TOCNT	=	0xfb03
+                         0000FB04   680 _g_RSFCB	=	0xfb04
+                         0000FB06   681 _g_RSIQLN	=	0xfb06
+                         0000FB07   682 _g_MEXBIh	=	0xfb07
+                         0000FB0C   683 _g_OLDSTT	=	0xfb0c
+                         0000FB0C   684 _g_OLDINT	=	0xfb0c
+                         0000FB16   685 _g_DEVNUM	=	0xfb16
+                         0000FB17   686 _g_DATCNT	=	0xfb17
+                         0000FB1A   687 _g_ERRORS	=	0xfb1a
+                         0000FB1B   688 _g_FLAGS	=	0xfb1b
+                         0000FB1C   689 _g_ESTBLS	=	0xfb1c
+                         0000FB1D   690 _g_COMMSK	=	0xfb1d
+                         0000FB1E   691 _g_LSTCOM	=	0xfb1e
+                         0000FB1F   692 _g_LSTMOD	=	0xfb1f
+                         0000FB35   693 _g_PRSCNT	=	0xfb35
+                         0000FB36   694 _g_SAVSP	=	0xfb36
+                         0000FB38   695 _g_VOICEN	=	0xfb38
+                         0000FB39   696 _g_SAVVOL	=	0xfb39
+                         0000FB3B   697 _g_MCLLEN	=	0xfb3b
+                         0000FB3C   698 _g_MCLPTR	=	0xfb3c
+                         0000FB3E   699 _g_QUEUEN	=	0xfb3e
+                         0000FB3F   700 _g_MUSICF	=	0xfb3f
+                         0000FB40   701 _g_PLYCNT	=	0xfb40
+                         0000FB41   702 _g_VCBA	=	0xfb41
+                         0000FB66   703 _g_VCBB	=	0xfb66
+                         0000FB8B   704 _g_VCBC	=	0xfb8b
+                         0000FBB0   705 _g_ENSTOP	=	0xfbb0
+                         0000FBB1   706 _g_BASROM	=	0xfbb1
+                         0000FBB2   707 _g_LINTTB	=	0xfbb2
+                         0000FBCA   708 _g_FSTPOS	=	0xfbca
+                         0000FBCC   709 _g_CODSAV	=	0xfbcc
+                         0000FBCD   710 _g_FNKSWI	=	0xfbcd
+                         0000FBCE   711 _g_FNKFLG	=	0xfbce
+                         0000FBD8   712 _g_ONGSBF	=	0xfbd8
+                         0000FBD9   713 _g_CLIKFL	=	0xfbd9
+                         0000FBDA   714 _g_OLDKEY	=	0xfbda
+                         0000FBE5   715 _g_NEWKEY	=	0xfbe5
+                         0000FBF0   716 _g_KEYBUF	=	0xfbf0
+                         0000FC18   717 _g_LINWRK	=	0xfc18
+                         0000FC40   718 _g_PATWRK	=	0xfc40
+                         0000FC48   719 _g_BOTTOM	=	0xfc48
+                         0000FC4A   720 _g_HIMEM	=	0xfc4a
+                         0000FC4C   721 _g_TRPTBL	=	0xfc4c
+                         0000FC9A   722 _g_RTYCNT	=	0xfc9a
+                         0000FC9B   723 _g_INTFLG	=	0xfc9b
+                         0000FC9C   724 _g_PADY	=	0xfc9c
+                         0000FC9D   725 _g_PADX	=	0xfc9d
+                         0000FC9E   726 _g_JIFFY	=	0xfc9e
+                         0000FCA0   727 _g_INTVAL	=	0xfca0
+                         0000FCA2   728 _g_INTCNT	=	0xfca2
+                         0000FCA4   729 _g_LOWLIM	=	0xfca4
+                         0000FCA5   730 _g_WINWID	=	0xfca5
+                         0000FCA6   731 _g_GRPHED	=	0xfca6
+                         0000FCA7   732 _g_ESCCNT	=	0xfca7
+                         0000FCA8   733 _g_INSFLG	=	0xfca8
+                         0000FCA9   734 _g_CSRSW	=	0xfca9
+                         0000FCAA   735 _g_CSTYLE	=	0xfcaa
+                         0000FCAB   736 _g_CAPST	=	0xfcab
+                         0000FCAC   737 _g_KANAST	=	0xfcac
+                         0000FCAD   738 _g_KANAMD	=	0xfcad
+                         0000FCAE   739 _g_FLBMEM	=	0xfcae
+                         0000FCAF   740 _g_SCRMOD	=	0xfcaf
+                         0000FCB0   741 _g_OLDSCR	=	0xfcb0
+                         0000FCB1   742 _g_CASPRV	=	0xfcb1
+                         0000FCB2   743 _g_BRDATR	=	0xfcb2
+                         0000FCB3   744 _g_GXPOS	=	0xfcb3
+                         0000FCB5   745 _g_GYPOS	=	0xfcb5
+                         0000FCBB   746 _g_DRWFLG	=	0xfcbb
+                         0000FCBC   747 _g_DRWSCL	=	0xfcbc
+                         0000FCBD   748 _g_DRWANG	=	0xfcbd
+                         0000FCC1   749 _g_MNROM	=	0xfcc1
+                         0000FCC1   750 _g_EXPTBL	=	0xfcc1
+                         0000FCC5   751 _g_SLTTBL	=	0xfcc5
+                         0000FCC9   752 _g_SLTATR	=	0xfcc9
+                         0000FD09   753 _g_SLTWRK	=	0xfd09
+                         0000FD89   754 _g_PROCNM	=	0xfd89
+                         0000FFE7   755 _g_RG08SAV	=	0xffe7
+                         0000FFE8   756 _g_RG09SAV	=	0xffe8
+                         0000FFE9   757 _g_RG10SAV	=	0xffe9
+                         0000FFEA   758 _g_RG11SAV	=	0xffea
+                         0000FFEB   759 _g_RG12SAV	=	0xffeb
+                         0000FFEC   760 _g_RG13SAV	=	0xffec
+                         0000FFED   761 _g_RG14SAV	=	0xffed
+                         0000FFEE   762 _g_RG15SAV	=	0xffee
+                         0000FFEF   763 _g_RG16SAV	=	0xffef
+                         0000FFF0   764 _g_RG17SAV	=	0xfff0
+                         0000FFF1   765 _g_RG18SAV	=	0xfff1
+                         0000FFF2   766 _g_RG19SAV	=	0xfff2
+                         0000FFF3   767 _g_RG20SAV	=	0xfff3
+                         0000FFF4   768 _g_RG21SAV	=	0xfff4
+                         0000FFF5   769 _g_RG22SAV	=	0xfff5
+                         0000FFF6   770 _g_RG23SAV	=	0xfff6
+                         0000FFF7   771 _g_MINROM	=	0xfff7
+                         0000FFF8   772 _g_SVFFF8	=	0xfff8
+                         0000FFFA   773 _g_RG25SAV	=	0xfffa
+                         0000FFFB   774 _g_RG26SAV	=	0xfffb
+                         0000FFFC   775 _g_RG27SAV	=	0xfffc
+                         0000FFFD   776 _g_SVFFFD	=	0xfffd
+                                    777 	.area _CODE
+                                    778 	.area _INITIALIZER
+                                    779 	.area _CABS (ABS)

@@ -1,0 +1,12 @@
+-mjwx
+-i C:\Users\Antxiko\Documents\PuyoPuyoVS\src/out/puyopuyo.ihx
+-b _CODE = 0x4000
+-b _DATA = 0xc000
+-k C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\tools/sdcc/lib/z80
+-k C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\tools/sdcc/bin\..\lib\z80
+-l C:\Users\Antxiko\Documents\PuyoPuyoVS\src/out/msxgl.lib
+-l z80
+C:\Users\Antxiko\Documents\PuyoPuyoVS\src/out/crt0_rom48.rel
+C:\Users\Antxiko\Documents\PuyoPuyoVS\src/out/puyopuyo.rel
+
+-e

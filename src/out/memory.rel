@@ -1,0 +1,48 @@
+XL4
+H 9 areas 7 global symbols
+M memory
+O -mz80
+S .__.ABS. Def00000000
+S _g_HeapStartAddress Ref00000000
+A _CODE size 3A flags 0 addr 0
+S _Mem_HeapAlloc Def00000009
+S _Mem_HeapFree Def0000001A
+S _Mem_Set_16b Def00000026
+S _Mem_GetStackAddress Def00000000
+A _DATA size 2 flags 0 addr 0
+S _g_StackAddress Def00000000
+A _INITIALIZED size 0 flags 0 addr 0
+A _DABS size 0 flags 8 addr 0
+A _HOME size 0 flags 0 addr 0
+A _GSINIT size 0 flags 0 addr 0
+A _GSFINAL size 0 flags 0 addr 0
+A _INITIALIZER size 0 flags 0 addr 0
+A _CABS size 0 flags 8 addr 0
+T 00 00 00 00
+R 00 00 01 00
+T 00 00 00 00
+R 00 00 01 00
+T 00 00 00 00
+R 00 00 00 00
+T 00 00 00 00 ED 73 00 00 ED 5B 00 00 C9
+R 00 00 00 00 00 06 01 00 00 0A 01 00
+T 09 00 00 00
+R 00 00 00 00
+T 09 00 00 00 4D 44 ED 5B 00 00 21 00 00 7E 81 77
+R 00 00 00 00 02 08 01 00 02 0B 01 00
+T 15 00 00 00 23 7E 88 77 C9
+R 00 00 00 00
+T 1A 00 00 00
+R 00 00 00 00
+T 1A 00 00 00 EB 21 00 00 7E 93 77 23 7E 9A 77 C9
+R 00 00 00 00 02 06 01 00
+T 26 00 00 00
+R 00 00 00 00
+T 26 00 00 00 D5 EB 72 23 73 23 EB E1 FD E1 C1 0B
+R 00 00 00 00
+T 32 00 00 00 0B ED B0
+R 00 00 00 00
+T 35 00 00 00
+R 00 00 00 00
+T 35 00 00 00 FD E9 E1 F1 E9
+R 00 00 00 00

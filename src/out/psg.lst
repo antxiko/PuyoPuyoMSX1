@@ -1,0 +1,350 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module psg
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _g_PSG_VolumeBackup
+                                     12 	.globl _PSG_SetRegister
+                                     13 	.globl _PSG_GetRegister
+                                     14 	.globl _PSG_SetTone
+                                     15 	.globl _PSG_SetNoise
+                                     16 	.globl _PSG_SetMixer
+                                     17 	.globl _PSG_SetVolume
+                                     18 	.globl _PSG_SetEnvelope
+                                     19 	.globl _PSG_SetShape
+                                     20 	.globl _PSG_EnableTone
+                                     21 	.globl _PSG_EnableNoise
+                                     22 	.globl _PSG_EnableEnvelope
+                                     23 	.globl _PSG_Mute
+                                     24 	.globl _PSG_Resume
+                                     25 ;--------------------------------------------------------
+                                     26 ; special function registers
+                                     27 ;--------------------------------------------------------
+                         000000A8    28 _g_PortPrimarySlot	=	0x00a8
+                         000000A9    29 _g_PortReadKeyboard	=	0x00a9
+                         000000AA    30 _g_PortAccessKeyboard	=	0x00aa
+                         000000AB    31 _g_PortControl	=	0x00ab
+                         00000098    32 _g_VDP_DataPort	=	0x0098
+                         00000099    33 _g_VDP_RegPort	=	0x0099
+                         00000099    34 _g_VDP_AddrPort	=	0x0099
+                         00000099    35 _g_VDP_StatPort	=	0x0099
+                         000000A0    36 _g_PSG_RegPort	=	0x00a0
+                         000000A1    37 _g_PSG_DataPort	=	0x00a1
+                         000000A2    38 _g_PSG_StatPort	=	0x00a2
+                         00000010    39 _g_PSG_Ext_RegPort	=	0x0010
+                         00000011    40 _g_PSG_Ext_DataPort	=	0x0011
+                         00000012    41 _g_PSG_Ext_StatPort	=	0x0012
+                         0000007C    42 _g_MSXMusic_IndexPort	=	0x007c
+                         0000007D    43 _g_MSXMusic_DataPort	=	0x007d
+                         000000C0    44 _g_MSXAudio_IndexPort	=	0x00c0
+                         000000C1    45 _g_MSXAudio_DataPort	=	0x00c1
+                         000000C2    46 _g_MSXAudio_IndexPort2	=	0x00c2
+                         000000C3    47 _g_MSXAudio_DataPort2	=	0x00c3
+                         000000B4    48 _g_RTC_AddrPort	=	0x00b4
+                         000000B5    49 _g_RTC_DataPort	=	0x00b5
+                                     50 ;--------------------------------------------------------
+                                     51 ; ram data
+                                     52 ;--------------------------------------------------------
+                                     53 	.area _DATA
+    00000000                         54 _g_PSG_VolumeBackup::
+    00000000                         55 	.ds 3
+                                     56 ;--------------------------------------------------------
+                                     57 ; ram data
+                                     58 ;--------------------------------------------------------
+                                     59 	.area _INITIALIZED
+                                     60 ;--------------------------------------------------------
+                                     61 ; absolute external ram data
+                                     62 ;--------------------------------------------------------
+                                     63 	.area _DABS (ABS)
+                                     64 ;--------------------------------------------------------
+                                     65 ; global & static initialisations
+                                     66 ;--------------------------------------------------------
+                                     67 	.area _HOME
+                                     68 	.area _GSINIT
+                                     69 	.area _GSFINAL
+                                     70 	.area _GSINIT
+                                     71 ;--------------------------------------------------------
+                                     72 ; Home
+                                     73 ;--------------------------------------------------------
+                                     74 	.area _HOME
+                                     75 	.area _HOME
+                                     76 ;--------------------------------------------------------
+                                     77 ; code
+                                     78 ;--------------------------------------------------------
+                                     79 	.area _CODE
+                                     80 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:60: void PSG_SetRegister(u8 reg, u8 value)
+                                     81 ;	---------------------------------
+                                     82 ; Function PSG_SetRegister
+                                     83 ; ---------------------------------
+    00000000                         84 _PSG_SetRegister::
+    00000000 D3 A0            [11]   85 	out	(_g_PSG_RegPort), a
+    00000002 7D               [ 4]   86 	ld	a, l
+    00000003 D3 A1            [11]   87 	out	(_g_PSG_DataPort), a
+                                     88 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:71: PSG_VAR_WRITE = value;
+                                     89 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:74: }
+    00000005 C9               [10]   90 	ret
+                                     91 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:78: u8 PSG_GetRegister(u8 reg)
+                                     92 ;	---------------------------------
+                                     93 ; Function PSG_GetRegister
+                                     94 ; ---------------------------------
+    00000006                         95 _PSG_GetRegister::
+    00000006 D3 A0            [11]   96 	out	(_g_PSG_RegPort), a
+                                     97 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:89: return PSG_VAR_READ;
+    00000008 DB A2            [11]   98 	in	a, (_g_PSG_StatPort)
+                                     99 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:92: }
+    0000000A C9               [10]  100 	ret
+                                    101 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:98: void PSG_SetTone(u8 chan, u16 period)
+                                    102 ;	---------------------------------
+                                    103 ; Function PSG_SetTone
+                                    104 ; ---------------------------------
+    0000000B                        105 _PSG_SetTone::
+                                    106 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:109: u8 reg = (chan * 2);
+    0000000B 87               [ 4]  107 	add	a, a
+                                    108 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:110: PSG_VAR_REG = reg;
+    0000000C D3 A0            [11]  109 	out	(_g_PSG_RegPort), a
+                                    110 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:111: PSG_VAR_WRITE = (u8)period;
+    0000000E F5               [11]  111 	push	af
+    0000000F 7B               [ 4]  112 	ld	a, e
+    00000010 D3 A1            [11]  113 	out	(_g_PSG_DataPort), a
+    00000012 F1               [10]  114 	pop	af
+                                    115 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:112: PSG_VAR_REG = ++reg;
+    00000013 3C               [ 4]  116 	inc	a
+    00000014 D3 A0            [11]  117 	out	(_g_PSG_RegPort), a
+                                    118 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:113: PSG_VAR_WRITE = (u8)(period >> 8);
+    00000016 7A               [ 4]  119 	ld	a, d
+    00000017 D3 A1            [11]  120 	out	(_g_PSG_DataPort), a
+                                    121 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:116: }
+    00000019 C9               [10]  122 	ret
+                                    123 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:120: void PSG_SetNoise(u8 period)
+                                    124 ;	---------------------------------
+                                    125 ; Function PSG_SetNoise
+                                    126 ; ---------------------------------
+    0000001A                        127 _PSG_SetNoise::
+    0000001A 4F               [ 4]  128 	ld	c, a
+                                    129 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:129: PSG_VAR_REG = PSG_REG_NOISE;
+    0000001B 3E 06            [ 7]  130 	ld	a, #0x06
+    0000001D D3 A0            [11]  131 	out	(_g_PSG_RegPort), a
+                                    132 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:130: PSG_VAR_WRITE = period;
+    0000001F 79               [ 4]  133 	ld	a, c
+    00000020 D3 A1            [11]  134 	out	(_g_PSG_DataPort), a
+                                    135 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:133: }
+    00000022 C9               [10]  136 	ret
+                                    137 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:137: void PSG_SetMixer(u8 mix)
+                                    138 ;	---------------------------------
+                                    139 ; Function PSG_SetMixer
+                                    140 ; ---------------------------------
+    00000023                        141 _PSG_SetMixer::
+    00000023 4F               [ 4]  142 	ld	c, a
+                                    143 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:146: PSG_VAR_REG = PSG_REG_MIXER;
+    00000024 3E 07            [ 7]  144 	ld	a, #0x07
+    00000026 D3 A0            [11]  145 	out	(_g_PSG_RegPort), a
+                                    146 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:147: PSG_VAR_WRITE = ~mix;
+    00000028 79               [ 4]  147 	ld	a, c
+    00000029 2F               [ 4]  148 	cpl
+    0000002A D3 A1            [11]  149 	out	(_g_PSG_DataPort), a
+                                    150 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:150: }
+    0000002C C9               [10]  151 	ret
+                                    152 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:154: void PSG_SetVolume(u8 chan, u8 vol)
+                                    153 ;	---------------------------------
+                                    154 ; Function PSG_SetVolume
+                                    155 ; ---------------------------------
+    0000002D                        156 _PSG_SetVolume::
+    0000002D 47               [ 4]  157 	ld	b, a
+    0000002E 4D               [ 4]  158 	ld	c, l
+                                    159 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:164: PSG_VAR_REG = PSG_REG_AMP_A + chan;
+    0000002F 78               [ 4]  160 	ld	a, b
+    00000030 C6 08            [ 7]  161 	add	a, #0x08
+    00000032 D3 A0            [11]  162 	out	(_g_PSG_RegPort), a
+                                    163 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:165: PSG_VAR_WRITE = vol;
+    00000034 79               [ 4]  164 	ld	a, c
+    00000035 D3 A1            [11]  165 	out	(_g_PSG_DataPort), a
+                                    166 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:168: }
+    00000037 C9               [10]  167 	ret
+                                    168 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:172: void PSG_SetEnvelope(u16 period)
+                                    169 ;	---------------------------------
+                                    170 ; Function PSG_SetEnvelope
+                                    171 ; ---------------------------------
+    00000038                        172 _PSG_SetEnvelope::
+                                    173 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:181: PSG_VAR_REG = reg;
+    00000038 3E 0B            [ 7]  174 	ld	a, #0x0b
+    0000003A D3 A0            [11]  175 	out	(_g_PSG_RegPort), a
+                                    176 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:182: PSG_VAR_WRITE = (u8)period;
+    0000003C 7D               [ 4]  177 	ld	a, l
+    0000003D D3 A1            [11]  178 	out	(_g_PSG_DataPort), a
+                                    179 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:183: PSG_VAR_REG = ++reg;
+    0000003F 3E 0C            [ 7]  180 	ld	a, #0x0c
+    00000041 D3 A0            [11]  181 	out	(_g_PSG_RegPort), a
+                                    182 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:184: PSG_VAR_WRITE = (u8)(period >> 8);
+    00000043 7C               [ 4]  183 	ld	a, h
+    00000044 D3 A1            [11]  184 	out	(_g_PSG_DataPort), a
+                                    185 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:187: }
+    00000046 C9               [10]  186 	ret
+                                    187 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:191: void PSG_SetShape(u8 shape)
+                                    188 ;	---------------------------------
+                                    189 ; Function PSG_SetShape
+                                    190 ; ---------------------------------
+    00000047                        191 _PSG_SetShape::
+    00000047 4F               [ 4]  192 	ld	c, a
+                                    193 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:199: PSG_VAR_REG = PSG_REG_SHAPE;
+    00000048 3E 0D            [ 7]  194 	ld	a, #0x0d
+    0000004A D3 A0            [11]  195 	out	(_g_PSG_RegPort), a
+                                    196 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:200: PSG_VAR_WRITE = shape;
+    0000004C 79               [ 4]  197 	ld	a, c
+    0000004D D3 A1            [11]  198 	out	(_g_PSG_DataPort), a
+                                    199 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:203: }
+    0000004F C9               [10]  200 	ret
+                                    201 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:207: void PSG_EnableTone(u8 chan, bool val)
+                                    202 ;	---------------------------------
+                                    203 ; Function PSG_EnableTone
+                                    204 ; ---------------------------------
+    00000050                        205 _PSG_EnableTone::
+    00000050 47               [ 4]  206 	ld	b, a
+                                    207 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:212: PSG_VAR_REG = PSG_REG_MIXER;
+    00000051 3E 07            [ 7]  208 	ld	a, #0x07
+    00000053 D3 A0            [11]  209 	out	(_g_PSG_RegPort), a
+                                    210 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:213: u8 mix = PSG_VAR_READ;
+    00000055 DB A2            [11]  211 	in	a, (_g_PSG_StatPort)
+    00000057 5F               [ 4]  212 	ld	e, a
+                                    213 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:216: u8 bit = 1 << chan;
+    00000058 0E 01            [ 7]  214 	ld	c, #0x01
+    0000005A 04               [ 4]  215 	inc	b
+    0000005B C3r60r00         [10]  216 	jp	00111$
+    0000005E                        217 00110$:
+    0000005E CB 21            [ 8]  218 	sla	c
+    00000060                        219 00111$:
+    00000060 10 FC            [13]  220 	djnz	00110$
+                                    221 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:217: mix &= ~bit;
+    00000062 79               [ 4]  222 	ld	a, c
+    00000063 2F               [ 4]  223 	cpl
+    00000064 A3               [ 4]  224 	and	a, e
+                                    225 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:219: if (val == 0)
+    00000065 2C               [ 4]  226 	inc	l
+    00000066 2D               [ 4]  227 	dec	l
+    00000067 20 01            [12]  228 	jr	NZ, 00102$
+                                    229 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:220: mix |= bit;
+    00000069 B1               [ 4]  230 	or	a, c
+    0000006A                        231 00102$:
+                                    232 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:225: PSG_VAR_WRITE = mix;
+    0000006A D3 A1            [11]  233 	out	(_g_PSG_DataPort), a
+                                    234 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:227: }
+    0000006C C9               [10]  235 	ret
+                                    236 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:231: void PSG_EnableNoise(u8 chan, bool val)
+                                    237 ;	---------------------------------
+                                    238 ; Function PSG_EnableNoise
+                                    239 ; ---------------------------------
+    0000006D                        240 _PSG_EnableNoise::
+    0000006D 47               [ 4]  241 	ld	b, a
+                                    242 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:236: PSG_VAR_REG = PSG_REG_MIXER;
+    0000006E 3E 07            [ 7]  243 	ld	a, #0x07
+    00000070 D3 A0            [11]  244 	out	(_g_PSG_RegPort), a
+                                    245 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:237: u8 mix = PSG_VAR_READ;
+    00000072 DB A2            [11]  246 	in	a, (_g_PSG_StatPort)
+    00000074 5F               [ 4]  247 	ld	e, a
+                                    248 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:240: u8 bit = 8 << chan;
+    00000075 0E 08            [ 7]  249 	ld	c, #0x08
+    00000077 04               [ 4]  250 	inc	b
+    00000078 C3r7Dr00         [10]  251 	jp	00111$
+    0000007B                        252 00110$:
+    0000007B CB 21            [ 8]  253 	sla	c
+    0000007D                        254 00111$:
+    0000007D 10 FC            [13]  255 	djnz	00110$
+                                    256 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:241: mix &= ~bit;
+    0000007F 79               [ 4]  257 	ld	a, c
+    00000080 2F               [ 4]  258 	cpl
+    00000081 A3               [ 4]  259 	and	a, e
+                                    260 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:243: if (val == 0)
+    00000082 2C               [ 4]  261 	inc	l
+    00000083 2D               [ 4]  262 	dec	l
+    00000084 20 01            [12]  263 	jr	NZ, 00102$
+                                    264 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:244: mix |= bit;
+    00000086 B1               [ 4]  265 	or	a, c
+    00000087                        266 00102$:
+                                    267 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:249: PSG_VAR_WRITE = mix;
+    00000087 D3 A1            [11]  268 	out	(_g_PSG_DataPort), a
+                                    269 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:251: }
+    00000089 C9               [10]  270 	ret
+                                    271 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:255: void PSG_EnableEnvelope(u8 chan, bool val)
+                                    272 ;	---------------------------------
+                                    273 ; Function PSG_EnableEnvelope
+                                    274 ; ---------------------------------
+    0000008A                        275 _PSG_EnableEnvelope::
+    0000008A 47               [ 4]  276 	ld	b, a
+    0000008B 4D               [ 4]  277 	ld	c, l
+                                    278 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:260: PSG_VAR_REG = PSG_REG_AMP_A + chan;
+    0000008C 78               [ 4]  279 	ld	a, b
+    0000008D C6 08            [ 7]  280 	add	a, #0x08
+    0000008F D3 A0            [11]  281 	out	(_g_PSG_RegPort), a
+                                    282 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:261: u8 vol = PSG_VAR_READ;
+    00000091 DB A2            [11]  283 	in	a, (_g_PSG_StatPort)
+                                    284 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:264: vol &= 0x0F;
+    00000093 E6 0F            [ 7]  285 	and	a, #0x0f
+                                    286 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:266: if (val != 0)
+    00000095 0C               [ 4]  287 	inc	c
+    00000096 0D               [ 4]  288 	dec	c
+    00000097 28 02            [12]  289 	jr	Z, 00102$
+                                    290 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:267: vol |= PSG_F_ENV;
+    00000099 CB E7            [ 8]  291 	set	4, a
+    0000009B                        292 00102$:
+                                    293 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:272: PSG_VAR_WRITE = vol;
+    0000009B D3 A1            [11]  294 	out	(_g_PSG_DataPort), a
+                                    295 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:274: }
+    0000009D C9               [10]  296 	ret
+                                    297 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:280: void PSG_Mute()
+                                    298 ;	---------------------------------
+                                    299 ; Function PSG_Mute
+                                    300 ; ---------------------------------
+    0000009E                        301 _PSG_Mute::
+                                    302 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:294: loop(i, 3)
+    0000009E 0E 00            [ 7]  303 	ld	c, #0x00
+    000000A0                        304 00103$:
+                                    305 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:296: PSG_VAR_REG = PSG_REG_AMP_A + i;
+    000000A0 79               [ 4]  306 	ld	a,c
+    000000A1 FE 03            [ 7]  307 	cp	a,#0x03
+    000000A3 D0               [11]  308 	ret	NC
+    000000A4 C6 08            [ 7]  309 	add	a, #0x08
+    000000A6 D3 A0            [11]  310 	out	(_g_PSG_RegPort), a
+                                    311 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:298: g_PSG_VolumeBackup[i] = PSG_VAR_READ;
+    000000A8 21r00r00         [10]  312 	ld	hl, #_g_PSG_VolumeBackup
+    000000AB 06 00            [ 7]  313 	ld	b, #0x00
+    000000AD 09               [11]  314 	add	hl, bc
+    000000AE DB A2            [11]  315 	in	a, (_g_PSG_StatPort)
+    000000B0 77               [ 7]  316 	ld	(hl), a
+                                    317 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:300: PSG_VAR_WRITE = 0;
+    000000B1 3E 00            [ 7]  318 	ld	a, #0x00
+    000000B3 D3 A1            [11]  319 	out	(_g_PSG_DataPort), a
+                                    320 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:294: loop(i, 3)
+    000000B5 0C               [ 4]  321 	inc	c
+                                    322 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:304: }
+    000000B6 C3rA0r00         [10]  323 	jp	00103$
+                                    324 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:309: void PSG_Resume()
+                                    325 ;	---------------------------------
+                                    326 ; Function PSG_Resume
+                                    327 ; ---------------------------------
+    000000B9                        328 _PSG_Resume::
+                                    329 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:320: loop(i, 3)
+    000000B9 0E 00            [ 7]  330 	ld	c, #0x00
+    000000BB                        331 00103$:
+                                    332 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:322: PSG_VAR_REG = PSG_REG_AMP_A + i;
+    000000BB 79               [ 4]  333 	ld	a,c
+    000000BC FE 03            [ 7]  334 	cp	a,#0x03
+    000000BE D0               [11]  335 	ret	NC
+    000000BF C6 08            [ 7]  336 	add	a, #0x08
+    000000C1 D3 A0            [11]  337 	out	(_g_PSG_RegPort), a
+                                    338 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:323: PSG_VAR_WRITE = g_PSG_VolumeBackup[i];
+    000000C3 21r00r00         [10]  339 	ld	hl, #_g_PSG_VolumeBackup
+    000000C6 06 00            [ 7]  340 	ld	b, #0x00
+    000000C8 09               [11]  341 	add	hl, bc
+    000000C9 7E               [ 7]  342 	ld	a, (hl)
+    000000CA D3 A1            [11]  343 	out	(_g_PSG_DataPort), a
+                                    344 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:320: loop(i, 3)
+    000000CC 0C               [ 4]  345 	inc	c
+                                    346 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/psg.c:327: }
+    000000CD C3rBBr00         [10]  347 	jp	00103$
+                                    348 	.area _CODE
+                                    349 	.area _INITIALIZER
+                                    350 	.area _CABS (ABS)

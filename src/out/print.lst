@@ -1,0 +1,1586 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module print
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _VDP_Poke_16K
+                                     12 	.globl _VDP_FillVRAM_16K
+                                     13 	.globl _VDP_WriteVRAM_16K
+                                     14 	.globl _g_PrintData
+                                     15 	.globl _g_SLTSL
+                                     16 	.globl _g_GRPACY
+                                     17 	.globl _g_GRPACX
+                                     18 	.globl _g_LOGOPR
+                                     19 	.globl _g_CMASK
+                                     20 	.globl _g_CLOC
+                                     21 	.globl _g_FNKSTR
+                                     22 	.globl _g_ATRBYT
+                                     23 	.globl _g_BDRCLR
+                                     24 	.globl _g_BAKCLR
+                                     25 	.globl _g_FORCLR
+                                     26 	.globl _g_CSRX
+                                     27 	.globl _g_CSRY
+                                     28 	.globl _g_CLIKSW
+                                     29 	.globl _g_MLTPAT
+                                     30 	.globl _g_MLTATR
+                                     31 	.globl _g_MLTCGP
+                                     32 	.globl _g_MLTCOL
+                                     33 	.globl _g_MLTNAM
+                                     34 	.globl _g_GRPPAT
+                                     35 	.globl _g_GRPATR
+                                     36 	.globl _g_GRPCGP
+                                     37 	.globl _g_GRPCOL
+                                     38 	.globl _g_GRPNAM
+                                     39 	.globl _g_T32PAT
+                                     40 	.globl _g_T32ATR
+                                     41 	.globl _g_T32CGP
+                                     42 	.globl _g_T32COL
+                                     43 	.globl _g_T32NAM
+                                     44 	.globl _g_TXTPAT
+                                     45 	.globl _g_TXTATR
+                                     46 	.globl _g_TXTCGP
+                                     47 	.globl _g_TXTCOL
+                                     48 	.globl _g_TXTNAM
+                                     49 	.globl _g_CLMLST
+                                     50 	.globl _g_CRTCNT
+                                     51 	.globl _g_LINLEN
+                                     52 	.globl _g_LINL32
+                                     53 	.globl _g_LINL40
+                                     54 	.globl _g_HexChar
+                                     55 	.globl _g_CHAR_16
+                                     56 	.globl _g_MSXMID
+                                     57 	.globl _g_MSXVER
+                                     58 	.globl _g_ROMVersion
+                                     59 	.globl _g_BASRVN
+                                     60 	.globl _g_VDP_DW
+                                     61 	.globl _g_VDP_DR
+                                     62 	.globl _g_CGTABL
+                                     63 	.globl _g_SVFFFD
+                                     64 	.globl _g_RG27SAV
+                                     65 	.globl _g_RG26SAV
+                                     66 	.globl _g_RG25SAV
+                                     67 	.globl _g_SVFFF8
+                                     68 	.globl _g_MINROM
+                                     69 	.globl _g_RG23SAV
+                                     70 	.globl _g_RG22SAV
+                                     71 	.globl _g_RG21SAV
+                                     72 	.globl _g_RG20SAV
+                                     73 	.globl _g_RG19SAV
+                                     74 	.globl _g_RG18SAV
+                                     75 	.globl _g_RG17SAV
+                                     76 	.globl _g_RG16SAV
+                                     77 	.globl _g_RG15SAV
+                                     78 	.globl _g_RG14SAV
+                                     79 	.globl _g_RG13SAV
+                                     80 	.globl _g_RG12SAV
+                                     81 	.globl _g_RG11SAV
+                                     82 	.globl _g_RG10SAV
+                                     83 	.globl _g_RG09SAV
+                                     84 	.globl _g_RG08SAV
+                                     85 	.globl _g_PROCNM
+                                     86 	.globl _g_SLTWRK
+                                     87 	.globl _g_SLTATR
+                                     88 	.globl _g_SLTTBL
+                                     89 	.globl _g_EXPTBL
+                                     90 	.globl _g_MNROM
+                                     91 	.globl _g_DRWANG
+                                     92 	.globl _g_DRWSCL
+                                     93 	.globl _g_DRWFLG
+                                     94 	.globl _g_GYPOS
+                                     95 	.globl _g_GXPOS
+                                     96 	.globl _g_BRDATR
+                                     97 	.globl _g_CASPRV
+                                     98 	.globl _g_OLDSCR
+                                     99 	.globl _g_SCRMOD
+                                    100 	.globl _g_FLBMEM
+                                    101 	.globl _g_KANAMD
+                                    102 	.globl _g_KANAST
+                                    103 	.globl _g_CAPST
+                                    104 	.globl _g_CSTYLE
+                                    105 	.globl _g_CSRSW
+                                    106 	.globl _g_INSFLG
+                                    107 	.globl _g_ESCCNT
+                                    108 	.globl _g_GRPHED
+                                    109 	.globl _g_WINWID
+                                    110 	.globl _g_LOWLIM
+                                    111 	.globl _g_INTCNT
+                                    112 	.globl _g_INTVAL
+                                    113 	.globl _g_JIFFY
+                                    114 	.globl _g_PADX
+                                    115 	.globl _g_PADY
+                                    116 	.globl _g_INTFLG
+                                    117 	.globl _g_RTYCNT
+                                    118 	.globl _g_TRPTBL
+                                    119 	.globl _g_HIMEM
+                                    120 	.globl _g_BOTTOM
+                                    121 	.globl _g_PATWRK
+                                    122 	.globl _g_LINWRK
+                                    123 	.globl _g_KEYBUF
+                                    124 	.globl _g_NEWKEY
+                                    125 	.globl _g_OLDKEY
+                                    126 	.globl _g_CLIKFL
+                                    127 	.globl _g_ONGSBF
+                                    128 	.globl _g_FNKFLG
+                                    129 	.globl _g_FNKSWI
+                                    130 	.globl _g_CODSAV
+                                    131 	.globl _g_FSTPOS
+                                    132 	.globl _g_LINTTB
+                                    133 	.globl _g_BASROM
+                                    134 	.globl _g_ENSTOP
+                                    135 	.globl _g_VCBC
+                                    136 	.globl _g_VCBB
+                                    137 	.globl _g_VCBA
+                                    138 	.globl _g_PLYCNT
+                                    139 	.globl _g_MUSICF
+                                    140 	.globl _g_QUEUEN
+                                    141 	.globl _g_MCLPTR
+                                    142 	.globl _g_MCLLEN
+                                    143 	.globl _g_SAVVOL
+                                    144 	.globl _g_VOICEN
+                                    145 	.globl _g_SAVSP
+                                    146 	.globl _g_PRSCNT
+                                    147 	.globl _g_LSTMOD
+                                    148 	.globl _g_LSTCOM
+                                    149 	.globl _g_COMMSK
+                                    150 	.globl _g_ESTBLS
+                                    151 	.globl _g_FLAGS
+                                    152 	.globl _g_ERRORS
+                                    153 	.globl _g_DATCNT
+                                    154 	.globl _g_DEVNUM
+                                    155 	.globl _g_OLDINT
+                                    156 	.globl _g_OLDSTT
+                                    157 	.globl _g_MEXBIh
+                                    158 	.globl _g_RSIQLN
+                                    159 	.globl _g_RSFCB
+                                    160 	.globl _g_TOCNT
+                                    161 	.globl _g_RSTMP
+                                    162 	.globl _g_YSAVE
+                                    163 	.globl _g_XSAVE
+                                    164 	.globl _g_NORUSE
+                                    165 	.globl _g_MODE
+                                    166 	.globl _g_ROMA
+                                    167 	.globl _g_CHRCNT
+                                    168 	.globl _g_EXBRSA
+                                    169 	.globl _g_AVCSAV
+                                    170 	.globl _g_ACPAGE
+                                    171 	.globl _g_DPPAGE
+                                    172 	.globl _g_RS2IQ
+                                    173 	.globl _g_VOICCQ
+                                    174 	.globl _g_VOICBQ
+                                    175 	.globl _g_VOICAQ
+                                    176 	.globl _g_QUEBAK
+                                    177 	.globl _g_QUETAB
+                                    178 	.globl _g_ASPCT2
+                                    179 	.globl _g_ASPCT1
+                                    180 	.globl _g_HEADER
+                                    181 	.globl _g_HIGH
+                                    182 	.globl _g_LOW
+                                    183 	.globl _g_CS240
+                                    184 	.globl _g_CS120
+                                    185 	.globl _g_GETPNT
+                                    186 	.globl _g_PUTPNT
+                                    187 	.globl _g_REPCNT
+                                    188 	.globl _g_SCNCNT
+                                    189 	.globl _g_FRCNEW
+                                    190 	.globl _g_QUEUES
+                                    191 	.globl _g_MINUPD
+                                    192 	.globl _g_MAXUPD
+                                    193 	.globl _g_TRGFLG
+                                    194 	.globl _g_STATFL
+                                    195 	.globl _g_RG7SAV
+                                    196 	.globl _g_RG6SAV
+                                    197 	.globl _g_RG5SAV
+                                    198 	.globl _g_RG4SAV
+                                    199 	.globl _g_RG3SAV
+                                    200 	.globl _g_RG2SAV
+                                    201 	.globl _g_RG1SAV
+                                    202 	.globl _g_RG0SAV
+                                    203 	.globl _g_CNSDFG
+                                    204 	.globl _g_USRTAB
+                                    205 	.globl _g_CLPRIM
+                                    206 	.globl _g_WRPRIM
+                                    207 	.globl _g_RDPRIM
+                                    208 	.globl _Print_Initialize
+                                    209 	.globl _Print_SetMode
+                                    210 	.globl _Print_SetFont
+                                    211 	.globl _Print_SetColor
+                                    212 	.globl _Print_SetColorShade
+                                    213 	.globl _Print_SetTextFont
+                                    214 	.globl _DrawChar_Layout
+                                    215 	.globl _Print_Clear
+                                    216 	.globl _Print_Backspace
+                                    217 	.globl _Print_DrawChar
+                                    218 	.globl _Print_DrawCharX
+                                    219 	.globl _Print_DrawText
+                                    220 	.globl _Print_DrawBin8
+                                    221 	.globl _Print_DrawHex8
+                                    222 	.globl _Print_DrawHex16
+                                    223 	.globl _Print_DrawInt
+                                    224 ;--------------------------------------------------------
+                                    225 ; special function registers
+                                    226 ;--------------------------------------------------------
+                                    227 ;--------------------------------------------------------
+                                    228 ; ram data
+                                    229 ;--------------------------------------------------------
+                                    230 	.area _DATA
+                         0000F3AE   231 _g_LINL40	=	0xf3ae
+                         0000F3AF   232 _g_LINL32	=	0xf3af
+                         0000F3B0   233 _g_LINLEN	=	0xf3b0
+                         0000F3B1   234 _g_CRTCNT	=	0xf3b1
+                         0000F3B2   235 _g_CLMLST	=	0xf3b2
+                         0000F3B3   236 _g_TXTNAM	=	0xf3b3
+                         0000F3B5   237 _g_TXTCOL	=	0xf3b5
+                         0000F3B7   238 _g_TXTCGP	=	0xf3b7
+                         0000F3B9   239 _g_TXTATR	=	0xf3b9
+                         0000F3BB   240 _g_TXTPAT	=	0xf3bb
+                         0000F3BD   241 _g_T32NAM	=	0xf3bd
+                         0000F3BF   242 _g_T32COL	=	0xf3bf
+                         0000F3C1   243 _g_T32CGP	=	0xf3c1
+                         0000F3C3   244 _g_T32ATR	=	0xf3c3
+                         0000F3C5   245 _g_T32PAT	=	0xf3c5
+                         0000F3C7   246 _g_GRPNAM	=	0xf3c7
+                         0000F3C9   247 _g_GRPCOL	=	0xf3c9
+                         0000F3CB   248 _g_GRPCGP	=	0xf3cb
+                         0000F3CD   249 _g_GRPATR	=	0xf3cd
+                         0000F3CF   250 _g_GRPPAT	=	0xf3cf
+                         0000F3D1   251 _g_MLTNAM	=	0xf3d1
+                         0000F3D3   252 _g_MLTCOL	=	0xf3d3
+                         0000F3D5   253 _g_MLTCGP	=	0xf3d5
+                         0000F3D7   254 _g_MLTATR	=	0xf3d7
+                         0000F3D9   255 _g_MLTPAT	=	0xf3d9
+                         0000F3DB   256 _g_CLIKSW	=	0xf3db
+                         0000F3DC   257 _g_CSRY	=	0xf3dc
+                         0000F3DD   258 _g_CSRX	=	0xf3dd
+                         0000F3E9   259 _g_FORCLR	=	0xf3e9
+                         0000F3EA   260 _g_BAKCLR	=	0xf3ea
+                         0000F3EB   261 _g_BDRCLR	=	0xf3eb
+                         0000F3F2   262 _g_ATRBYT	=	0xf3f2
+                         0000F87F   263 _g_FNKSTR	=	0xf87f
+                         0000F92A   264 _g_CLOC	=	0xf92a
+                         0000F92C   265 _g_CMASK	=	0xf92c
+                         0000FB02   266 _g_LOGOPR	=	0xfb02
+                         0000FCB7   267 _g_GRPACX	=	0xfcb7
+                         0000FCB9   268 _g_GRPACY	=	0xfcb9
+                         0000FFFF   269 _g_SLTSL	=	0xffff
+    00000000                        270 _g_PrintData::
+    00000000                        271 	.ds 46
+                                    272 ;--------------------------------------------------------
+                                    273 ; ram data
+                                    274 ;--------------------------------------------------------
+                                    275 	.area _INITIALIZED
+                                    276 ;--------------------------------------------------------
+                                    277 ; absolute external ram data
+                                    278 ;--------------------------------------------------------
+                                    279 	.area _DABS (ABS)
+                                    280 ;--------------------------------------------------------
+                                    281 ; global & static initialisations
+                                    282 ;--------------------------------------------------------
+                                    283 	.area _HOME
+                                    284 	.area _GSINIT
+                                    285 	.area _GSFINAL
+                                    286 	.area _GSINIT
+                                    287 ;--------------------------------------------------------
+                                    288 ; Home
+                                    289 ;--------------------------------------------------------
+                                    290 	.area _HOME
+                                    291 	.area _HOME
+                                    292 ;--------------------------------------------------------
+                                    293 ; code
+                                    294 ;--------------------------------------------------------
+                                    295 	.area _CODE
+                                    296 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:153: bool Print_Initialize()
+                                    297 ;	---------------------------------
+                                    298 ; Function Print_Initialize
+                                    299 ; ---------------------------------
+    00000000                        300 _Print_Initialize::
+                                    301 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:155: Print_SetColor(0xF, 0x0);
+    00000000 2E 00            [ 7]  302 	ld	l, #0x00
+                                    303 ;	spillPairReg hl
+                                    304 ;	spillPairReg hl
+    00000002 3E 0F            [ 7]  305 	ld	a, #0x0f
+    00000004 CDr2Br01         [17]  306 	call	_Print_SetColor
+                                    307 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:223: g_PrintData.CursorX = x;
+    00000007 21r05r00         [10]  308 	ld	hl, #(_g_PrintData + 5)
+    0000000A 36 00            [10]  309 	ld	(hl), #0x00
+                                    310 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:224: g_PrintData.CursorY = y;
+    0000000C 21r06r00         [10]  311 	ld	hl, #(_g_PrintData + 6)
+    0000000F 36 00            [10]  312 	ld	(hl), #0x00
+                                    313 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:480: inline u8 VDP_GetMode() { return g_VDP_Data.Mode; }
+    00000011 3Ar00r00         [13]  314 	ld	a, (#_g_VDP_Data + 0)
+                                    315 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:164: switch (VDP_GetMode()) // Screen mode specific initialization
+    00000014 D6 03            [ 7]  316 	sub	a, #0x03
+    00000016 20 0E            [12]  317 	jr	NZ, 00102$
+                                    318 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:258: inline void Print_SetTabSize(u8 size) { g_PrintData.TabSize = size; }
+    00000018 21r04r00         [10]  319 	ld	hl, #(_g_PrintData + 4)
+    0000001B 36 03            [10]  320 	ld	(hl), #0x03
+                                    321 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:185: g_PrintData.ScreenWidth = 32;
+    0000001D 21 20 00         [10]  322 	ld	hl, #0x0020
+    00000020 22r16r00         [16]  323 	ld	((_g_PrintData + 22)), hl
+                                    324 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:186: break;
+    00000023 C3r28r00         [10]  325 	jp	00103$
+                                    326 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:231: default:
+    00000026                        327 00102$:
+                                    328 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:233: return FALSE;
+    00000026 AF               [ 4]  329 	xor	a, a
+    00000027 C9               [10]  330 	ret
+                                    331 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:234: }
+    00000028                        332 00103$:
+                                    333 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:238: return TRUE;
+    00000028 3E 01            [ 7]  334 	ld	a, #0x01
+                                    335 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:239: }
+    0000002A C9               [10]  336 	ret
+                         0000F380   337 _g_RDPRIM	=	0xf380
+                         0000F385   338 _g_WRPRIM	=	0xf385
+                         0000F38C   339 _g_CLPRIM	=	0xf38c
+                         0000F39A   340 _g_USRTAB	=	0xf39a
+                         0000F3DE   341 _g_CNSDFG	=	0xf3de
+                         0000F3DF   342 _g_RG0SAV	=	0xf3df
+                         0000F3E0   343 _g_RG1SAV	=	0xf3e0
+                         0000F3E1   344 _g_RG2SAV	=	0xf3e1
+                         0000F3E2   345 _g_RG3SAV	=	0xf3e2
+                         0000F3E3   346 _g_RG4SAV	=	0xf3e3
+                         0000F3E4   347 _g_RG5SAV	=	0xf3e4
+                         0000F3E5   348 _g_RG6SAV	=	0xf3e5
+                         0000F3E6   349 _g_RG7SAV	=	0xf3e6
+                         0000F3E7   350 _g_STATFL	=	0xf3e7
+                         0000F3E8   351 _g_TRGFLG	=	0xf3e8
+                         0000F3EC   352 _g_MAXUPD	=	0xf3ec
+                         0000F3EF   353 _g_MINUPD	=	0xf3ef
+                         0000F3F3   354 _g_QUEUES	=	0xf3f3
+                         0000F3F5   355 _g_FRCNEW	=	0xf3f5
+                         0000F3F6   356 _g_SCNCNT	=	0xf3f6
+                         0000F3F7   357 _g_REPCNT	=	0xf3f7
+                         0000F3F8   358 _g_PUTPNT	=	0xf3f8
+                         0000F3FA   359 _g_GETPNT	=	0xf3fa
+                         0000F3FC   360 _g_CS120	=	0xf3fc
+                         0000F401   361 _g_CS240	=	0xf401
+                         0000F406   362 _g_LOW	=	0xf406
+                         0000F408   363 _g_HIGH	=	0xf408
+                         0000F40A   364 _g_HEADER	=	0xf40a
+                         0000F40B   365 _g_ASPCT1	=	0xf40b
+                         0000F40D   366 _g_ASPCT2	=	0xf40d
+                         0000F959   367 _g_QUETAB	=	0xf959
+                         0000F971   368 _g_QUEBAK	=	0xf971
+                         0000F975   369 _g_VOICAQ	=	0xf975
+                         0000F9F5   370 _g_VOICBQ	=	0xf9f5
+                         0000FA75   371 _g_VOICCQ	=	0xfa75
+                         0000FAF5   372 _g_RS2IQ	=	0xfaf5
+                         0000FAF5   373 _g_DPPAGE	=	0xfaf5
+                         0000FAF6   374 _g_ACPAGE	=	0xfaf6
+                         0000FAF7   375 _g_AVCSAV	=	0xfaf7
+                         0000FAF8   376 _g_EXBRSA	=	0xfaf8
+                         0000FAF9   377 _g_CHRCNT	=	0xfaf9
+                         0000FAFA   378 _g_ROMA	=	0xfafa
+                         0000FAFC   379 _g_MODE	=	0xfafc
+                         0000FAFD   380 _g_NORUSE	=	0xfafd
+                         0000FAFE   381 _g_XSAVE	=	0xfafe
+                         0000FB00   382 _g_YSAVE	=	0xfb00
+                         0000FB03   383 _g_RSTMP	=	0xfb03
+                         0000FB03   384 _g_TOCNT	=	0xfb03
+                         0000FB04   385 _g_RSFCB	=	0xfb04
+                         0000FB06   386 _g_RSIQLN	=	0xfb06
+                         0000FB07   387 _g_MEXBIh	=	0xfb07
+                         0000FB0C   388 _g_OLDSTT	=	0xfb0c
+                         0000FB0C   389 _g_OLDINT	=	0xfb0c
+                         0000FB16   390 _g_DEVNUM	=	0xfb16
+                         0000FB17   391 _g_DATCNT	=	0xfb17
+                         0000FB1A   392 _g_ERRORS	=	0xfb1a
+                         0000FB1B   393 _g_FLAGS	=	0xfb1b
+                         0000FB1C   394 _g_ESTBLS	=	0xfb1c
+                         0000FB1D   395 _g_COMMSK	=	0xfb1d
+                         0000FB1E   396 _g_LSTCOM	=	0xfb1e
+                         0000FB1F   397 _g_LSTMOD	=	0xfb1f
+                         0000FB35   398 _g_PRSCNT	=	0xfb35
+                         0000FB36   399 _g_SAVSP	=	0xfb36
+                         0000FB38   400 _g_VOICEN	=	0xfb38
+                         0000FB39   401 _g_SAVVOL	=	0xfb39
+                         0000FB3B   402 _g_MCLLEN	=	0xfb3b
+                         0000FB3C   403 _g_MCLPTR	=	0xfb3c
+                         0000FB3E   404 _g_QUEUEN	=	0xfb3e
+                         0000FB3F   405 _g_MUSICF	=	0xfb3f
+                         0000FB40   406 _g_PLYCNT	=	0xfb40
+                         0000FB41   407 _g_VCBA	=	0xfb41
+                         0000FB66   408 _g_VCBB	=	0xfb66
+                         0000FB8B   409 _g_VCBC	=	0xfb8b
+                         0000FBB0   410 _g_ENSTOP	=	0xfbb0
+                         0000FBB1   411 _g_BASROM	=	0xfbb1
+                         0000FBB2   412 _g_LINTTB	=	0xfbb2
+                         0000FBCA   413 _g_FSTPOS	=	0xfbca
+                         0000FBCC   414 _g_CODSAV	=	0xfbcc
+                         0000FBCD   415 _g_FNKSWI	=	0xfbcd
+                         0000FBCE   416 _g_FNKFLG	=	0xfbce
+                         0000FBD8   417 _g_ONGSBF	=	0xfbd8
+                         0000FBD9   418 _g_CLIKFL	=	0xfbd9
+                         0000FBDA   419 _g_OLDKEY	=	0xfbda
+                         0000FBE5   420 _g_NEWKEY	=	0xfbe5
+                         0000FBF0   421 _g_KEYBUF	=	0xfbf0
+                         0000FC18   422 _g_LINWRK	=	0xfc18
+                         0000FC40   423 _g_PATWRK	=	0xfc40
+                         0000FC48   424 _g_BOTTOM	=	0xfc48
+                         0000FC4A   425 _g_HIMEM	=	0xfc4a
+                         0000FC4C   426 _g_TRPTBL	=	0xfc4c
+                         0000FC9A   427 _g_RTYCNT	=	0xfc9a
+                         0000FC9B   428 _g_INTFLG	=	0xfc9b
+                         0000FC9C   429 _g_PADY	=	0xfc9c
+                         0000FC9D   430 _g_PADX	=	0xfc9d
+                         0000FC9E   431 _g_JIFFY	=	0xfc9e
+                         0000FCA0   432 _g_INTVAL	=	0xfca0
+                         0000FCA2   433 _g_INTCNT	=	0xfca2
+                         0000FCA4   434 _g_LOWLIM	=	0xfca4
+                         0000FCA5   435 _g_WINWID	=	0xfca5
+                         0000FCA6   436 _g_GRPHED	=	0xfca6
+                         0000FCA7   437 _g_ESCCNT	=	0xfca7
+                         0000FCA8   438 _g_INSFLG	=	0xfca8
+                         0000FCA9   439 _g_CSRSW	=	0xfca9
+                         0000FCAA   440 _g_CSTYLE	=	0xfcaa
+                         0000FCAB   441 _g_CAPST	=	0xfcab
+                         0000FCAC   442 _g_KANAST	=	0xfcac
+                         0000FCAD   443 _g_KANAMD	=	0xfcad
+                         0000FCAE   444 _g_FLBMEM	=	0xfcae
+                         0000FCAF   445 _g_SCRMOD	=	0xfcaf
+                         0000FCB0   446 _g_OLDSCR	=	0xfcb0
+                         0000FCB1   447 _g_CASPRV	=	0xfcb1
+                         0000FCB2   448 _g_BRDATR	=	0xfcb2
+                         0000FCB3   449 _g_GXPOS	=	0xfcb3
+                         0000FCB5   450 _g_GYPOS	=	0xfcb5
+                         0000FCBB   451 _g_DRWFLG	=	0xfcbb
+                         0000FCBC   452 _g_DRWSCL	=	0xfcbc
+                         0000FCBD   453 _g_DRWANG	=	0xfcbd
+                         0000FCC1   454 _g_MNROM	=	0xfcc1
+                         0000FCC1   455 _g_EXPTBL	=	0xfcc1
+                         0000FCC5   456 _g_SLTTBL	=	0xfcc5
+                         0000FCC9   457 _g_SLTATR	=	0xfcc9
+                         0000FD09   458 _g_SLTWRK	=	0xfd09
+                         0000FD89   459 _g_PROCNM	=	0xfd89
+                         0000FFE7   460 _g_RG08SAV	=	0xffe7
+                         0000FFE8   461 _g_RG09SAV	=	0xffe8
+                         0000FFE9   462 _g_RG10SAV	=	0xffe9
+                         0000FFEA   463 _g_RG11SAV	=	0xffea
+                         0000FFEB   464 _g_RG12SAV	=	0xffeb
+                         0000FFEC   465 _g_RG13SAV	=	0xffec
+                         0000FFED   466 _g_RG14SAV	=	0xffed
+                         0000FFEE   467 _g_RG15SAV	=	0xffee
+                         0000FFEF   468 _g_RG16SAV	=	0xffef
+                         0000FFF0   469 _g_RG17SAV	=	0xfff0
+                         0000FFF1   470 _g_RG18SAV	=	0xfff1
+                         0000FFF2   471 _g_RG19SAV	=	0xfff2
+                         0000FFF3   472 _g_RG20SAV	=	0xfff3
+                         0000FFF4   473 _g_RG21SAV	=	0xfff4
+                         0000FFF5   474 _g_RG22SAV	=	0xfff5
+                         0000FFF6   475 _g_RG23SAV	=	0xfff6
+                         0000FFF7   476 _g_MINROM	=	0xfff7
+                         0000FFF8   477 _g_SVFFF8	=	0xfff8
+                         0000FFFA   478 _g_RG25SAV	=	0xfffa
+                         0000FFFB   479 _g_RG26SAV	=	0xfffb
+                         0000FFFC   480 _g_RG27SAV	=	0xfffc
+                         0000FFFD   481 _g_SVFFFD	=	0xfffd
+                         00000004   482 _g_CGTABL	=	0x0004
+                         00000006   483 _g_VDP_DR	=	0x0006
+                         00000007   484 _g_VDP_DW	=	0x0007
+                         0000002B   485 _g_BASRVN	=	0x002b
+                         0000002B   486 _g_ROMVersion	=	0x002b
+                         0000002D   487 _g_MSXVER	=	0x002d
+                         0000002E   488 _g_MSXMID	=	0x002e
+                         00000034   489 _g_CHAR_16	=	0x0034
+    0000002B                        490 _g_HexChar:
+    0000002B 30                     491 	.db #0x30	; 48	'0'
+    0000002C 31                     492 	.db #0x31	; 49	'1'
+    0000002D 32                     493 	.db #0x32	; 50	'2'
+    0000002E 33                     494 	.db #0x33	; 51	'3'
+    0000002F 34                     495 	.db #0x34	; 52	'4'
+    00000030 35                     496 	.db #0x35	; 53	'5'
+    00000031 36                     497 	.db #0x36	; 54	'6'
+    00000032 37                     498 	.db #0x37	; 55	'7'
+    00000033 38                     499 	.db #0x38	; 56	'8'
+    00000034 39                     500 	.db #0x39	; 57	'9'
+    00000035 41                     501 	.db #0x41	; 65	'A'
+    00000036 42                     502 	.db #0x42	; 66	'B'
+    00000037 43                     503 	.db #0x43	; 67	'C'
+    00000038 44                     504 	.db #0x44	; 68	'D'
+    00000039 45                     505 	.db #0x45	; 69	'E'
+    0000003A 46                     506 	.db #0x46	; 70	'F'
+                                    507 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:243: void Print_SetMode(u8 mode)
+                                    508 ;	---------------------------------
+                                    509 ; Function Print_SetMode
+                                    510 ; ---------------------------------
+    0000003B                        511 _Print_SetMode::
+    0000003B 4F               [ 4]  512 	ld	c, a
+                                    513 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:245: g_PrintData.SourceMode = mode;
+    0000003C 21r15r00         [10]  514 	ld	hl, #_g_PrintData + 21
+    0000003F ED 67            [18]  515 	rrd
+    00000041 79               [ 4]  516 	ld	a, c
+    00000042 ED 6F            [18]  517 	rld
+                                    518 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:247: switch (g_PrintData.SourceMode)
+    00000044 7E               [ 7]  519 	ld	a, (hl)
+    00000045 E6 0F            [ 7]  520 	and	a, #0x0f
+    00000047 D6 04            [ 7]  521 	sub	a, #0x04
+    00000049 C0               [11]  522 	ret	NZ
+                                    523 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:312: g_PrintData.DrawChar = DrawChar_Layout;
+    0000004A 21r49r03         [10]  524 	ld	hl, #_DrawChar_Layout
+    0000004D 22r13r00         [16]  525 	ld	((_g_PrintData + 19)), hl
+                                    526 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:316: };
+                                    527 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:317: }
+    00000050 C9               [10]  528 	ret
+                                    529 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:322: void Print_SetFont(const u8* font)
+                                    530 ;	---------------------------------
+                                    531 ; Function Print_SetFont
+                                    532 ; ---------------------------------
+    00000051                        533 _Print_SetFont::
+    00000051 DD E5            [15]  534 	push	ix
+    00000053 DD 21 00 00      [14]  535 	ld	ix,#0
+    00000057 DD 39            [15]  536 	add	ix,sp
+    00000059 F5               [11]  537 	push	af
+    0000005A F5               [11]  538 	push	af
+    0000005B EB               [ 4]  539 	ex	de, hl
+                                    540 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:324: if (font == NULL) // Use Bios font (if any)
+    0000005C 7A               [ 4]  541 	ld	a, d
+    0000005D B3               [ 4]  542 	or	a, e
+    0000005E 20 42            [12]  543 	jr	NZ, 00102$
+                                    544 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:325: Print_SetFontEx(8, 8, 6, 8, 1, 255, (const u8*)g_CGTABL + 8);
+    00000060 ED 4B 04 00      [20]  545 	ld	bc, (_g_CGTABL)
+    00000064 21 08 00         [10]  546 	ld	hl, #0x0008
+    00000067 09               [11]  547 	add	hl, bc
+    00000068 EB               [ 4]  548 	ex	de, hl
+                                    549 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:197: g_PrintData.PatternX     = patternX;
+    00000069 21r00r00         [10]  550 	ld	hl, #_g_PrintData
+    0000006C 36 08            [10]  551 	ld	(hl), #0x08
+                                    552 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:198: g_PrintData.PatternY     = patternY;
+    0000006E 01r01r00         [10]  553 	ld	bc, #_g_PrintData + 1
+    00000071 3E 08            [ 7]  554 	ld	a, #0x08
+    00000073 02               [ 7]  555 	ld	(bc), a
+                                    556 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:199: g_PrintData.UnitX        = sizeX;
+    00000074 21r02r00         [10]  557 	ld	hl, #(_g_PrintData + 2)
+    00000077 36 06            [10]  558 	ld	(hl), #0x06
+                                    559 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:200: g_PrintData.UnitY        = sizeY;
+    00000079 21r03r00         [10]  560 	ld	hl, #(_g_PrintData + 3)
+    0000007C 36 08            [10]  561 	ld	(hl), #0x08
+                                    562 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:201: g_PrintData.CharFirst    = firstChr;
+    0000007E 21r10r00         [10]  563 	ld	hl, #(_g_PrintData + 16)
+    00000081 36 01            [10]  564 	ld	(hl), #0x01
+                                    565 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:202: g_PrintData.CharLast     = lastChr;
+    00000083 21r11r00         [10]  566 	ld	hl, #(_g_PrintData + 17)
+    00000086 36 FF            [10]  567 	ld	(hl), #0xff
+                                    568 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:203: g_PrintData.CharCount    = lastChr - firstChr + 1;
+    00000088 21r12r00         [10]  569 	ld	hl, #(_g_PrintData + 18)
+    0000008B 36 FF            [10]  570 	ld	(hl), #0xff
+                                    571 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:204: g_PrintData.FontPatterns = patterns;
+    0000008D ED 53r18r00      [20]  572 	ld	((_g_PrintData + 24)), de
+                                    573 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:205: g_PrintData.FontAddr     = g_PrintData.FontPatterns - (firstChr * g_PrintData.PatternY); // pre-compute address of the virtual index 0 character (used to quick drawing in PutChar_GX functions)
+    00000091 0A               [ 7]  574 	ld	a, (bc)
+    00000092 4F               [ 4]  575 	ld	c, a
+    00000093 06 00            [ 7]  576 	ld	b, #0x00
+    00000095 7B               [ 4]  577 	ld	a, e
+    00000096 91               [ 4]  578 	sub	a, c
+    00000097 4F               [ 4]  579 	ld	c, a
+    00000098 7A               [ 4]  580 	ld	a, d
+    00000099 98               [ 4]  581 	sbc	a, b
+    0000009A 47               [ 4]  582 	ld	b, a
+    0000009B ED 43r1Ar00      [20]  583 	ld	((_g_PrintData + 26)), bc
+                                    584 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:325: Print_SetFontEx(8, 8, 6, 8, 1, 255, (const u8*)g_CGTABL + 8);
+    0000009F C3r26r01         [10]  585 	jp	00106$
+    000000A2                        586 00102$:
+                                    587 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:327: Print_SetFontEx(font[0] >> 4, font[0] & 0x0F, font[1] >> 4, font[1] & 0x0F, font[2], font[3], font+4);
+    000000A2 21 04 00         [10]  588 	ld	hl, #0x0004
+    000000A5 19               [11]  589 	add	hl, de
+    000000A6 4D               [ 4]  590 	ld	c, l
+    000000A7 44               [ 4]  591 	ld	b, h
+    000000A8 6B               [ 4]  592 	ld	l, e
+                                    593 ;	spillPairReg hl
+                                    594 ;	spillPairReg hl
+    000000A9 62               [ 4]  595 	ld	h, d
+                                    596 ;	spillPairReg hl
+                                    597 ;	spillPairReg hl
+    000000AA 23               [ 6]  598 	inc	hl
+    000000AB 23               [ 6]  599 	inc	hl
+    000000AC 23               [ 6]  600 	inc	hl
+    000000AD 7E               [ 7]  601 	ld	a, (hl)
+    000000AE DD 77 FC         [19]  602 	ld	-4 (ix), a
+    000000B1 6B               [ 4]  603 	ld	l, e
+                                    604 ;	spillPairReg hl
+                                    605 ;	spillPairReg hl
+    000000B2 62               [ 4]  606 	ld	h, d
+                                    607 ;	spillPairReg hl
+                                    608 ;	spillPairReg hl
+    000000B3 23               [ 6]  609 	inc	hl
+    000000B4 23               [ 6]  610 	inc	hl
+    000000B5 7E               [ 7]  611 	ld	a, (hl)
+    000000B6 DD 77 FD         [19]  612 	ld	-3 (ix), a
+    000000B9 6B               [ 4]  613 	ld	l, e
+                                    614 ;	spillPairReg hl
+                                    615 ;	spillPairReg hl
+    000000BA 62               [ 4]  616 	ld	h, d
+                                    617 ;	spillPairReg hl
+                                    618 ;	spillPairReg hl
+    000000BB 23               [ 6]  619 	inc	hl
+    000000BC 7E               [ 7]  620 	ld	a, (hl)
+    000000BD F5               [11]  621 	push	af
+    000000BE E6 0F            [ 7]  622 	and	a, #0x0f
+    000000C0 DD 77 FE         [19]  623 	ld	-2 (ix), a
+    000000C3 F1               [10]  624 	pop	af
+    000000C4 07               [ 4]  625 	rlca
+    000000C5 07               [ 4]  626 	rlca
+    000000C6 07               [ 4]  627 	rlca
+    000000C7 07               [ 4]  628 	rlca
+    000000C8 E6 0F            [ 7]  629 	and	a, #0x0f
+    000000CA DD 77 FF         [19]  630 	ld	-1 (ix), a
+    000000CD 1A               [ 7]  631 	ld	a, (de)
+    000000CE F5               [11]  632 	push	af
+    000000CF E6 0F            [ 7]  633 	and	a, #0x0f
+    000000D1 5F               [ 4]  634 	ld	e, a
+    000000D2 F1               [10]  635 	pop	af
+    000000D3 07               [ 4]  636 	rlca
+    000000D4 07               [ 4]  637 	rlca
+    000000D5 07               [ 4]  638 	rlca
+    000000D6 07               [ 4]  639 	rlca
+    000000D7 E6 0F            [ 7]  640 	and	a, #0x0f
+    000000D9 57               [ 4]  641 	ld	d, a
+                                    642 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:197: g_PrintData.PatternX     = patternX;
+    000000DA 21r00r00         [10]  643 	ld	hl, #_g_PrintData
+    000000DD 72               [ 7]  644 	ld	(hl), d
+                                    645 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:198: g_PrintData.PatternY     = patternY;
+    000000DE 21r01r00         [10]  646 	ld	hl, #(_g_PrintData + 1)
+    000000E1 73               [ 7]  647 	ld	(hl), e
+                                    648 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:199: g_PrintData.UnitX        = sizeX;
+    000000E2 21r02r00         [10]  649 	ld	hl, #(_g_PrintData + 2)
+    000000E5 DD 7E FF         [19]  650 	ld	a, -1 (ix)
+    000000E8 77               [ 7]  651 	ld	(hl), a
+                                    652 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:200: g_PrintData.UnitY        = sizeY;
+    000000E9 21r03r00         [10]  653 	ld	hl, #(_g_PrintData + 3)
+    000000EC DD 7E FE         [19]  654 	ld	a, -2 (ix)
+    000000EF 77               [ 7]  655 	ld	(hl), a
+                                    656 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:201: g_PrintData.CharFirst    = firstChr;
+    000000F0 21r10r00         [10]  657 	ld	hl, #(_g_PrintData + 16)
+    000000F3 DD 7E FD         [19]  658 	ld	a, -3 (ix)
+    000000F6 77               [ 7]  659 	ld	(hl), a
+                                    660 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:202: g_PrintData.CharLast     = lastChr;
+    000000F7 21r11r00         [10]  661 	ld	hl, #(_g_PrintData + 17)
+    000000FA DD 7E FC         [19]  662 	ld	a, -4 (ix)
+    000000FD 77               [ 7]  663 	ld	(hl), a
+                                    664 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:203: g_PrintData.CharCount    = lastChr - firstChr + 1;
+    000000FE DD 7E FC         [19]  665 	ld	a, -4 (ix)
+    00000101 DD 96 FD         [19]  666 	sub	a, -3 (ix)
+    00000104 3C               [ 4]  667 	inc	a
+    00000105 32r12r00         [13]  668 	ld	(#(_g_PrintData + 18)),a
+                                    669 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:204: g_PrintData.FontPatterns = patterns;
+    00000108 ED 43r18r00      [20]  670 	ld	((_g_PrintData + 24)), bc
+                                    671 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:205: g_PrintData.FontAddr     = g_PrintData.FontPatterns - (firstChr * g_PrintData.PatternY); // pre-compute address of the virtual index 0 character (used to quick drawing in PutChar_GX functions)
+    0000010C C5               [11]  672 	push	bc
+    0000010D DD 66 FD         [19]  673 	ld	h, -3 (ix)
+                                    674 ;	spillPairReg hl
+                                    675 ;	spillPairReg hl
+    00000110 2E 00            [ 7]  676 	ld	l, #0x00
+    00000112 55               [ 4]  677 	ld	d, l
+    00000113 06 08            [ 7]  678 	ld	b, #0x08
+    00000115                        679 00113$:
+    00000115 29               [11]  680 	add	hl, hl
+    00000116 30 01            [12]  681 	jr	NC, 00114$
+    00000118 19               [11]  682 	add	hl, de
+    00000119                        683 00114$:
+    00000119 10 FA            [13]  684 	djnz	00113$
+    0000011B C1               [10]  685 	pop	bc
+    0000011C 79               [ 4]  686 	ld	a, c
+    0000011D 95               [ 4]  687 	sub	a, l
+    0000011E 4F               [ 4]  688 	ld	c, a
+    0000011F 78               [ 4]  689 	ld	a, b
+    00000120 9C               [ 4]  690 	sbc	a, h
+    00000121 47               [ 4]  691 	ld	b, a
+    00000122 ED 43r1Ar00      [20]  692 	ld	((_g_PrintData + 26)), bc
+                                    693 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:327: Print_SetFontEx(font[0] >> 4, font[0] & 0x0F, font[1] >> 4, font[1] & 0x0F, font[2], font[3], font+4);
+    00000126                        694 00106$:
+                                    695 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:328: }
+    00000126 DD F9            [10]  696 	ld	sp, ix
+    00000128 DD E1            [14]  697 	pop	ix
+    0000012A C9               [10]  698 	ret
+                                    699 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:391: void Print_SetColor(u8 text, u8 bg)
+                                    700 ;	---------------------------------
+                                    701 ; Function Print_SetColor
+                                    702 ; ---------------------------------
+    0000012B                        703 _Print_SetColor::
+                                    704 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:421: u8 col = text << 4 | bg;
+    0000012B 87               [ 4]  705 	add	a, a
+    0000012C 87               [ 4]  706 	add	a, a
+    0000012D 87               [ 4]  707 	add	a, a
+    0000012E 87               [ 4]  708 	add	a, a
+    0000012F B5               [ 4]  709 	or	a, l
+    00000130 4F               [ 4]  710 	ld	c, a
+                                    711 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:480: inline u8 VDP_GetMode() { return g_VDP_Data.Mode; }
+    00000131 3Ar00r00         [13]  712 	ld	a, (#_g_VDP_Data + 0)
+                                    713 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:422: switch (VDP_GetMode())
+    00000134 D6 03            [ 7]  714 	sub	a, #0x03
+    00000136 C0               [11]  715 	ret	NZ
+                                    716 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:447: u16 dst = (u16)g_ScreenColorLow + g_PrintData.PatternOffset * 8;
+    00000137 3Ar1Cr00         [13]  717 	ld	a, (#_g_PrintData + 28)
+    0000013A 6F               [ 4]  718 	ld	l, a
+                                    719 ;	spillPairReg hl
+                                    720 ;	spillPairReg hl
+    0000013B 26 00            [ 7]  721 	ld	h, #0x00
+                                    722 ;	spillPairReg hl
+                                    723 ;	spillPairReg hl
+    0000013D 29               [11]  724 	add	hl, hl
+    0000013E 29               [11]  725 	add	hl, hl
+    0000013F 29               [11]  726 	add	hl, hl
+    00000140 ED 5Br00r00      [20]  727 	ld	de, (_g_ScreenColorLow)
+    00000144 19               [11]  728 	add	hl, de
+                                    729 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:448: VDP_FillVRAM(col, dst, 0, g_PrintData.CharCount * 8);
+    00000145 FD 21r12r00      [14]  730 	ld	iy, #_g_PrintData + 18
+    00000149 FD 5E 00         [19]  731 	ld	e, 0 (iy)
+    0000014C 16 00            [ 7]  732 	ld	d, #0x00
+    0000014E EB               [ 4]  733 	ex	de, hl
+    0000014F 29               [11]  734 	add	hl, hl
+    00000150 29               [11]  735 	add	hl, hl
+    00000151 29               [11]  736 	add	hl, hl
+    00000152 EB               [ 4]  737 	ex	de, hl
+    00000153 E5               [11]  738 	push	hl
+    00000154 C5               [11]  739 	push	bc
+    00000155 FD E5            [15]  740 	push	iy
+    00000157 EB               [ 4]  741 	ex	de, hl
+    00000158 E5               [11]  742 	push	hl
+    00000159 79               [ 4]  743 	ld	a, c
+    0000015A CDr00r00         [17]  744 	call	_VDP_FillVRAM_16K
+    0000015D FD E1            [14]  745 	pop	iy
+    0000015F C1               [10]  746 	pop	bc
+    00000160 E1               [10]  747 	pop	hl
+                                    748 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:449: dst += 256 * 8;
+    00000161 11 00 08         [10]  749 	ld	de, #0x0800
+    00000164 19               [11]  750 	add	hl, de
+                                    751 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:450: VDP_FillVRAM(col, dst, 0, g_PrintData.CharCount * 8);
+    00000165 FD 5E 00         [19]  752 	ld	e, 0 (iy)
+    00000168 16 00            [ 7]  753 	ld	d, #0x00
+    0000016A EB               [ 4]  754 	ex	de, hl
+    0000016B 29               [11]  755 	add	hl, hl
+    0000016C 29               [11]  756 	add	hl, hl
+    0000016D 29               [11]  757 	add	hl, hl
+    0000016E EB               [ 4]  758 	ex	de, hl
+    0000016F E5               [11]  759 	push	hl
+    00000170 C5               [11]  760 	push	bc
+    00000171 FD E5            [15]  761 	push	iy
+    00000173 EB               [ 4]  762 	ex	de, hl
+    00000174 E5               [11]  763 	push	hl
+    00000175 79               [ 4]  764 	ld	a, c
+    00000176 CDr00r00         [17]  765 	call	_VDP_FillVRAM_16K
+    00000179 FD E1            [14]  766 	pop	iy
+    0000017B C1               [10]  767 	pop	bc
+    0000017C E1               [10]  768 	pop	hl
+                                    769 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:451: dst += 256 * 8;
+    0000017D 5D               [ 4]  770 	ld	e, l
+    0000017E 7C               [ 4]  771 	ld	a, h
+    0000017F C6 08            [ 7]  772 	add	a, #0x08
+    00000181 57               [ 4]  773 	ld	d, a
+                                    774 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:452: VDP_FillVRAM(col, dst, 0, g_PrintData.CharCount * 8);
+    00000182 FD 6E 00         [19]  775 	ld	l, 0 (iy)
+                                    776 ;	spillPairReg hl
+    00000185 26 00            [ 7]  777 	ld	h, #0x00
+                                    778 ;	spillPairReg hl
+                                    779 ;	spillPairReg hl
+    00000187 29               [11]  780 	add	hl, hl
+    00000188 29               [11]  781 	add	hl, hl
+    00000189 29               [11]  782 	add	hl, hl
+    0000018A E5               [11]  783 	push	hl
+    0000018B 79               [ 4]  784 	ld	a, c
+    0000018C CDr00r00         [17]  785 	call	_VDP_FillVRAM_16K
+                                    786 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:456: };
+                                    787 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:459: }
+    0000018F C9               [10]  788 	ret
+                                    789 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:464: void Print_SetColorShade(const u8* shade)
+                                    790 ;	---------------------------------
+                                    791 ; Function Print_SetColorShade
+                                    792 ; ---------------------------------
+    00000190                        793 _Print_SetColorShade::
+    00000190 DD E5            [15]  794 	push	ix
+    00000192 DD 21 00 00      [14]  795 	ld	ix,#0
+    00000196 DD 39            [15]  796 	add	ix,sp
+    00000198 F5               [11]  797 	push	af
+    00000199 3B               [ 6]  798 	dec	sp
+    0000019A E3               [19]  799 	ex	(sp), hl
+                                    800 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:480: inline u8 VDP_GetMode() { return g_VDP_Data.Mode; }
+    0000019B 3Ar00r00         [13]  801 	ld	a, (#_g_VDP_Data + 0)
+                                    802 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:482: switch (VDP_GetMode())
+    0000019E D6 03            [ 7]  803 	sub	a, #0x03
+    000001A0 20 62            [12]  804 	jr	NZ, 00113$
+                                    805 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:492: u16 dst = (u16)g_ScreenColorLow + g_PrintData.PatternOffset * 8;
+    000001A2 3Ar1Cr00         [13]  806 	ld	a, (#_g_PrintData + 28)
+    000001A5 6F               [ 4]  807 	ld	l, a
+                                    808 ;	spillPairReg hl
+                                    809 ;	spillPairReg hl
+    000001A6 26 00            [ 7]  810 	ld	h, #0x00
+                                    811 ;	spillPairReg hl
+                                    812 ;	spillPairReg hl
+    000001A8 29               [11]  813 	add	hl, hl
+    000001A9 29               [11]  814 	add	hl, hl
+    000001AA 29               [11]  815 	add	hl, hl
+    000001AB ED 4Br00r00      [20]  816 	ld	bc, (_g_ScreenColorLow)
+    000001AF 09               [11]  817 	add	hl, bc
+    000001B0 4D               [ 4]  818 	ld	c, l
+    000001B1 44               [ 4]  819 	ld	b, h
+                                    820 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:493: for (u8 i = 0; i < g_PrintData.CharCount; ++i)
+    000001B2 DD 36 FF 00      [19]  821 	ld	-1 (ix), #0x00
+    000001B6                        822 00111$:
+    000001B6 21r12r00         [10]  823 	ld	hl, #_g_PrintData + 18
+    000001B9 DD 7E FF         [19]  824 	ld	a,-1 (ix)
+    000001BC 96               [ 7]  825 	sub	a,(hl)
+    000001BD 30 45            [12]  826 	jr	NC, 00113$
+                                    827 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:495: VDP_WriteVRAM(shade, dst,           0, 8);
+    000001BF C5               [11]  828 	push	bc
+    000001C0 21 08 00         [10]  829 	ld	hl, #0x0008
+    000001C3 E5               [11]  830 	push	hl
+    000001C4 59               [ 4]  831 	ld	e, c
+    000001C5 50               [ 4]  832 	ld	d, b
+    000001C6 DD 6E FD         [19]  833 	ld	l, -3 (ix)
+                                    834 ;	spillPairReg hl
+                                    835 ;	spillPairReg hl
+    000001C9 DD 66 FE         [19]  836 	ld	h, -2 (ix)
+                                    837 ;	spillPairReg hl
+                                    838 ;	spillPairReg hl
+    000001CC CDr00r00         [17]  839 	call	_VDP_WriteVRAM_16K
+    000001CF C1               [10]  840 	pop	bc
+                                    841 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:496: VDP_WriteVRAM(shade, dst + 256 * 8, 0, 8);
+    000001D0 21 00 08         [10]  842 	ld	hl, #0x0800
+    000001D3 09               [11]  843 	add	hl, bc
+    000001D4 C5               [11]  844 	push	bc
+    000001D5 EB               [ 4]  845 	ex	de, hl
+    000001D6 21 08 00         [10]  846 	ld	hl, #0x0008
+    000001D9 E5               [11]  847 	push	hl
+    000001DA DD 6E FD         [19]  848 	ld	l, -3 (ix)
+                                    849 ;	spillPairReg hl
+                                    850 ;	spillPairReg hl
+    000001DD DD 66 FE         [19]  851 	ld	h, -2 (ix)
+                                    852 ;	spillPairReg hl
+                                    853 ;	spillPairReg hl
+    000001E0 CDr00r00         [17]  854 	call	_VDP_WriteVRAM_16K
+    000001E3 C1               [10]  855 	pop	bc
+                                    856 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:497: VDP_WriteVRAM(shade, dst + 512 * 8, 0, 8);
+    000001E4 21 00 10         [10]  857 	ld	hl, #0x1000
+    000001E7 09               [11]  858 	add	hl, bc
+    000001E8 C5               [11]  859 	push	bc
+    000001E9 EB               [ 4]  860 	ex	de, hl
+    000001EA 21 08 00         [10]  861 	ld	hl, #0x0008
+    000001ED E5               [11]  862 	push	hl
+    000001EE DD 6E FD         [19]  863 	ld	l, -3 (ix)
+                                    864 ;	spillPairReg hl
+                                    865 ;	spillPairReg hl
+    000001F1 DD 66 FE         [19]  866 	ld	h, -2 (ix)
+                                    867 ;	spillPairReg hl
+                                    868 ;	spillPairReg hl
+    000001F4 CDr00r00         [17]  869 	call	_VDP_WriteVRAM_16K
+    000001F7 C1               [10]  870 	pop	bc
+                                    871 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:498: dst += 8;
+    000001F8 21 08 00         [10]  872 	ld	hl, #0x0008
+    000001FB 09               [11]  873 	add	hl, bc
+    000001FC 4D               [ 4]  874 	ld	c, l
+    000001FD 44               [ 4]  875 	ld	b, h
+                                    876 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:493: for (u8 i = 0; i < g_PrintData.CharCount; ++i)
+    000001FE DD 34 FF         [23]  877 	inc	-1 (ix)
+    00000201 C3rB6r01         [10]  878 	jp	00111$
+                                    879 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:503: };
+    00000204                        880 00113$:
+                                    881 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:506: }
+    00000204 DD F9            [10]  882 	ld	sp, ix
+    00000206 DD E1            [14]  883 	pop	ix
+    00000208 C9               [10]  884 	ret
+                                    885 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:874: void Print_SetTextFont(const u8* fontData, u8 offset)
+                                    886 ;	---------------------------------
+                                    887 ; Function Print_SetTextFont
+                                    888 ; ---------------------------------
+    00000209                        889 _Print_SetTextFont::
+    00000209 DD E5            [15]  890 	push	ix
+    0000020B DD 21 00 00      [14]  891 	ld	ix,#0
+    0000020F DD 39            [15]  892 	add	ix,sp
+    00000211 F5               [11]  893 	push	af
+    00000212 F5               [11]  894 	push	af
+    00000213 EB               [ 4]  895 	ex	de, hl
+                                    896 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:876: g_PrintData.PatternOffset = offset;
+    00000214 21r1Cr00         [10]  897 	ld	hl, #(_g_PrintData + 28)
+    00000217 DD 7E 04         [19]  898 	ld	a, 4 (ix)
+    0000021A 77               [ 7]  899 	ld	(hl), a
+                                    900 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:879: if (fontData == NULL) // Use Bios font (if any)
+    0000021B 7A               [ 4]  901 	ld	a, d
+    0000021C B3               [ 4]  902 	or	a, e
+    0000021D 20 4A            [12]  903 	jr	NZ, 00102$
+                                    904 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:880: Print_SetFontEx(8, 8, 1, 1, 1, 255, (const u8*)g_CGTABL + 8); // @todo Should be [1, 255] to include all characters
+    0000021F ED 4B 04 00      [20]  905 	ld	bc, (_g_CGTABL)
+    00000223 21 08 00         [10]  906 	ld	hl, #0x0008
+    00000226 09               [11]  907 	add	hl, bc
+    00000227 EB               [ 4]  908 	ex	de, hl
+                                    909 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:197: g_PrintData.PatternX     = patternX;
+    00000228 21r00r00         [10]  910 	ld	hl, #_g_PrintData
+    0000022B 36 08            [10]  911 	ld	(hl), #0x08
+                                    912 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:198: g_PrintData.PatternY     = patternY;
+    0000022D 21r01r00         [10]  913 	ld	hl, #(_g_PrintData + 1)
+    00000230 36 08            [10]  914 	ld	(hl), #0x08
+                                    915 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:199: g_PrintData.UnitX        = sizeX;
+    00000232 21r02r00         [10]  916 	ld	hl, #(_g_PrintData + 2)
+    00000235 36 01            [10]  917 	ld	(hl), #0x01
+                                    918 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:200: g_PrintData.UnitY        = sizeY;
+    00000237 21r03r00         [10]  919 	ld	hl, #(_g_PrintData + 3)
+    0000023A 36 01            [10]  920 	ld	(hl), #0x01
+                                    921 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:201: g_PrintData.CharFirst    = firstChr;
+    0000023C 21r10r00         [10]  922 	ld	hl, #(_g_PrintData + 16)
+    0000023F 36 01            [10]  923 	ld	(hl), #0x01
+                                    924 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:202: g_PrintData.CharLast     = lastChr;
+    00000241 21r11r00         [10]  925 	ld	hl, #(_g_PrintData + 17)
+    00000244 36 FF            [10]  926 	ld	(hl), #0xff
+                                    927 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:203: g_PrintData.CharCount    = lastChr - firstChr + 1;
+    00000246 21r12r00         [10]  928 	ld	hl, #_g_PrintData + 18
+    00000249 E3               [19]  929 	ex	(sp), hl
+    0000024A E1               [10]  930 	pop	hl
+    0000024B E5               [11]  931 	push	hl
+    0000024C 36 FF            [10]  932 	ld	(hl), #0xff
+                                    933 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:204: g_PrintData.FontPatterns = patterns;
+    0000024E 01r18r00         [10]  934 	ld	bc, #_g_PrintData + 24
+    00000251 69               [ 4]  935 	ld	l, c
+    00000252 60               [ 4]  936 	ld	h, b
+    00000253 73               [ 7]  937 	ld	(hl), e
+    00000254 23               [ 6]  938 	inc	hl
+    00000255 72               [ 7]  939 	ld	(hl), d
+                                    940 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:205: g_PrintData.FontAddr     = g_PrintData.FontPatterns - (firstChr * g_PrintData.PatternY); // pre-compute address of the virtual index 0 character (used to quick drawing in PutChar_GX functions)
+    00000256 3Ar01r00         [13]  941 	ld	a, (#(_g_PrintData + 1) + 0)
+    00000259 6F               [ 4]  942 	ld	l, a
+                                    943 ;	spillPairReg hl
+                                    944 ;	spillPairReg hl
+    0000025A 26 00            [ 7]  945 	ld	h, #0x00
+                                    946 ;	spillPairReg hl
+                                    947 ;	spillPairReg hl
+    0000025C 7B               [ 4]  948 	ld	a, e
+    0000025D 95               [ 4]  949 	sub	a, l
+    0000025E 5F               [ 4]  950 	ld	e, a
+    0000025F 7A               [ 4]  951 	ld	a, d
+    00000260 9C               [ 4]  952 	sbc	a, h
+    00000261 57               [ 4]  953 	ld	d, a
+    00000262 ED 53r1Ar00      [20]  954 	ld	((_g_PrintData + 26)), de
+                                    955 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:880: Print_SetFontEx(8, 8, 1, 1, 1, 255, (const u8*)g_CGTABL + 8); // @todo Should be [1, 255] to include all characters
+    00000266 C3rD0r02         [10]  956 	jp	00103$
+    00000269                        957 00102$:
+                                    958 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:882: Print_SetFontEx(8, 8, 1, 1, fontData[2], fontData[3], fontData+4);
+    00000269 21 04 00         [10]  959 	ld	hl, #0x0004
+    0000026C 19               [11]  960 	add	hl, de
+    0000026D DD 75 FE         [19]  961 	ld	-2 (ix), l
+    00000270 DD 74 FF         [19]  962 	ld	-1 (ix), h
+    00000273 6B               [ 4]  963 	ld	l, e
+                                    964 ;	spillPairReg hl
+                                    965 ;	spillPairReg hl
+    00000274 62               [ 4]  966 	ld	h, d
+                                    967 ;	spillPairReg hl
+                                    968 ;	spillPairReg hl
+    00000275 23               [ 6]  969 	inc	hl
+    00000276 23               [ 6]  970 	inc	hl
+    00000277 23               [ 6]  971 	inc	hl
+    00000278 4E               [ 7]  972 	ld	c, (hl)
+    00000279 13               [ 6]  973 	inc	de
+    0000027A 13               [ 6]  974 	inc	de
+    0000027B 1A               [ 7]  975 	ld	a, (de)
+    0000027C 5F               [ 4]  976 	ld	e, a
+                                    977 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:197: g_PrintData.PatternX     = patternX;
+    0000027D 21r00r00         [10]  978 	ld	hl, #_g_PrintData
+    00000280 36 08            [10]  979 	ld	(hl), #0x08
+                                    980 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:198: g_PrintData.PatternY     = patternY;
+    00000282 21r01r00         [10]  981 	ld	hl, #(_g_PrintData + 1)
+    00000285 36 08            [10]  982 	ld	(hl), #0x08
+                                    983 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:199: g_PrintData.UnitX        = sizeX;
+    00000287 21r02r00         [10]  984 	ld	hl, #(_g_PrintData + 2)
+    0000028A 36 01            [10]  985 	ld	(hl), #0x01
+                                    986 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:200: g_PrintData.UnitY        = sizeY;
+    0000028C 21r03r00         [10]  987 	ld	hl, #(_g_PrintData + 3)
+    0000028F 36 01            [10]  988 	ld	(hl), #0x01
+                                    989 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:201: g_PrintData.CharFirst    = firstChr;
+    00000291 21r10r00         [10]  990 	ld	hl, #(_g_PrintData + 16)
+    00000294 73               [ 7]  991 	ld	(hl), e
+                                    992 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:202: g_PrintData.CharLast     = lastChr;
+    00000295 21r11r00         [10]  993 	ld	hl, #(_g_PrintData + 17)
+    00000298 71               [ 7]  994 	ld	(hl), c
+                                    995 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:203: g_PrintData.CharCount    = lastChr - firstChr + 1;
+    00000299 21r12r00         [10]  996 	ld	hl, #_g_PrintData + 18
+    0000029C E3               [19]  997 	ex	(sp), hl
+    0000029D 79               [ 4]  998 	ld	a, c
+    0000029E 93               [ 4]  999 	sub	a, e
+    0000029F 3C               [ 4] 1000 	inc	a
+    000002A0 E1               [10] 1001 	pop	hl
+    000002A1 E5               [11] 1002 	push	hl
+    000002A2 77               [ 7] 1003 	ld	(hl), a
+                                   1004 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:204: g_PrintData.FontPatterns = patterns;
+    000002A3 01r18r00         [10] 1005 	ld	bc, #_g_PrintData + 24
+    000002A6 69               [ 4] 1006 	ld	l, c
+    000002A7 60               [ 4] 1007 	ld	h, b
+    000002A8 DD 7E FE         [19] 1008 	ld	a, -2 (ix)
+    000002AB 77               [ 7] 1009 	ld	(hl), a
+    000002AC 23               [ 6] 1010 	inc	hl
+    000002AD DD 7E FF         [19] 1011 	ld	a, -1 (ix)
+    000002B0 77               [ 7] 1012 	ld	(hl), a
+                                   1013 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:205: g_PrintData.FontAddr     = g_PrintData.FontPatterns - (firstChr * g_PrintData.PatternY); // pre-compute address of the virtual index 0 character (used to quick drawing in PutChar_GX functions)
+    000002B1 3Ar01r00         [13] 1014 	ld	a, (#(_g_PrintData + 1) + 0)
+    000002B4 C5               [11] 1015 	push	bc
+    000002B5 67               [ 4] 1016 	ld	h, a
+                                   1017 ;	spillPairReg hl
+                                   1018 ;	spillPairReg hl
+    000002B6 2E 00            [ 7] 1019 	ld	l, #0x00
+    000002B8 55               [ 4] 1020 	ld	d, l
+    000002B9 06 08            [ 7] 1021 	ld	b, #0x08
+    000002BB                       1022 00121$:
+    000002BB 29               [11] 1023 	add	hl, hl
+    000002BC 30 01            [12] 1024 	jr	NC, 00122$
+    000002BE 19               [11] 1025 	add	hl, de
+    000002BF                       1026 00122$:
+    000002BF 10 FA            [13] 1027 	djnz	00121$
+    000002C1 C1               [10] 1028 	pop	bc
+    000002C2 DD 7E FE         [19] 1029 	ld	a, -2 (ix)
+    000002C5 95               [ 4] 1030 	sub	a, l
+    000002C6 5F               [ 4] 1031 	ld	e, a
+    000002C7 DD 7E FF         [19] 1032 	ld	a, -1 (ix)
+    000002CA 9C               [ 4] 1033 	sbc	a, h
+    000002CB 57               [ 4] 1034 	ld	d, a
+    000002CC ED 53r1Ar00      [20] 1035 	ld	((_g_PrintData + 26)), de
+                                   1036 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:882: Print_SetFontEx(8, 8, 1, 1, fontData[2], fontData[3], fontData+4);
+    000002D0                       1037 00103$:
+                                   1038 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:883: Print_Initialize();
+    000002D0 C5               [11] 1039 	push	bc
+    000002D1 CDr00r00         [17] 1040 	call	_Print_Initialize
+    000002D4 3E 04            [ 7] 1041 	ld	a, #0x04
+    000002D6 CDr3Br00         [17] 1042 	call	_Print_SetMode
+    000002D9 C1               [10] 1043 	pop	bc
+                                   1044 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:887: const u8* src = g_PrintData.FontPatterns;
+    000002DA 0A               [ 7] 1045 	ld	a, (bc)
+    000002DB DD 77 FE         [19] 1046 	ld	-2 (ix), a
+    000002DE 03               [ 6] 1047 	inc	bc
+    000002DF 0A               [ 7] 1048 	ld	a, (bc)
+    000002E0 DD 77 FF         [19] 1049 	ld	-1 (ix), a
+                                   1050 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:888: u16 dst = (u16)g_ScreenPatternLow + (offset * 8);
+    000002E3 DD 6E 04         [19] 1051 	ld	l, 4 (ix)
+                                   1052 ;	spillPairReg hl
+                                   1053 ;	spillPairReg hl
+    000002E6 26 00            [ 7] 1054 	ld	h, #0x00
+                                   1055 ;	spillPairReg hl
+                                   1056 ;	spillPairReg hl
+    000002E8 29               [11] 1057 	add	hl, hl
+    000002E9 29               [11] 1058 	add	hl, hl
+    000002EA 29               [11] 1059 	add	hl, hl
+    000002EB ED 4Br00r00      [20] 1060 	ld	bc, (_g_ScreenPatternLow)
+    000002EF 09               [11] 1061 	add	hl, bc
+    000002F0 4D               [ 4] 1062 	ld	c, l
+    000002F1 44               [ 4] 1063 	ld	b, h
+                                   1064 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:894: VDP_WriteVRAM(src, dst, 0, g_PrintData.CharCount * 8);
+    000002F2 E1               [10] 1065 	pop	hl
+    000002F3 E5               [11] 1066 	push	hl
+    000002F4 6E               [ 7] 1067 	ld	l, (hl)
+                                   1068 ;	spillPairReg hl
+    000002F5 26 00            [ 7] 1069 	ld	h, #0x00
+                                   1070 ;	spillPairReg hl
+                                   1071 ;	spillPairReg hl
+    000002F7 29               [11] 1072 	add	hl, hl
+    000002F8 29               [11] 1073 	add	hl, hl
+    000002F9 29               [11] 1074 	add	hl, hl
+    000002FA C5               [11] 1075 	push	bc
+    000002FB E5               [11] 1076 	push	hl
+    000002FC 59               [ 4] 1077 	ld	e, c
+    000002FD 50               [ 4] 1078 	ld	d, b
+    000002FE DD 6E FE         [19] 1079 	ld	l, -2 (ix)
+                                   1080 ;	spillPairReg hl
+                                   1081 ;	spillPairReg hl
+    00000301 DD 66 FF         [19] 1082 	ld	h, -1 (ix)
+                                   1083 ;	spillPairReg hl
+                                   1084 ;	spillPairReg hl
+    00000304 CDr00r00         [17] 1085 	call	_VDP_WriteVRAM_16K
+    00000307 C1               [10] 1086 	pop	bc
+                                   1087 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:480: inline u8 VDP_GetMode() { return g_VDP_Data.Mode; }
+    00000308 3Ar00r00         [13] 1088 	ld	a, (#_g_VDP_Data + 0)
+                                   1089 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:896: switch (VDP_GetMode())
+    0000030B D6 03            [ 7] 1090 	sub	a, #0x03
+    0000030D 20 33            [12] 1091 	jr	NZ, 00109$
+                                   1092 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:905: dst += 256 * 8;
+    0000030F 21 00 08         [10] 1093 	ld	hl, #0x0800
+    00000312 09               [11] 1094 	add	hl, bc
+    00000313 4D               [ 4] 1095 	ld	c, l
+    00000314 44               [ 4] 1096 	ld	b, h
+                                   1097 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:911: VDP_WriteVRAM(src, dst, 0, g_PrintData.CharCount * 8);
+    00000315 E1               [10] 1098 	pop	hl
+    00000316 E5               [11] 1099 	push	hl
+    00000317 6E               [ 7] 1100 	ld	l, (hl)
+                                   1101 ;	spillPairReg hl
+    00000318 26 00            [ 7] 1102 	ld	h, #0x00
+                                   1103 ;	spillPairReg hl
+                                   1104 ;	spillPairReg hl
+    0000031A 29               [11] 1105 	add	hl, hl
+    0000031B 29               [11] 1106 	add	hl, hl
+    0000031C 29               [11] 1107 	add	hl, hl
+    0000031D C5               [11] 1108 	push	bc
+    0000031E E5               [11] 1109 	push	hl
+    0000031F 59               [ 4] 1110 	ld	e, c
+    00000320 50               [ 4] 1111 	ld	d, b
+    00000321 DD 6E FE         [19] 1112 	ld	l, -2 (ix)
+                                   1113 ;	spillPairReg hl
+                                   1114 ;	spillPairReg hl
+    00000324 DD 66 FF         [19] 1115 	ld	h, -1 (ix)
+                                   1116 ;	spillPairReg hl
+                                   1117 ;	spillPairReg hl
+    00000327 CDr00r00         [17] 1118 	call	_VDP_WriteVRAM_16K
+    0000032A C1               [10] 1119 	pop	bc
+                                   1120 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:912: dst += 256 * 8;
+    0000032B 21 00 08         [10] 1121 	ld	hl, #0x0800
+    0000032E 09               [11] 1122 	add	hl, bc
+    0000032F EB               [ 4] 1123 	ex	de, hl
+                                   1124 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:918: VDP_WriteVRAM(src, dst, 0, g_PrintData.CharCount * 8);
+    00000330 E1               [10] 1125 	pop	hl
+    00000331 E5               [11] 1126 	push	hl
+    00000332 6E               [ 7] 1127 	ld	l, (hl)
+                                   1128 ;	spillPairReg hl
+    00000333 26 00            [ 7] 1129 	ld	h, #0x00
+                                   1130 ;	spillPairReg hl
+                                   1131 ;	spillPairReg hl
+    00000335 29               [11] 1132 	add	hl, hl
+    00000336 29               [11] 1133 	add	hl, hl
+    00000337 29               [11] 1134 	add	hl, hl
+    00000338 E5               [11] 1135 	push	hl
+    00000339 DD 6E FE         [19] 1136 	ld	l, -2 (ix)
+                                   1137 ;	spillPairReg hl
+                                   1138 ;	spillPairReg hl
+    0000033C DD 66 FF         [19] 1139 	ld	h, -1 (ix)
+                                   1140 ;	spillPairReg hl
+                                   1141 ;	spillPairReg hl
+    0000033F CDr00r00         [17] 1142 	call	_VDP_WriteVRAM_16K
+                                   1143 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:921: };
+    00000342                       1144 00109$:
+                                   1145 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:922: }
+    00000342 DD F9            [10] 1146 	ld	sp, ix
+    00000344 DD E1            [14] 1147 	pop	ix
+    00000346 E1               [10] 1148 	pop	hl
+    00000347 33               [ 6] 1149 	inc	sp
+    00000348 E9               [ 4] 1150 	jp	(hl)
+                                   1151 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:927: void DrawChar_Layout(u8 chr)
+                                   1152 ;	---------------------------------
+                                   1153 ; Function DrawChar_Layout
+                                   1154 ; ---------------------------------
+    00000349                       1155 _DrawChar_Layout::
+    00000349 DD E5            [15] 1156 	push	ix
+    0000034B DD 21 00 00      [14] 1157 	ld	ix,#0
+    0000034F DD 39            [15] 1158 	add	ix,sp
+    00000351 3B               [ 6] 1159 	dec	sp
+    00000352 4F               [ 4] 1160 	ld	c, a
+                                   1161 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:932: u8 shape = chr - g_PrintData.CharFirst + g_PrintData.PatternOffset;
+    00000353 21r10r00         [10] 1162 	ld	hl, #_g_PrintData + 16
+    00000356 46               [ 7] 1163 	ld	b, (hl)
+    00000357 79               [ 4] 1164 	ld	a, c
+    00000358 90               [ 4] 1165 	sub	a, b
+    00000359 21r1Cr00         [10] 1166 	ld	hl, #_g_PrintData + 28
+    0000035C 4E               [ 7] 1167 	ld	c, (hl)
+    0000035D 81               [ 4] 1168 	add	a, c
+    0000035E DD 77 FF         [19] 1169 	ld	-1 (ix), a
+                                   1170 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:933: u16 dst = (u16)g_ScreenLayoutLow + (g_PrintData.CursorY * g_PrintData.ScreenWidth) + g_PrintData.CursorX;
+    00000361 21r06r00         [10] 1171 	ld	hl, #_g_PrintData + 6
+    00000364 4E               [ 7] 1172 	ld	c, (hl)
+    00000365 ED 5Br16r00      [20] 1173 	ld	de, (#_g_PrintData + 22)
+    00000369 26 00            [ 7] 1174 	ld	h, #0x00
+                                   1175 ;	spillPairReg hl
+                                   1176 ;	spillPairReg hl
+    0000036B 69               [ 4] 1177 	ld	l, c
+                                   1178 ;	spillPairReg hl
+                                   1179 ;	spillPairReg hl
+    0000036C CDr00r00         [17] 1180 	call	__mulint
+    0000036F FD 2Ar00r00      [20] 1181 	ld	iy, (_g_ScreenLayoutLow)
+    00000373 FD 19            [15] 1182 	add	iy, de
+    00000375 3Ar05r00         [13] 1183 	ld	a, (#_g_PrintData + 5)
+    00000378 6F               [ 4] 1184 	ld	l, a
+                                   1185 ;	spillPairReg hl
+                                   1186 ;	spillPairReg hl
+    00000379 26 00            [ 7] 1187 	ld	h, #0x00
+                                   1188 ;	spillPairReg hl
+                                   1189 ;	spillPairReg hl
+    0000037B FD E5            [15] 1190 	push	iy
+    0000037D C1               [10] 1191 	pop	bc
+    0000037E 09               [11] 1192 	add	hl, bc
+    0000037F EB               [ 4] 1193 	ex	de, hl
+                                   1194 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:934: VDP_Poke(shape, dst, g_ScreenLayoutHigh);
+    00000380 DD 7E FF         [19] 1195 	ld	a, -1 (ix)
+    00000383 CDr00r00         [17] 1196 	call	_VDP_Poke_16K
+                                   1197 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:935: }
+    00000386 33               [ 6] 1198 	inc	sp
+    00000387 DD E1            [14] 1199 	pop	ix
+    00000389 C9               [10] 1200 	ret
+                                   1201 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1100: void Print_Clear()
+                                   1202 ;	---------------------------------
+                                   1203 ; Function Print_Clear
+                                   1204 ; ---------------------------------
+    0000038A                       1205 _Print_Clear::
+                                   1206 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1113: VDP_FillVRAM(0, g_ScreenLayoutLow, g_ScreenLayoutHigh, 24 * g_PrintData.ScreenWidth);
+    0000038A 2Ar16r00         [16] 1207 	ld	hl, (#(_g_PrintData + 22) + 0)
+    0000038D 4D               [ 4] 1208 	ld	c, l
+    0000038E 44               [ 4] 1209 	ld	b, h
+    0000038F 29               [11] 1210 	add	hl, hl
+    00000390 09               [11] 1211 	add	hl, bc
+    00000391 29               [11] 1212 	add	hl, hl
+    00000392 29               [11] 1213 	add	hl, hl
+    00000393 29               [11] 1214 	add	hl, hl
+    00000394 E5               [11] 1215 	push	hl
+    00000395 ED 5Br00r00      [20] 1216 	ld	de, (_g_ScreenLayoutLow)
+    00000399 AF               [ 4] 1217 	xor	a, a
+    0000039A CDr00r00         [17] 1218 	call	_VDP_FillVRAM_16K
+                                   1219 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1116: }
+    0000039D C9               [10] 1220 	ret
+                                   1221 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1121: void Print_Backspace(u8 num)
+                                   1222 ;	---------------------------------
+                                   1223 ; Function Print_Backspace
+                                   1224 ; ---------------------------------
+    0000039E                       1225 _Print_Backspace::
+    0000039E DD E5            [15] 1226 	push	ix
+    000003A0 DD 21 00 00      [14] 1227 	ld	ix,#0
+    000003A4 DD 39            [15] 1228 	add	ix,sp
+    000003A6 3B               [ 6] 1229 	dec	sp
+    000003A7 DD 77 FF         [19] 1230 	ld	-1 (ix), a
+                                   1231 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1142: u16 dst = g_ScreenLayoutLow + (g_PrintData.CursorY * g_PrintData.ScreenWidth) + g_PrintData.CursorX - num;
+    000003AA 21r06r00         [10] 1232 	ld	hl, #_g_PrintData + 6
+    000003AD 4E               [ 7] 1233 	ld	c, (hl)
+    000003AE ED 5Br16r00      [20] 1234 	ld	de, (#_g_PrintData + 22)
+    000003B2 26 00            [ 7] 1235 	ld	h, #0x00
+                                   1236 ;	spillPairReg hl
+                                   1237 ;	spillPairReg hl
+    000003B4 69               [ 4] 1238 	ld	l, c
+                                   1239 ;	spillPairReg hl
+                                   1240 ;	spillPairReg hl
+    000003B5 CDr00r00         [17] 1241 	call	__mulint
+    000003B8 2Ar00r00         [16] 1242 	ld	hl, (_g_ScreenLayoutLow)
+    000003BB 19               [11] 1243 	add	hl, de
+    000003BC 01r05r00         [10] 1244 	ld	bc, #_g_PrintData + 5
+    000003BF 0A               [ 7] 1245 	ld	a, (bc)
+    000003C0 5F               [ 4] 1246 	ld	e, a
+    000003C1 16 00            [ 7] 1247 	ld	d, #0x00
+    000003C3 19               [11] 1248 	add	hl, de
+    000003C4 DD 5E FF         [19] 1249 	ld	e, -1 (ix)
+    000003C7 16 00            [ 7] 1250 	ld	d, #0x00
+    000003C9 BF               [ 4] 1251 	cp	a, a
+    000003CA ED 52            [15] 1252 	sbc	hl, de
+    000003CC EB               [ 4] 1253 	ex	de, hl
+                                   1254 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1143: VDP_FillVRAM(0, dst, g_ScreenLayoutHigh, num);
+    000003CD DD 6E FF         [19] 1255 	ld	l, -1 (ix)
+                                   1256 ;	spillPairReg hl
+                                   1257 ;	spillPairReg hl
+    000003D0 26 00            [ 7] 1258 	ld	h, #0x00
+                                   1259 ;	spillPairReg hl
+                                   1260 ;	spillPairReg hl
+    000003D2 C5               [11] 1261 	push	bc
+    000003D3 E5               [11] 1262 	push	hl
+    000003D4 AF               [ 4] 1263 	xor	a, a
+    000003D5 CDr00r00         [17] 1264 	call	_VDP_FillVRAM_16K
+    000003D8 C1               [10] 1265 	pop	bc
+                                   1266 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1144: g_PrintData.CursorX -= num;
+    000003D9 0A               [ 7] 1267 	ld	a, (bc)
+    000003DA DD 96 FF         [19] 1268 	sub	a, -1 (ix)
+    000003DD 02               [ 7] 1269 	ld	(bc), a
+                                   1270 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1147: }
+    000003DE 33               [ 6] 1271 	inc	sp
+    000003DF DD E1            [14] 1272 	pop	ix
+    000003E1 C9               [10] 1273 	ret
+                                   1274 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1152: void Print_DrawChar(u8 chr)
+                                   1275 ;	---------------------------------
+                                   1276 ; Function Print_DrawChar
+                                   1277 ; ---------------------------------
+    000003E2                       1278 _Print_DrawChar::
+                                   1279 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1161: g_PrintData.DrawChar(chr);
+    000003E2 2Ar13r00         [16] 1280 	ld	hl, (#_g_PrintData + 19)
+    000003E5 CDr00r00         [17] 1281 	call	___sdcc_call_hl
+                                   1282 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1164: g_PrintData.CursorX += PRINT_W(g_PrintData.UnitX);
+    000003E8 01r05r00         [10] 1283 	ld	bc, #_g_PrintData + 5
+    000003EB 0A               [ 7] 1284 	ld	a, (bc)
+    000003EC 3C               [ 4] 1285 	inc	a
+    000003ED 02               [ 7] 1286 	ld	(bc), a
+                                   1287 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1165: }
+    000003EE C9               [10] 1288 	ret
+                                   1289 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1171: void Print_DrawCharX(c8 chr, u8 num)
+                                   1290 ;	---------------------------------
+                                   1291 ; Function Print_DrawCharX
+                                   1292 ; ---------------------------------
+    000003EF                       1293 _Print_DrawCharX::
+    000003EF 4F               [ 4] 1294 	ld	c, a
+                                   1295 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1173: for (u8 i = 0; i < num; ++i)
+    000003F0 06 00            [ 7] 1296 	ld	b, #0x00
+    000003F2                       1297 00103$:
+    000003F2 78               [ 4] 1298 	ld	a, b
+    000003F3 95               [ 4] 1299 	sub	a, l
+    000003F4 D0               [11] 1300 	ret	NC
+                                   1301 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1174: Print_DrawChar(chr);
+    000003F5 E5               [11] 1302 	push	hl
+    000003F6 C5               [11] 1303 	push	bc
+    000003F7 79               [ 4] 1304 	ld	a, c
+    000003F8 CDrE2r03         [17] 1305 	call	_Print_DrawChar
+    000003FB C1               [10] 1306 	pop	bc
+    000003FC E1               [10] 1307 	pop	hl
+                                   1308 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1173: for (u8 i = 0; i < num; ++i)
+    000003FD 04               [ 4] 1309 	inc	b
+                                   1310 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1175: }
+    000003FE C3rF2r03         [10] 1311 	jp	00103$
+                                   1312 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1180: void Print_DrawText(const c8* str)
+                                   1313 ;	---------------------------------
+                                   1314 ; Function Print_DrawText
+                                   1315 ; ---------------------------------
+    00000401                       1316 _Print_DrawText::
+    00000401 EB               [ 4] 1317 	ex	de, hl
+                                   1318 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1182: while (*str != 0)
+    00000402                       1319 00107$:
+    00000402 1A               [ 7] 1320 	ld	a, (de)
+                                   1321 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1184: if (*str == '\t')
+    00000403 4F               [ 4] 1322 	ld	c,a
+    00000404 B7               [ 4] 1323 	or	a,a
+    00000405 C8               [11] 1324 	ret	Z
+    00000406 D6 09            [ 7] 1325 	sub	a, #0x09
+    00000408 20 19            [12] 1326 	jr	NZ, 00105$
+                                   1327 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:446: g_PrintData.CursorX += PRINT_W(g_PrintData.UnitX) + g_PrintData.TabSize - 1;
+    0000040A 01r05r00         [10] 1328 	ld	bc, #_g_PrintData + 5
+    0000040D 0A               [ 7] 1329 	ld	a, (bc)
+    0000040E 21r04r00         [10] 1330 	ld	hl, #(_g_PrintData + 4)
+    00000411 6E               [ 7] 1331 	ld	l, (hl)
+                                   1332 ;	spillPairReg hl
+    00000412 85               [ 4] 1333 	add	a, l
+    00000413 02               [ 7] 1334 	ld	(bc), a
+                                   1335 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:447: g_PrintData.CursorX &= ~(g_PrintData.TabSize - 1);
+    00000414 21r04r00         [10] 1336 	ld	hl, #(_g_PrintData + 4)
+    00000417 6E               [ 7] 1337 	ld	l, (hl)
+                                   1338 ;	spillPairReg hl
+    00000418 2D               [ 4] 1339 	dec	l
+    00000419 F5               [11] 1340 	push	af
+    0000041A 7D               [ 4] 1341 	ld	a, l
+    0000041B 2F               [ 4] 1342 	cpl
+    0000041C 6F               [ 4] 1343 	ld	l, a
+                                   1344 ;	spillPairReg hl
+                                   1345 ;	spillPairReg hl
+    0000041D F1               [10] 1346 	pop	af
+    0000041E A5               [ 4] 1347 	and	a, l
+    0000041F 02               [ 7] 1348 	ld	(bc), a
+                                   1349 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1185: Print_Tab();
+    00000420 C3r3Cr04         [10] 1350 	jp	00106$
+    00000423                       1351 00105$:
+                                   1352 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1186: else if (*str == '\n')
+    00000423 79               [ 4] 1353 	ld	a, c
+    00000424 D6 0A            [ 7] 1354 	sub	a, #0x0a
+    00000426 20 0E            [12] 1355 	jr	NZ, 00102$
+                                   1356 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:454: g_PrintData.CursorX = 0;
+    00000428 21r05r00         [10] 1357 	ld	hl, #(_g_PrintData + 5)
+    0000042B 36 00            [10] 1358 	ld	(hl), #0x00
+                                   1359 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.h:455: g_PrintData.CursorY += PRINT_H(g_PrintData.UnitY);
+    0000042D 01r06r00         [10] 1360 	ld	bc, #_g_PrintData + 6
+    00000430 0A               [ 7] 1361 	ld	a, (bc)
+    00000431 3C               [ 4] 1362 	inc	a
+    00000432 02               [ 7] 1363 	ld	(bc), a
+                                   1364 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1187: Print_Return();
+    00000433 C3r3Cr04         [10] 1365 	jp	00106$
+    00000436                       1366 00102$:
+                                   1367 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1193: Print_DrawChar(*str);
+    00000436 D5               [11] 1368 	push	de
+    00000437 79               [ 4] 1369 	ld	a, c
+    00000438 CDrE2r03         [17] 1370 	call	_Print_DrawChar
+    0000043B D1               [10] 1371 	pop	de
+    0000043C                       1372 00106$:
+                                   1373 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1194: str++;
+    0000043C 13               [ 6] 1374 	inc	de
+                                   1375 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1196: }
+    0000043D C3r02r04         [10] 1376 	jp	00107$
+                                   1377 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1201: void Print_DrawBin8(u8 value)
+                                   1378 ;	---------------------------------
+                                   1379 ; Function Print_DrawBin8
+                                   1380 ; ---------------------------------
+    00000440                       1381 _Print_DrawBin8::
+    00000440 6F               [ 4] 1382 	ld	l, a
+                                   1383 ;	spillPairReg hl
+                                   1384 ;	spillPairReg hl
+                                   1385 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1203: u8 flag = (u8)(1 << 7);
+                                   1386 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1204: for (u8 i = 0; i < 8; ++i)
+    00000441 01 80 00         [10] 1387 	ld	bc, #0x80
+    00000444                       1388 00103$:
+    00000444 78               [ 4] 1389 	ld	a, b
+    00000445 D6 08            [ 7] 1390 	sub	a, #0x08
+    00000447 D0               [11] 1391 	ret	NC
+                                   1392 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1206: Print_DrawChar((value & flag) ? '1' : '0');
+    00000448 7D               [ 4] 1393 	ld	a, l
+    00000449 A1               [ 4] 1394 	and	a,c
+    0000044A 28 06            [12] 1395 	jr	Z, 00107$
+    0000044C 11 31 00         [10] 1396 	ld	de, #0x0031
+    0000044F C3r55r04         [10] 1397 	jp	00108$
+    00000452                       1398 00107$:
+    00000452 11 30 00         [10] 1399 	ld	de, #0x0030
+    00000455                       1400 00108$:
+    00000455 E5               [11] 1401 	push	hl
+    00000456 C5               [11] 1402 	push	bc
+    00000457 7B               [ 4] 1403 	ld	a, e
+    00000458 CDrE2r03         [17] 1404 	call	_Print_DrawChar
+    0000045B C1               [10] 1405 	pop	bc
+    0000045C E1               [10] 1406 	pop	hl
+                                   1407 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1207: flag >>= 1;
+    0000045D CB 39            [ 8] 1408 	srl	c
+                                   1409 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1204: for (u8 i = 0; i < 8; ++i)
+    0000045F 04               [ 4] 1410 	inc	b
+                                   1411 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1212: }
+    00000460 C3r44r04         [10] 1412 	jp	00103$
+                                   1413 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1217: void Print_DrawHex8(u8 value)
+                                   1414 ;	---------------------------------
+                                   1415 ; Function Print_DrawHex8
+                                   1416 ; ---------------------------------
+    00000463                       1417 _Print_DrawHex8::
+    00000463 5F               [ 4] 1418 	ld	e, a
+                                   1419 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1219: Print_DrawChar(g_HexChar[(value >> 4) & 0x000F]);
+    00000464 01r2Br00         [10] 1420 	ld	bc, #_g_HexChar+0
+    00000467 7B               [ 4] 1421 	ld	a, e
+    00000468 07               [ 4] 1422 	rlca
+    00000469 07               [ 4] 1423 	rlca
+    0000046A 07               [ 4] 1424 	rlca
+    0000046B 07               [ 4] 1425 	rlca
+                                   1426 ;	spillPairReg hl
+                                   1427 ;	spillPairReg hl
+                                   1428 ;	spillPairReg hl
+                                   1429 ;	spillPairReg hl
+    0000046C E6 0F            [ 7] 1430 	and	a, #0xf
+    0000046E 6F               [ 4] 1431 	ld	l, a
+                                   1432 ;	spillPairReg hl
+                                   1433 ;	spillPairReg hl
+    0000046F 26 00            [ 7] 1434 	ld	h, #0x00
+                                   1435 ;	spillPairReg hl
+                                   1436 ;	spillPairReg hl
+    00000471 09               [11] 1437 	add	hl, bc
+    00000472 56               [ 7] 1438 	ld	d, (hl)
+    00000473 C5               [11] 1439 	push	bc
+    00000474 D5               [11] 1440 	push	de
+    00000475 7A               [ 4] 1441 	ld	a, d
+    00000476 CDrE2r03         [17] 1442 	call	_Print_DrawChar
+    00000479 D1               [10] 1443 	pop	de
+    0000047A C1               [10] 1444 	pop	bc
+                                   1445 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1220: Print_DrawChar(g_HexChar[value & 0x000F]);
+    0000047B 16 00            [ 7] 1446 	ld	d, #0x00
+    0000047D 7B               [ 4] 1447 	ld	a, e
+    0000047E E6 0F            [ 7] 1448 	and	a, #0x0f
+    00000480 6F               [ 4] 1449 	ld	l, a
+                                   1450 ;	spillPairReg hl
+                                   1451 ;	spillPairReg hl
+    00000481 26 00            [ 7] 1452 	ld	h, #0x00
+                                   1453 ;	spillPairReg hl
+                                   1454 ;	spillPairReg hl
+    00000483 09               [11] 1455 	add	hl, bc
+    00000484 4E               [ 7] 1456 	ld	c, (hl)
+    00000485 79               [ 4] 1457 	ld	a, c
+                                   1458 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1224: }
+    00000486 C3rE2r03         [10] 1459 	jp	_Print_DrawChar
+                                   1460 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1229: void Print_DrawHex16(u16 value)
+                                   1461 ;	---------------------------------
+                                   1462 ; Function Print_DrawHex16
+                                   1463 ; ---------------------------------
+    00000489                       1464 _Print_DrawHex16::
+                                   1465 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1231: Print_DrawHex8(value >> 8);
+    00000489 4C               [ 4] 1466 	ld	c, h
+    0000048A E5               [11] 1467 	push	hl
+    0000048B 79               [ 4] 1468 	ld	a, c
+    0000048C CDr63r04         [17] 1469 	call	_Print_DrawHex8
+    0000048F E1               [10] 1470 	pop	hl
+                                   1471 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1232: Print_DrawHex8((u8)value);
+    00000490 7D               [ 4] 1472 	ld	a, l
+                                   1473 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1233: }
+    00000491 C3r63r04         [10] 1474 	jp	_Print_DrawHex8
+                                   1475 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1254: void Print_DrawInt(i16 value)
+                                   1476 ;	---------------------------------
+                                   1477 ; Function Print_DrawInt
+                                   1478 ; ---------------------------------
+    00000494                       1479 _Print_DrawInt::
+    00000494 DD E5            [15] 1480 	push	ix
+    00000496 DD 21 00 00      [14] 1481 	ld	ix,#0
+    0000049A DD 39            [15] 1482 	add	ix,sp
+    0000049C FD 21 F6 FF      [14] 1483 	ld	iy, #-10
+    000004A0 FD 39            [15] 1484 	add	iy, sp
+    000004A2 FD F9            [10] 1485 	ld	sp, iy
+    000004A4 4D               [ 4] 1486 	ld	c, l
+    000004A5 44               [ 4] 1487 	ld	b, h
+                                   1488 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1257: if (value < 0)
+    000004A6 50               [ 4] 1489 	ld	d, b
+    000004A7 CB 7A            [ 8] 1490 	bit	7, d
+    000004A9 28 0D            [12] 1491 	jr	Z, 00102$
+                                   1492 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1259: Print_DrawChar('-');
+    000004AB C5               [11] 1493 	push	bc
+    000004AC 3E 2D            [ 7] 1494 	ld	a, #0x2d
+    000004AE CDrE2r03         [17] 1495 	call	_Print_DrawChar
+    000004B1 C1               [10] 1496 	pop	bc
+                                   1497 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1260: value = -value;
+    000004B2 AF               [ 4] 1498 	xor	a, a
+    000004B3 91               [ 4] 1499 	sub	a, c
+    000004B4 4F               [ 4] 1500 	ld	c, a
+    000004B5 9F               [ 4] 1501 	sbc	a, a
+    000004B6 90               [ 4] 1502 	sub	a, b
+    000004B7 47               [ 4] 1503 	ld	b, a
+    000004B8                       1504 00102$:
+                                   1505 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1264: c8* ptr = str;
+    000004B8 21 00 00         [10] 1506 	ld	hl, #0
+    000004BB 39               [11] 1507 	add	hl, sp
+                                   1508 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1265: *ptr = 0;
+    000004BC 36 00            [10] 1509 	ld	(hl), #0x00
+                                   1510 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1266: while (value >= 10)
+    000004BE E5               [11] 1511 	push	hl
+    000004BF FD E1            [14] 1512 	pop	iy
+    000004C1                       1513 00103$:
+    000004C1 DD 71 FE         [19] 1514 	ld	-2 (ix), c
+    000004C4 DD 70 FF         [19] 1515 	ld	-1 (ix), b
+                                   1516 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1268: *++ptr = '0' + (value % 10);
+    000004C7 FD E5            [15] 1517 	push	iy
+    000004C9 E1               [10] 1518 	pop	hl
+    000004CA 23               [ 6] 1519 	inc	hl
+                                   1520 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1266: while (value >= 10)
+    000004CB DD 7E FE         [19] 1521 	ld	a, -2 (ix)
+    000004CE D6 0A            [ 7] 1522 	sub	a, #0x0a
+    000004D0 DD 7E FF         [19] 1523 	ld	a, -1 (ix)
+    000004D3 17               [ 4] 1524 	rla
+    000004D4 3F               [ 4] 1525 	ccf
+    000004D5 1F               [ 4] 1526 	rra
+    000004D6 DE 80            [ 7] 1527 	sbc	a, #0x80
+    000004D8 38 2E            [12] 1528 	jr	C, 00105$
+                                   1529 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1268: *++ptr = '0' + (value % 10);
+    000004DA E5               [11] 1530 	push	hl
+    000004DB FD E1            [14] 1531 	pop	iy
+    000004DD E5               [11] 1532 	push	hl
+    000004DE FD E5            [15] 1533 	push	iy
+    000004E0 11 0A 00         [10] 1534 	ld	de, #0x000a
+    000004E3 DD 6E FE         [19] 1535 	ld	l, -2 (ix)
+                                   1536 ;	spillPairReg hl
+                                   1537 ;	spillPairReg hl
+    000004E6 DD 66 FF         [19] 1538 	ld	h, -1 (ix)
+                                   1539 ;	spillPairReg hl
+                                   1540 ;	spillPairReg hl
+    000004E9 CDr00r00         [17] 1541 	call	__modsint
+    000004EC FD E1            [14] 1542 	pop	iy
+    000004EE E1               [10] 1543 	pop	hl
+    000004EF 7B               [ 4] 1544 	ld	a, e
+    000004F0 C6 30            [ 7] 1545 	add	a, #0x30
+    000004F2 77               [ 7] 1546 	ld	(hl), a
+                                   1547 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1269: value /= 10;
+    000004F3 FD E5            [15] 1548 	push	iy
+    000004F5 11 0A 00         [10] 1549 	ld	de, #0x000a
+    000004F8 DD 6E FE         [19] 1550 	ld	l, -2 (ix)
+                                   1551 ;	spillPairReg hl
+                                   1552 ;	spillPairReg hl
+    000004FB DD 66 FF         [19] 1553 	ld	h, -1 (ix)
+                                   1554 ;	spillPairReg hl
+                                   1555 ;	spillPairReg hl
+    000004FE CDr00r00         [17] 1556 	call	__divsint
+    00000501 4B               [ 4] 1557 	ld	c, e
+    00000502 42               [ 4] 1558 	ld	b, d
+    00000503 FD E1            [14] 1559 	pop	iy
+    00000505 C3rC1r04         [10] 1560 	jp	00103$
+    00000508                       1561 00105$:
+                                   1562 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1271: *++ptr = '0' + value;
+    00000508 79               [ 4] 1563 	ld	a, c
+    00000509 C6 30            [ 7] 1564 	add	a, #0x30
+    0000050B 77               [ 7] 1565 	ld	(hl), a
+                                   1566 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1272: while (*ptr != 0)
+    0000050C                       1567 00106$:
+    0000050C 7E               [ 7] 1568 	ld	a, (hl)
+    0000050D B7               [ 4] 1569 	or	a, a
+    0000050E 28 0B            [12] 1570 	jr	Z, 00109$
+                                   1571 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1273: Print_DrawChar(*ptr--);	
+    00000510 2B               [ 6] 1572 	dec	hl
+    00000511 4F               [ 4] 1573 	ld	c, a
+    00000512 E5               [11] 1574 	push	hl
+    00000513 79               [ 4] 1575 	ld	a, c
+    00000514 CDrE2r03         [17] 1576 	call	_Print_DrawChar
+    00000517 E1               [10] 1577 	pop	hl
+    00000518 C3r0Cr05         [10] 1578 	jp	00106$
+    0000051B                       1579 00109$:
+                                   1580 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/print.c:1274: }
+    0000051B DD F9            [10] 1581 	ld	sp, ix
+    0000051D DD E1            [14] 1582 	pop	ix
+    0000051F C9               [10] 1583 	ret
+                                   1584 	.area _CODE
+                                   1585 	.area _INITIALIZER
+                                   1586 	.area _CABS (ABS)

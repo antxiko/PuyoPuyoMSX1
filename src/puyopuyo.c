@@ -152,7 +152,6 @@ static void NB_Init(void) {
 //=============================================================================
 // FONT
 //=============================================================================
-#include "font/font_mgl_sample8.h"
 
 //=============================================================================
 // FORWARD DECLARATIONS
@@ -257,12 +256,16 @@ static void VDP_Setup(void) {
 
     VDP_SetMode(VDP_MODE_GRAPHIC2);
     VDP_SetColor(COLOR_BLACK);
+    VDP_EnableDisplay(FALSE);
     VDP_ClearVRAM();
     VDP_EnableVBlank(TRUE);
     VDP_DisableSpritesFrom(0);
 
-    // Init Print system first (writes font to VRAM, will be overwritten by tileset)
-    Print_SetTextFont(g_Font_MGL_Sample8, 32);
+    // Configure Print system without loading font (tileset has its own font)
+    g_PrintData.PatternOffset = 32;
+    Print_SetFontEx(8, 8, 1, 1, 0, 0xBF, (const u8*)0);
+    Print_Initialize();
+    Print_SetMode(PRINT_MODE_TEXT);
     Print_SetColor(COLOR_WHITE, COLOR_BLACK);
 
     // Decompress tileset patterns to RAM, then copy to each VRAM bank
@@ -280,6 +283,7 @@ static void VDP_Setup(void) {
         VDP_WriteVRAM_16K(g_PT3Buffer, colBase, 2048);
     }
 
+    VDP_EnableDisplay(TRUE);
 }
 
 
@@ -1056,20 +1060,23 @@ static const u8 g_ChainWindow[50] = {
 static u8 g_ChainSaved[50]; // saved tiles under chain window
 static u8 g_ChainWinX;      // current window position
 static u8 g_ChainWinActive;
+static u8 g_ChainWinTimer;  // frames remaining before auto-hide (0=no timer)
+static u8 g_ChainWinPlayer; // which player's window is showing
+static u8 g_ChainWinCount;  // last chain count (for redraw)
 
 static void Game_ShowChainWindow(u8 playerIdx) {
     u8 wx, x, y;
-    wx = (playerIdx == 0) ? 3 : 21;
+    wx = (playerIdx == 0) ? 2 : 20;
     g_ChainWinX = wx;
     g_ChainWinActive = 1;
     // Save tiles underneath
     for (y = 0; y < CHAIN_WIN_H; y++)
         for (x = 0; x < CHAIN_WIN_W; x++)
-            g_ChainSaved[y * CHAIN_WIN_W + x] = g_NameBuffer[(u16)(3 + y) * 32 + (wx + x)];
+            g_ChainSaved[y * CHAIN_WIN_W + x] = g_NameBuffer[(u16)(2 + y) * 32 + (wx + x)];
     // Draw window
     for (y = 0; y < CHAIN_WIN_H; y++)
         for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(wx + x, 3 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
+            VDP_Poke_GM2(wx + x, 2 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
 }
 
 // Redraw chain window on top (call after Game_DrawBoard to prevent overwrite)
@@ -1079,16 +1086,16 @@ static void Game_RedrawChainWindow(u8 playerIdx, u8 chainCount) {
     wx = g_ChainWinX;
     for (y = 0; y < CHAIN_WIN_H; y++)
         for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(wx + x, 3 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
-    VDP_Poke_GM2(wx + 1, 5, 80 + (chainCount / 10));
-    VDP_Poke_GM2(wx + 2, 5, 80 + (chainCount % 10));
+            VDP_Poke_GM2(wx + x, 2 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
+    VDP_Poke_GM2(wx + 1, 4, 80 + (chainCount / 10));
+    VDP_Poke_GM2(wx + 2, 4, 80 + (chainCount % 10));
 }
 
 static void Game_UpdateChainNumber(u8 playerIdx, u8 chainCount) {
-    u8 wx = (playerIdx == 0) ? 3 : 21;
+    u8 wx = (playerIdx == 0) ? 2 : 20;
     // 2 digits with leading zero at relative (1,2) = absolute (wx+1, 5)
-    VDP_Poke_GM2(wx + 1, 5, 80 + (chainCount / 10));
-    VDP_Poke_GM2(wx + 2, 5, 80 + (chainCount % 10));
+    VDP_Poke_GM2(wx + 1, 4, 80 + (chainCount / 10));
+    VDP_Poke_GM2(wx + 2, 4, 80 + (chainCount % 10));
 }
 
 static void Game_HideChainWindow(void) {
@@ -1097,8 +1104,9 @@ static void Game_HideChainWindow(void) {
     // Restore saved tiles
     for (y = 0; y < CHAIN_WIN_H; y++)
         for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(g_ChainWinX + x, 3 + y, g_ChainSaved[y * CHAIN_WIN_W + x]);
+            VDP_Poke_GM2(g_ChainWinX + x, 2 + y, g_ChainSaved[y * CHAIN_WIN_W + x]);
     g_ChainWinActive = 0;
+    g_ChainWinTimer = 0;
 }
 
 
@@ -1118,8 +1126,6 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
     u8 chainCount = 0, totalGarbage = 0, cleared;
     u8 playerIdx = (p == &g_Player[0]) ? 0 : 1;
     u8 oppIdx = (playerIdx == 0) ? 1 : 0;
-
-    Game_ShowChainWindow(playerIdx);
 
     while (TRUE) {
         Game_AnimateGravity(p, playerIdx);
@@ -1158,6 +1164,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         if (cleared == 0) break;
 
         chainCount++;
+        if (chainCount == 1) Game_ShowChainWindow(playerIdx);
         Game_UpdateChainNumber(playerIdx, chainCount);
         p->score += cleared * 10 * chainCount;
         p->totalCleared += cleared;
@@ -1200,7 +1207,14 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         VDP_SetColor(COLOR_BLACK);
     }
 
-    Game_HideChainWindow();
+    // Start auto-hide timer (60 frames = 1 second)
+    if (chainCount > 0) {
+        g_ChainWinTimer = 60;
+        g_ChainWinPlayer = (p == &g_Player[0]) ? 0 : 1;
+        g_ChainWinCount = chainCount;
+    } else {
+        Game_HideChainWindow();
+    }
     p->chainCount = chainCount;
     if (chainCount > p->maxChain) p->maxChain = chainCount;
 
@@ -1617,6 +1631,20 @@ static void Game_Update(void) {
     if (g_BoardDirty[1]) { Game_DrawConnections(&g_Player[1], 1); g_BoardDirty[1] = FALSE; }
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
+
+    // Chain window: redraw on top of board + auto-hide timer
+    if (g_ChainWinActive) {
+        if (g_ChainWinTimer > 0) {
+            g_ChainWinTimer--;
+            if (g_ChainWinTimer == 0) {
+                Game_HideChainWindow();
+            } else {
+                Game_RedrawChainWindow(g_ChainWinPlayer, g_ChainWinCount);
+            }
+        } else {
+            Game_RedrawChainWindow(g_ChainWinPlayer, g_ChainWinCount);
+        }
+    }
 
     // Wait for VBlank, then flush only changed tiles to VRAM
     Halt();

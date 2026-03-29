@@ -1,0 +1,124 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module memory
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _g_StackAddress
+                                     12 	.globl _Mem_GetStackAddress
+                                     13 	.globl _Mem_HeapAlloc
+                                     14 	.globl _Mem_HeapFree
+                                     15 	.globl _Mem_Set_16b
+                                     16 ;--------------------------------------------------------
+                                     17 ; special function registers
+                                     18 ;--------------------------------------------------------
+                                     19 ;--------------------------------------------------------
+                                     20 ; ram data
+                                     21 ;--------------------------------------------------------
+                                     22 	.area _DATA
+    00000000                         23 _g_StackAddress::
+    00000000                         24 	.ds 2
+                                     25 ;--------------------------------------------------------
+                                     26 ; ram data
+                                     27 ;--------------------------------------------------------
+                                     28 	.area _INITIALIZED
+                                     29 ;--------------------------------------------------------
+                                     30 ; absolute external ram data
+                                     31 ;--------------------------------------------------------
+                                     32 	.area _DABS (ABS)
+                                     33 ;--------------------------------------------------------
+                                     34 ; global & static initialisations
+                                     35 ;--------------------------------------------------------
+                                     36 	.area _HOME
+                                     37 	.area _GSINIT
+                                     38 	.area _GSFINAL
+                                     39 	.area _GSINIT
+                                     40 ;--------------------------------------------------------
+                                     41 ; Home
+                                     42 ;--------------------------------------------------------
+                                     43 	.area _HOME
+                                     44 	.area _HOME
+                                     45 ;--------------------------------------------------------
+                                     46 ; code
+                                     47 ;--------------------------------------------------------
+                                     48 	.area _CODE
+                                     49 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:24: u16 Mem_GetStackAddress() __NAKED
+                                     50 ;	---------------------------------
+                                     51 ; Function Mem_GetStackAddress
+                                     52 ; ---------------------------------
+    00000000                         53 _Mem_GetStackAddress::
+                                     54 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:30: __endasm;
+    00000000 ED 73r00r00      [20]   55 	ld	(_g_StackAddress), sp
+    00000004 ED 5Br00r00      [20]   56 	ld	de, (_g_StackAddress)
+    00000008 C9               [10]   57 	ret
+                                     58 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:31: }
+                                     59 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:35: void* Mem_HeapAlloc(u16 size)
+                                     60 ;	---------------------------------
+                                     61 ; Function Mem_HeapAlloc
+                                     62 ; ---------------------------------
+    00000009                         63 _Mem_HeapAlloc::
+    00000009 4D               [ 4]   64 	ld	c, l
+    0000000A 44               [ 4]   65 	ld	b, h
+                                     66 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:37: u16 addr = g_HeapStartAddress;
+    0000000B ED 5Br00r00      [20]   67 	ld	de, (_g_HeapStartAddress)
+                                     68 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:38: g_HeapStartAddress += size;
+    0000000F 21r00r00         [10]   69 	ld	hl, #_g_HeapStartAddress
+    00000012 7E               [ 7]   70 	ld	a, (hl)
+    00000013 81               [ 4]   71 	add	a, c
+    00000014 77               [ 7]   72 	ld	(hl), a
+    00000015 23               [ 6]   73 	inc	hl
+    00000016 7E               [ 7]   74 	ld	a, (hl)
+    00000017 88               [ 4]   75 	adc	a, b
+    00000018 77               [ 7]   76 	ld	(hl), a
+                                     77 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:39: return (void*)addr;
+                                     78 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:40: }
+    00000019 C9               [10]   79 	ret
+                                     80 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:44: void Mem_HeapFree(u16 size)
+                                     81 ;	---------------------------------
+                                     82 ; Function Mem_HeapFree
+                                     83 ; ---------------------------------
+    0000001A                         84 _Mem_HeapFree::
+    0000001A EB               [ 4]   85 	ex	de, hl
+                                     86 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:46: g_HeapStartAddress -= size;	
+    0000001B 21r00r00         [10]   87 	ld	hl, #_g_HeapStartAddress
+    0000001E 7E               [ 7]   88 	ld	a, (hl)
+    0000001F 93               [ 4]   89 	sub	a, e
+    00000020 77               [ 7]   90 	ld	(hl), a
+    00000021 23               [ 6]   91 	inc	hl
+    00000022 7E               [ 7]   92 	ld	a, (hl)
+    00000023 9A               [ 4]   93 	sbc	a, d
+    00000024 77               [ 7]   94 	ld	(hl), a
+                                     95 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:47: }
+    00000025 C9               [10]   96 	ret
+                                     97 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:161: void Mem_Set_16b(u16 val, void* dest, u16 size)
+                                     98 ;	---------------------------------
+                                     99 ; Function Mem_Set_16b
+                                    100 ; ---------------------------------
+    00000026                        101 _Mem_Set_16b::
+                                    102 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:196: __endasm;
+    00000026 D5               [11]  103 	push	de
+    00000027 EB               [ 4]  104 	ex	de, hl
+    00000028 72               [ 7]  105 	ld	(hl), d
+    00000029 23               [ 6]  106 	inc	hl
+    0000002A 73               [ 7]  107 	ld	(hl), e
+    0000002B 23               [ 6]  108 	inc	hl
+    0000002C EB               [ 4]  109 	ex	de, hl
+    0000002D E1               [10]  110 	pop	hl
+    0000002E FD E1            [14]  111 	pop	iy
+    00000030 C1               [10]  112 	pop	bc
+    00000031 0B               [ 6]  113 	dec	bc
+    00000032 0B               [ 6]  114 	dec	bc
+    00000033 ED B0            [21]  115 	ldir
+    00000035                        116 	mem_fill16_end:
+    00000035 FD E9            [ 8]  117 	jp	(iy)
+                                    118 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/memory.c:197: }
+    00000037 E1               [10]  119 	pop	hl
+    00000038 F1               [10]  120 	pop	af
+    00000039 E9               [ 4]  121 	jp	(hl)
+                                    122 	.area _CODE
+                                    123 	.area _INITIALIZER
+                                    124 	.area _CABS (ABS)

@@ -1,0 +1,1700 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 4.2.0 #13081 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module vdp
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _g_VDPInitilized
+                                     12 	.globl _g_SpriteColorLow
+                                     13 	.globl _g_SpritePatternLow
+                                     14 	.globl _g_SpriteAttributeLow
+                                     15 	.globl _g_ScreenPatternLow
+                                     16 	.globl _g_ScreenColorLow
+                                     17 	.globl _g_ScreenLayoutLow
+                                     18 	.globl _g_VDP_Sprite
+                                     19 	.globl _g_VDP_Data
+                                     20 	.globl _g_VDP_REGSAV
+                                     21 	.globl _g_SLTSL
+                                     22 	.globl _g_GRPACY
+                                     23 	.globl _g_GRPACX
+                                     24 	.globl _g_LOGOPR
+                                     25 	.globl _g_CMASK
+                                     26 	.globl _g_CLOC
+                                     27 	.globl _g_FNKSTR
+                                     28 	.globl _g_ATRBYT
+                                     29 	.globl _g_BDRCLR
+                                     30 	.globl _g_BAKCLR
+                                     31 	.globl _g_FORCLR
+                                     32 	.globl _g_CSRX
+                                     33 	.globl _g_CSRY
+                                     34 	.globl _g_CLIKSW
+                                     35 	.globl _g_MLTPAT
+                                     36 	.globl _g_MLTATR
+                                     37 	.globl _g_MLTCGP
+                                     38 	.globl _g_MLTCOL
+                                     39 	.globl _g_MLTNAM
+                                     40 	.globl _g_GRPPAT
+                                     41 	.globl _g_GRPATR
+                                     42 	.globl _g_GRPCGP
+                                     43 	.globl _g_GRPCOL
+                                     44 	.globl _g_GRPNAM
+                                     45 	.globl _g_T32PAT
+                                     46 	.globl _g_T32ATR
+                                     47 	.globl _g_T32CGP
+                                     48 	.globl _g_T32COL
+                                     49 	.globl _g_T32NAM
+                                     50 	.globl _g_TXTPAT
+                                     51 	.globl _g_TXTATR
+                                     52 	.globl _g_TXTCGP
+                                     53 	.globl _g_TXTCOL
+                                     54 	.globl _g_TXTNAM
+                                     55 	.globl _g_CLMLST
+                                     56 	.globl _g_CRTCNT
+                                     57 	.globl _g_LINLEN
+                                     58 	.globl _g_LINL32
+                                     59 	.globl _g_LINL40
+                                     60 	.globl _g_CHAR_16
+                                     61 	.globl _g_MSXMID
+                                     62 	.globl _g_MSXVER
+                                     63 	.globl _g_ROMVersion
+                                     64 	.globl _g_BASRVN
+                                     65 	.globl _g_VDP_DW
+                                     66 	.globl _g_VDP_DR
+                                     67 	.globl _g_CGTABL
+                                     68 	.globl _g_SVFFFD
+                                     69 	.globl _g_RG27SAV
+                                     70 	.globl _g_RG26SAV
+                                     71 	.globl _g_RG25SAV
+                                     72 	.globl _g_SVFFF8
+                                     73 	.globl _g_MINROM
+                                     74 	.globl _g_RG23SAV
+                                     75 	.globl _g_RG22SAV
+                                     76 	.globl _g_RG21SAV
+                                     77 	.globl _g_RG20SAV
+                                     78 	.globl _g_RG19SAV
+                                     79 	.globl _g_RG18SAV
+                                     80 	.globl _g_RG17SAV
+                                     81 	.globl _g_RG16SAV
+                                     82 	.globl _g_RG15SAV
+                                     83 	.globl _g_RG14SAV
+                                     84 	.globl _g_RG13SAV
+                                     85 	.globl _g_RG12SAV
+                                     86 	.globl _g_RG11SAV
+                                     87 	.globl _g_RG10SAV
+                                     88 	.globl _g_RG09SAV
+                                     89 	.globl _g_RG08SAV
+                                     90 	.globl _g_PROCNM
+                                     91 	.globl _g_SLTWRK
+                                     92 	.globl _g_SLTATR
+                                     93 	.globl _g_SLTTBL
+                                     94 	.globl _g_EXPTBL
+                                     95 	.globl _g_MNROM
+                                     96 	.globl _g_DRWANG
+                                     97 	.globl _g_DRWSCL
+                                     98 	.globl _g_DRWFLG
+                                     99 	.globl _g_GYPOS
+                                    100 	.globl _g_GXPOS
+                                    101 	.globl _g_BRDATR
+                                    102 	.globl _g_CASPRV
+                                    103 	.globl _g_OLDSCR
+                                    104 	.globl _g_SCRMOD
+                                    105 	.globl _g_FLBMEM
+                                    106 	.globl _g_KANAMD
+                                    107 	.globl _g_KANAST
+                                    108 	.globl _g_CAPST
+                                    109 	.globl _g_CSTYLE
+                                    110 	.globl _g_CSRSW
+                                    111 	.globl _g_INSFLG
+                                    112 	.globl _g_ESCCNT
+                                    113 	.globl _g_GRPHED
+                                    114 	.globl _g_WINWID
+                                    115 	.globl _g_LOWLIM
+                                    116 	.globl _g_INTCNT
+                                    117 	.globl _g_INTVAL
+                                    118 	.globl _g_JIFFY
+                                    119 	.globl _g_PADX
+                                    120 	.globl _g_PADY
+                                    121 	.globl _g_INTFLG
+                                    122 	.globl _g_RTYCNT
+                                    123 	.globl _g_TRPTBL
+                                    124 	.globl _g_HIMEM
+                                    125 	.globl _g_BOTTOM
+                                    126 	.globl _g_PATWRK
+                                    127 	.globl _g_LINWRK
+                                    128 	.globl _g_KEYBUF
+                                    129 	.globl _g_NEWKEY
+                                    130 	.globl _g_OLDKEY
+                                    131 	.globl _g_CLIKFL
+                                    132 	.globl _g_ONGSBF
+                                    133 	.globl _g_FNKFLG
+                                    134 	.globl _g_FNKSWI
+                                    135 	.globl _g_CODSAV
+                                    136 	.globl _g_FSTPOS
+                                    137 	.globl _g_LINTTB
+                                    138 	.globl _g_BASROM
+                                    139 	.globl _g_ENSTOP
+                                    140 	.globl _g_VCBC
+                                    141 	.globl _g_VCBB
+                                    142 	.globl _g_VCBA
+                                    143 	.globl _g_PLYCNT
+                                    144 	.globl _g_MUSICF
+                                    145 	.globl _g_QUEUEN
+                                    146 	.globl _g_MCLPTR
+                                    147 	.globl _g_MCLLEN
+                                    148 	.globl _g_SAVVOL
+                                    149 	.globl _g_VOICEN
+                                    150 	.globl _g_SAVSP
+                                    151 	.globl _g_PRSCNT
+                                    152 	.globl _g_LSTMOD
+                                    153 	.globl _g_LSTCOM
+                                    154 	.globl _g_COMMSK
+                                    155 	.globl _g_ESTBLS
+                                    156 	.globl _g_FLAGS
+                                    157 	.globl _g_ERRORS
+                                    158 	.globl _g_DATCNT
+                                    159 	.globl _g_DEVNUM
+                                    160 	.globl _g_OLDINT
+                                    161 	.globl _g_OLDSTT
+                                    162 	.globl _g_MEXBIh
+                                    163 	.globl _g_RSIQLN
+                                    164 	.globl _g_RSFCB
+                                    165 	.globl _g_TOCNT
+                                    166 	.globl _g_RSTMP
+                                    167 	.globl _g_YSAVE
+                                    168 	.globl _g_XSAVE
+                                    169 	.globl _g_NORUSE
+                                    170 	.globl _g_MODE
+                                    171 	.globl _g_ROMA
+                                    172 	.globl _g_CHRCNT
+                                    173 	.globl _g_EXBRSA
+                                    174 	.globl _g_AVCSAV
+                                    175 	.globl _g_ACPAGE
+                                    176 	.globl _g_DPPAGE
+                                    177 	.globl _g_RS2IQ
+                                    178 	.globl _g_VOICCQ
+                                    179 	.globl _g_VOICBQ
+                                    180 	.globl _g_VOICAQ
+                                    181 	.globl _g_QUEBAK
+                                    182 	.globl _g_QUETAB
+                                    183 	.globl _g_ASPCT2
+                                    184 	.globl _g_ASPCT1
+                                    185 	.globl _g_HEADER
+                                    186 	.globl _g_HIGH
+                                    187 	.globl _g_LOW
+                                    188 	.globl _g_CS240
+                                    189 	.globl _g_CS120
+                                    190 	.globl _g_GETPNT
+                                    191 	.globl _g_PUTPNT
+                                    192 	.globl _g_REPCNT
+                                    193 	.globl _g_SCNCNT
+                                    194 	.globl _g_FRCNEW
+                                    195 	.globl _g_QUEUES
+                                    196 	.globl _g_MINUPD
+                                    197 	.globl _g_MAXUPD
+                                    198 	.globl _g_TRGFLG
+                                    199 	.globl _g_STATFL
+                                    200 	.globl _g_RG7SAV
+                                    201 	.globl _g_RG6SAV
+                                    202 	.globl _g_RG5SAV
+                                    203 	.globl _g_RG4SAV
+                                    204 	.globl _g_RG3SAV
+                                    205 	.globl _g_RG2SAV
+                                    206 	.globl _g_RG1SAV
+                                    207 	.globl _g_RG0SAV
+                                    208 	.globl _g_CNSDFG
+                                    209 	.globl _g_USRTAB
+                                    210 	.globl _g_CLPRIM
+                                    211 	.globl _g_WRPRIM
+                                    212 	.globl _g_RDPRIM
+                                    213 	.globl _VDP_SetModeFlag
+                                    214 	.globl _VDP_SetModeGraphic2
+                                    215 	.globl _VDP_ClearVRAM
+                                    216 	.globl _VDP_WriteVRAM_16K
+                                    217 	.globl _VDP_FillVRAM_16K
+                                    218 	.globl _VDP_ReadVRAM_16K
+                                    219 	.globl _VDP_Peek_16K
+                                    220 	.globl _VDP_Poke_16K
+                                    221 	.globl _VDP_Initialize
+                                    222 	.globl _VDP_SetMode
+                                    223 	.globl _VDP_GetVersion
+                                    224 	.globl _VDP_RegWrite
+                                    225 	.globl _VDP_RegWriteBak
+                                    226 	.globl _VDP_RegWriteBakMask
+                                    227 	.globl _VDP_ReadDefaultStatus
+                                    228 	.globl _VDP_SetLayoutTable
+                                    229 	.globl _VDP_SetColorTable
+                                    230 	.globl _VDP_SetPatternTable
+                                    231 	.globl _VDP_SetSpriteAttributeTable
+                                    232 	.globl _VDP_SetSpritePatternTable
+                                    233 	.globl _VDP_LoadSpritePattern
+                                    234 	.globl _VDP_SetSpriteSM1
+                                    235 	.globl _VDP_SetSprite
+                                    236 	.globl _VDP_SetSpritePosition
+                                    237 	.globl _VDP_SetSpritePositionX
+                                    238 	.globl _VDP_SetSpritePositionY
+                                    239 	.globl _VDP_SetSpritePattern
+                                    240 	.globl _VDP_SetSpriteColorSM1
+                                    241 	.globl _VDP_DisableSpritesFrom
+                                    242 	.globl _VDP_LoadPattern_GM2
+                                    243 	.globl _VDP_LoadColor_GM2
+                                    244 	.globl _VDP_WriteLayout_GM2
+                                    245 	.globl _VDP_FillLayout_GM2
+                                    246 ;--------------------------------------------------------
+                                    247 ; special function registers
+                                    248 ;--------------------------------------------------------
+                         000000A8   249 _g_PortPrimarySlot	=	0x00a8
+                         000000A9   250 _g_PortReadKeyboard	=	0x00a9
+                         000000AA   251 _g_PortAccessKeyboard	=	0x00aa
+                         000000AB   252 _g_PortControl	=	0x00ab
+                         00000098   253 _g_VDP_DataPort	=	0x0098
+                         00000099   254 _g_VDP_RegPort	=	0x0099
+                         00000099   255 _g_VDP_AddrPort	=	0x0099
+                         00000099   256 _g_VDP_StatPort	=	0x0099
+                         000000A0   257 _g_PSG_RegPort	=	0x00a0
+                         000000A1   258 _g_PSG_DataPort	=	0x00a1
+                         000000A2   259 _g_PSG_StatPort	=	0x00a2
+                         00000010   260 _g_PSG_Ext_RegPort	=	0x0010
+                         00000011   261 _g_PSG_Ext_DataPort	=	0x0011
+                         00000012   262 _g_PSG_Ext_StatPort	=	0x0012
+                         0000007C   263 _g_MSXMusic_IndexPort	=	0x007c
+                         0000007D   264 _g_MSXMusic_DataPort	=	0x007d
+                         000000C0   265 _g_MSXAudio_IndexPort	=	0x00c0
+                         000000C1   266 _g_MSXAudio_DataPort	=	0x00c1
+                         000000C2   267 _g_MSXAudio_IndexPort2	=	0x00c2
+                         000000C3   268 _g_MSXAudio_DataPort2	=	0x00c3
+                         000000B4   269 _g_RTC_AddrPort	=	0x00b4
+                         000000B5   270 _g_RTC_DataPort	=	0x00b5
+                                    271 ;--------------------------------------------------------
+                                    272 ; ram data
+                                    273 ;--------------------------------------------------------
+                                    274 	.area _DATA
+                         0000F3AE   275 _g_LINL40	=	0xf3ae
+                         0000F3AF   276 _g_LINL32	=	0xf3af
+                         0000F3B0   277 _g_LINLEN	=	0xf3b0
+                         0000F3B1   278 _g_CRTCNT	=	0xf3b1
+                         0000F3B2   279 _g_CLMLST	=	0xf3b2
+                         0000F3B3   280 _g_TXTNAM	=	0xf3b3
+                         0000F3B5   281 _g_TXTCOL	=	0xf3b5
+                         0000F3B7   282 _g_TXTCGP	=	0xf3b7
+                         0000F3B9   283 _g_TXTATR	=	0xf3b9
+                         0000F3BB   284 _g_TXTPAT	=	0xf3bb
+                         0000F3BD   285 _g_T32NAM	=	0xf3bd
+                         0000F3BF   286 _g_T32COL	=	0xf3bf
+                         0000F3C1   287 _g_T32CGP	=	0xf3c1
+                         0000F3C3   288 _g_T32ATR	=	0xf3c3
+                         0000F3C5   289 _g_T32PAT	=	0xf3c5
+                         0000F3C7   290 _g_GRPNAM	=	0xf3c7
+                         0000F3C9   291 _g_GRPCOL	=	0xf3c9
+                         0000F3CB   292 _g_GRPCGP	=	0xf3cb
+                         0000F3CD   293 _g_GRPATR	=	0xf3cd
+                         0000F3CF   294 _g_GRPPAT	=	0xf3cf
+                         0000F3D1   295 _g_MLTNAM	=	0xf3d1
+                         0000F3D3   296 _g_MLTCOL	=	0xf3d3
+                         0000F3D5   297 _g_MLTCGP	=	0xf3d5
+                         0000F3D7   298 _g_MLTATR	=	0xf3d7
+                         0000F3D9   299 _g_MLTPAT	=	0xf3d9
+                         0000F3DB   300 _g_CLIKSW	=	0xf3db
+                         0000F3DC   301 _g_CSRY	=	0xf3dc
+                         0000F3DD   302 _g_CSRX	=	0xf3dd
+                         0000F3E9   303 _g_FORCLR	=	0xf3e9
+                         0000F3EA   304 _g_BAKCLR	=	0xf3ea
+                         0000F3EB   305 _g_BDRCLR	=	0xf3eb
+                         0000F3F2   306 _g_ATRBYT	=	0xf3f2
+                         0000F87F   307 _g_FNKSTR	=	0xf87f
+                         0000F92A   308 _g_CLOC	=	0xf92a
+                         0000F92C   309 _g_CMASK	=	0xf92c
+                         0000FB02   310 _g_LOGOPR	=	0xfb02
+                         0000FCB7   311 _g_GRPACX	=	0xfcb7
+                         0000FCB9   312 _g_GRPACY	=	0xfcb9
+                         0000FFFF   313 _g_SLTSL	=	0xffff
+    00000000                        314 _g_VDP_REGSAV::
+    00000000                        315 	.ds 28
+    0000001C                        316 _g_VDP_Data::
+    0000001C                        317 	.ds 2
+    0000001E                        318 _g_VDP_Sprite::
+    0000001E                        319 	.ds 4
+    00000022                        320 _g_ScreenLayoutLow::
+    00000022                        321 	.ds 2
+    00000024                        322 _g_ScreenColorLow::
+    00000024                        323 	.ds 2
+    00000026                        324 _g_ScreenPatternLow::
+    00000026                        325 	.ds 2
+    00000028                        326 _g_SpriteAttributeLow::
+    00000028                        327 	.ds 2
+    0000002A                        328 _g_SpritePatternLow::
+    0000002A                        329 	.ds 2
+    0000002C                        330 _g_SpriteColorLow::
+    0000002C                        331 	.ds 2
+                                    332 ;--------------------------------------------------------
+                                    333 ; ram data
+                                    334 ;--------------------------------------------------------
+                                    335 	.area _INITIALIZED
+    00000000                        336 _g_VDPInitilized::
+    00000000                        337 	.ds 1
+                                    338 ;--------------------------------------------------------
+                                    339 ; absolute external ram data
+                                    340 ;--------------------------------------------------------
+                                    341 	.area _DABS (ABS)
+                                    342 ;--------------------------------------------------------
+                                    343 ; global & static initialisations
+                                    344 ;--------------------------------------------------------
+                                    345 	.area _HOME
+                                    346 	.area _GSINIT
+                                    347 	.area _GSFINAL
+                                    348 	.area _GSINIT
+                                    349 ;--------------------------------------------------------
+                                    350 ; Home
+                                    351 ;--------------------------------------------------------
+                                    352 	.area _HOME
+                                    353 	.area _HOME
+                                    354 ;--------------------------------------------------------
+                                    355 ; code
+                                    356 ;--------------------------------------------------------
+                                    357 	.area _CODE
+                                    358 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:165: void VDP_SetModeFlag(u8 flag)
+                                    359 ;	---------------------------------
+                                    360 ; Function VDP_SetModeFlag
+                                    361 ; ---------------------------------
+    00000000                        362 _VDP_SetModeFlag::
+    00000000 5F               [ 4]  363 	ld	e, a
+                                    364 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:168: u8 reg1 = g_VDP_REGSAV[1];
+    00000001 3Ar01r00         [13]  365 	ld	a, (#_g_VDP_REGSAV + 1)
+                                    366 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:169: reg1 &= 0b11100111;
+    00000004 E6 E7            [ 7]  367 	and	a, #0xe7
+    00000006 6F               [ 4]  368 	ld	l, a
+                                    369 ;	spillPairReg hl
+                                    370 ;	spillPairReg hl
+                                    371 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:170: if (flag & 0b00001)
+    00000007 CB 43            [ 8]  372 	bit	0, e
+    00000009 28 02            [12]  373 	jr	Z, 00102$
+                                    374 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:171: reg1 |= 0b00010000;
+    0000000B CB E5            [ 8]  375 	set	4, l
+    0000000D                        376 00102$:
+                                    377 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:172: if (flag & 0b00010)
+    0000000D CB 4B            [ 8]  378 	bit	1, e
+    0000000F 28 02            [12]  379 	jr	Z, 00104$
+                                    380 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:173: reg1 |= 0b00001000;
+    00000011 CB DD            [ 8]  381 	set	3, l
+    00000013                        382 00104$:
+                                    383 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:174: VDP_RegWriteBak(1, reg1);
+    00000013 3E 01            [ 7]  384 	ld	a, #0x01
+    00000015 CDr83r01         [17]  385 	call	_VDP_RegWriteBak
+                                    386 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:177: u8 reg0 = g_VDP_REGSAV[0];
+    00000018 3Ar00r00         [13]  387 	ld	a, (#_g_VDP_REGSAV + 0)
+                                    388 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:178: reg0 &= 0b11110001;
+    0000001B E6 F1            [ 7]  389 	and	a, #0xf1
+    0000001D 4F               [ 4]  390 	ld	c, a
+                                    391 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:179: flag >>= 1;
+    0000001E 7B               [ 4]  392 	ld	a, e
+    0000001F CB 3F            [ 8]  393 	srl	a
+                                    394 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:180: flag &= 0b00001110;
+    00000021 E6 0E            [ 7]  395 	and	a, #0x0e
+                                    396 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:181: reg0 |= flag;
+    00000023 B1               [ 4]  397 	or	a, c
+    00000024 6F               [ 4]  398 	ld	l, a
+                                    399 ;	spillPairReg hl
+                                    400 ;	spillPairReg hl
+                                    401 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:182: VDP_RegWriteBak(0, reg0);
+    00000025 AF               [ 4]  402 	xor	a, a
+                                    403 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:183: }
+    00000026 C3r83r01         [10]  404 	jp	_VDP_RegWriteBak
+                         0000F380   405 _g_RDPRIM	=	0xf380
+                         0000F385   406 _g_WRPRIM	=	0xf385
+                         0000F38C   407 _g_CLPRIM	=	0xf38c
+                         0000F39A   408 _g_USRTAB	=	0xf39a
+                         0000F3DE   409 _g_CNSDFG	=	0xf3de
+                         0000F3DF   410 _g_RG0SAV	=	0xf3df
+                         0000F3E0   411 _g_RG1SAV	=	0xf3e0
+                         0000F3E1   412 _g_RG2SAV	=	0xf3e1
+                         0000F3E2   413 _g_RG3SAV	=	0xf3e2
+                         0000F3E3   414 _g_RG4SAV	=	0xf3e3
+                         0000F3E4   415 _g_RG5SAV	=	0xf3e4
+                         0000F3E5   416 _g_RG6SAV	=	0xf3e5
+                         0000F3E6   417 _g_RG7SAV	=	0xf3e6
+                         0000F3E7   418 _g_STATFL	=	0xf3e7
+                         0000F3E8   419 _g_TRGFLG	=	0xf3e8
+                         0000F3EC   420 _g_MAXUPD	=	0xf3ec
+                         0000F3EF   421 _g_MINUPD	=	0xf3ef
+                         0000F3F3   422 _g_QUEUES	=	0xf3f3
+                         0000F3F5   423 _g_FRCNEW	=	0xf3f5
+                         0000F3F6   424 _g_SCNCNT	=	0xf3f6
+                         0000F3F7   425 _g_REPCNT	=	0xf3f7
+                         0000F3F8   426 _g_PUTPNT	=	0xf3f8
+                         0000F3FA   427 _g_GETPNT	=	0xf3fa
+                         0000F3FC   428 _g_CS120	=	0xf3fc
+                         0000F401   429 _g_CS240	=	0xf401
+                         0000F406   430 _g_LOW	=	0xf406
+                         0000F408   431 _g_HIGH	=	0xf408
+                         0000F40A   432 _g_HEADER	=	0xf40a
+                         0000F40B   433 _g_ASPCT1	=	0xf40b
+                         0000F40D   434 _g_ASPCT2	=	0xf40d
+                         0000F959   435 _g_QUETAB	=	0xf959
+                         0000F971   436 _g_QUEBAK	=	0xf971
+                         0000F975   437 _g_VOICAQ	=	0xf975
+                         0000F9F5   438 _g_VOICBQ	=	0xf9f5
+                         0000FA75   439 _g_VOICCQ	=	0xfa75
+                         0000FAF5   440 _g_RS2IQ	=	0xfaf5
+                         0000FAF5   441 _g_DPPAGE	=	0xfaf5
+                         0000FAF6   442 _g_ACPAGE	=	0xfaf6
+                         0000FAF7   443 _g_AVCSAV	=	0xfaf7
+                         0000FAF8   444 _g_EXBRSA	=	0xfaf8
+                         0000FAF9   445 _g_CHRCNT	=	0xfaf9
+                         0000FAFA   446 _g_ROMA	=	0xfafa
+                         0000FAFC   447 _g_MODE	=	0xfafc
+                         0000FAFD   448 _g_NORUSE	=	0xfafd
+                         0000FAFE   449 _g_XSAVE	=	0xfafe
+                         0000FB00   450 _g_YSAVE	=	0xfb00
+                         0000FB03   451 _g_RSTMP	=	0xfb03
+                         0000FB03   452 _g_TOCNT	=	0xfb03
+                         0000FB04   453 _g_RSFCB	=	0xfb04
+                         0000FB06   454 _g_RSIQLN	=	0xfb06
+                         0000FB07   455 _g_MEXBIh	=	0xfb07
+                         0000FB0C   456 _g_OLDSTT	=	0xfb0c
+                         0000FB0C   457 _g_OLDINT	=	0xfb0c
+                         0000FB16   458 _g_DEVNUM	=	0xfb16
+                         0000FB17   459 _g_DATCNT	=	0xfb17
+                         0000FB1A   460 _g_ERRORS	=	0xfb1a
+                         0000FB1B   461 _g_FLAGS	=	0xfb1b
+                         0000FB1C   462 _g_ESTBLS	=	0xfb1c
+                         0000FB1D   463 _g_COMMSK	=	0xfb1d
+                         0000FB1E   464 _g_LSTCOM	=	0xfb1e
+                         0000FB1F   465 _g_LSTMOD	=	0xfb1f
+                         0000FB35   466 _g_PRSCNT	=	0xfb35
+                         0000FB36   467 _g_SAVSP	=	0xfb36
+                         0000FB38   468 _g_VOICEN	=	0xfb38
+                         0000FB39   469 _g_SAVVOL	=	0xfb39
+                         0000FB3B   470 _g_MCLLEN	=	0xfb3b
+                         0000FB3C   471 _g_MCLPTR	=	0xfb3c
+                         0000FB3E   472 _g_QUEUEN	=	0xfb3e
+                         0000FB3F   473 _g_MUSICF	=	0xfb3f
+                         0000FB40   474 _g_PLYCNT	=	0xfb40
+                         0000FB41   475 _g_VCBA	=	0xfb41
+                         0000FB66   476 _g_VCBB	=	0xfb66
+                         0000FB8B   477 _g_VCBC	=	0xfb8b
+                         0000FBB0   478 _g_ENSTOP	=	0xfbb0
+                         0000FBB1   479 _g_BASROM	=	0xfbb1
+                         0000FBB2   480 _g_LINTTB	=	0xfbb2
+                         0000FBCA   481 _g_FSTPOS	=	0xfbca
+                         0000FBCC   482 _g_CODSAV	=	0xfbcc
+                         0000FBCD   483 _g_FNKSWI	=	0xfbcd
+                         0000FBCE   484 _g_FNKFLG	=	0xfbce
+                         0000FBD8   485 _g_ONGSBF	=	0xfbd8
+                         0000FBD9   486 _g_CLIKFL	=	0xfbd9
+                         0000FBDA   487 _g_OLDKEY	=	0xfbda
+                         0000FBE5   488 _g_NEWKEY	=	0xfbe5
+                         0000FBF0   489 _g_KEYBUF	=	0xfbf0
+                         0000FC18   490 _g_LINWRK	=	0xfc18
+                         0000FC40   491 _g_PATWRK	=	0xfc40
+                         0000FC48   492 _g_BOTTOM	=	0xfc48
+                         0000FC4A   493 _g_HIMEM	=	0xfc4a
+                         0000FC4C   494 _g_TRPTBL	=	0xfc4c
+                         0000FC9A   495 _g_RTYCNT	=	0xfc9a
+                         0000FC9B   496 _g_INTFLG	=	0xfc9b
+                         0000FC9C   497 _g_PADY	=	0xfc9c
+                         0000FC9D   498 _g_PADX	=	0xfc9d
+                         0000FC9E   499 _g_JIFFY	=	0xfc9e
+                         0000FCA0   500 _g_INTVAL	=	0xfca0
+                         0000FCA2   501 _g_INTCNT	=	0xfca2
+                         0000FCA4   502 _g_LOWLIM	=	0xfca4
+                         0000FCA5   503 _g_WINWID	=	0xfca5
+                         0000FCA6   504 _g_GRPHED	=	0xfca6
+                         0000FCA7   505 _g_ESCCNT	=	0xfca7
+                         0000FCA8   506 _g_INSFLG	=	0xfca8
+                         0000FCA9   507 _g_CSRSW	=	0xfca9
+                         0000FCAA   508 _g_CSTYLE	=	0xfcaa
+                         0000FCAB   509 _g_CAPST	=	0xfcab
+                         0000FCAC   510 _g_KANAST	=	0xfcac
+                         0000FCAD   511 _g_KANAMD	=	0xfcad
+                         0000FCAE   512 _g_FLBMEM	=	0xfcae
+                         0000FCAF   513 _g_SCRMOD	=	0xfcaf
+                         0000FCB0   514 _g_OLDSCR	=	0xfcb0
+                         0000FCB1   515 _g_CASPRV	=	0xfcb1
+                         0000FCB2   516 _g_BRDATR	=	0xfcb2
+                         0000FCB3   517 _g_GXPOS	=	0xfcb3
+                         0000FCB5   518 _g_GYPOS	=	0xfcb5
+                         0000FCBB   519 _g_DRWFLG	=	0xfcbb
+                         0000FCBC   520 _g_DRWSCL	=	0xfcbc
+                         0000FCBD   521 _g_DRWANG	=	0xfcbd
+                         0000FCC1   522 _g_MNROM	=	0xfcc1
+                         0000FCC1   523 _g_EXPTBL	=	0xfcc1
+                         0000FCC5   524 _g_SLTTBL	=	0xfcc5
+                         0000FCC9   525 _g_SLTATR	=	0xfcc9
+                         0000FD09   526 _g_SLTWRK	=	0xfd09
+                         0000FD89   527 _g_PROCNM	=	0xfd89
+                         0000FFE7   528 _g_RG08SAV	=	0xffe7
+                         0000FFE8   529 _g_RG09SAV	=	0xffe8
+                         0000FFE9   530 _g_RG10SAV	=	0xffe9
+                         0000FFEA   531 _g_RG11SAV	=	0xffea
+                         0000FFEB   532 _g_RG12SAV	=	0xffeb
+                         0000FFEC   533 _g_RG13SAV	=	0xffec
+                         0000FFED   534 _g_RG14SAV	=	0xffed
+                         0000FFEE   535 _g_RG15SAV	=	0xffee
+                         0000FFEF   536 _g_RG16SAV	=	0xffef
+                         0000FFF0   537 _g_RG17SAV	=	0xfff0
+                         0000FFF1   538 _g_RG18SAV	=	0xfff1
+                         0000FFF2   539 _g_RG19SAV	=	0xfff2
+                         0000FFF3   540 _g_RG20SAV	=	0xfff3
+                         0000FFF4   541 _g_RG21SAV	=	0xfff4
+                         0000FFF5   542 _g_RG22SAV	=	0xfff5
+                         0000FFF6   543 _g_RG23SAV	=	0xfff6
+                         0000FFF7   544 _g_MINROM	=	0xfff7
+                         0000FFF8   545 _g_SVFFF8	=	0xfff8
+                         0000FFFA   546 _g_RG25SAV	=	0xfffa
+                         0000FFFB   547 _g_RG26SAV	=	0xfffb
+                         0000FFFC   548 _g_RG27SAV	=	0xfffc
+                         0000FFFD   549 _g_SVFFFD	=	0xfffd
+                         00000004   550 _g_CGTABL	=	0x0004
+                         00000006   551 _g_VDP_DR	=	0x0006
+                         00000007   552 _g_VDP_DW	=	0x0007
+                         0000002B   553 _g_BASRVN	=	0x002b
+                         0000002B   554 _g_ROMVersion	=	0x002b
+                         0000002D   555 _g_MSXVER	=	0x002d
+                         0000002E   556 _g_MSXMID	=	0x002e
+                         00000034   557 _g_CHAR_16	=	0x0034
+                                    558 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:230: void VDP_SetModeGraphic2()
+                                    559 ;	---------------------------------
+                                    560 ; Function VDP_SetModeGraphic2
+                                    561 ; ---------------------------------
+    00000029                        562 _VDP_SetModeGraphic2::
+                                    563 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:232: VDP_SetModeFlag(VDP_G2_MODE);
+    00000029 3E 04            [ 7]  564 	ld	a, #0x04
+    0000002B CDr00r00         [17]  565 	call	_VDP_SetModeFlag
+                                    566 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:233: VDP_SetLayoutTable(VDP_G2_ADDR_NT);
+    0000002E 21 00 18         [10]  567 	ld	hl, #0x1800
+    00000031 CDrB8r01         [17]  568 	call	_VDP_SetLayoutTable
+                                    569 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:234: VDP_SetColorTable(VDP_G2_ADDR_CT);
+    00000034 21 00 20         [10]  570 	ld	hl, #0x2000
+    00000037 CDrC8r01         [17]  571 	call	_VDP_SetColorTable
+                                    572 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:235: VDP_SetPatternTable(VDP_G2_ADDR_PT);
+    0000003A 21 00 00         [10]  573 	ld	hl, #0x0000
+    0000003D CDrF5r01         [17]  574 	call	_VDP_SetPatternTable
+                                    575 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:237: VDP_SetSpriteAttributeTable(VDP_G2_ADDR_SAT);
+    00000040 21 00 1B         [10]  576 	ld	hl, #0x1b00
+    00000043 CDr12r02         [17]  577 	call	_VDP_SetSpriteAttributeTable
+                                    578 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:238: VDP_SetSpritePatternTable(VDP_G2_ADDR_SPT);
+    00000046 21 00 38         [10]  579 	ld	hl, #0x3800
+                                    580 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:240: }
+    00000049 C3r43r02         [10]  581 	jp	_VDP_SetSpritePatternTable
+                                    582 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:251: void VDP_ClearVRAM()
+                                    583 ;	---------------------------------
+                                    584 ; Function VDP_ClearVRAM
+                                    585 ; ---------------------------------
+    0000004C                        586 _VDP_ClearVRAM::
+                                    587 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:254: VDP_FillVRAM_16K(0, 0x0000, 0x4000);  // Clear 16 KB of VRAM
+    0000004C 21 00 40         [10]  588 	ld	hl, #0x4000
+    0000004F E5               [11]  589 	push	hl
+    00000050 11 00 00         [10]  590 	ld	de, #0x0000
+    00000053 AF               [ 4]  591 	xor	a, a
+    00000054 CDr81r00         [17]  592 	call	_VDP_FillVRAM_16K
+                                    593 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:263: }
+    00000057 C9               [10]  594 	ret
+                                    595 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:274: void VDP_WriteVRAM_16K(const u8* src, u16 dest, u16 count)
+                                    596 ;	---------------------------------
+                                    597 ; Function VDP_WriteVRAM_16K
+                                    598 ; ---------------------------------
+    00000058                        599 _VDP_WriteVRAM_16K::
+                                    600 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:343: __endasm;
+    00000058 FD 21 02 00      [14]  601 	ld	iy, #2
+    0000005C FD 39            [15]  602 	add	iy, sp
+    0000005E 7B               [ 4]  603 	ld	a, e
+    0000005F F3               [ 4]  604 	di
+    00000060 D3 99            [11]  605 	out	(0x99), a
+    00000062 7A               [ 4]  606 	ld	a, d
+    00000063 E6 3F            [ 7]  607 	and	a, #0x3F
+    00000065 F6 40            [ 7]  608 	or	a, #0x40
+    00000067 FB               [ 4]  609 	ei
+    00000068 D3 99            [11]  610 	out	(0x99), a
+    0000006A FD 5E 00         [19]  611 	ld	e, 0(iy)
+    0000006D FD 56 01         [19]  612 	ld	d, 1(iy)
+    00000070 0E 98            [ 7]  613 	ld	c, #0x98
+    00000072 43               [ 4]  614 	ld	b, e
+    00000073 1B               [ 6]  615 	dec	de
+    00000074 14               [ 4]  616 	inc	d
+    00000075                        617 	 wrt16_loop_start:
+    00000075 ED A3            [16]  618 	outi
+    00000077 C2r75r00         [10]  619 	jp	nz, wrt16_loop_start
+    0000007A 15               [ 4]  620 	dec	d
+    0000007B C2r75r00         [10]  621 	jp	nz, wrt16_loop_start
+    0000007E                        622 	 wrt16_loop_end:
+                                    623 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:344: }
+    0000007E E1               [10]  624 	pop	hl
+    0000007F F1               [10]  625 	pop	af
+    00000080 E9               [ 4]  626 	jp	(hl)
+                                    627 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:353: void VDP_FillVRAM_16K(u8 value, u16 dest, u16 count) __NAKED // Stack: 4 bytes
+                                    628 ;	---------------------------------
+                                    629 ; Function VDP_FillVRAM_16K
+                                    630 ; ---------------------------------
+    00000081                        631 _VDP_FillVRAM_16K::
+                                    632 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:404: __endasm;
+    00000081 4F               [ 4]  633 	ld	c, a
+    00000082 7B               [ 4]  634 	ld	a, e
+    00000083 F3               [ 4]  635 	di
+    00000084 D3 99            [11]  636 	out	(0x99), a
+    00000086 7A               [ 4]  637 	ld	a, d
+    00000087 E6 3F            [ 7]  638 	and	a, #0x3F
+    00000089 F6 40            [ 7]  639 	or	a, #0x40
+    0000008B D3 99            [11]  640 	out	(0x99), a
+    0000008D FD E1            [14]  641 	pop	iy
+    0000008F D1               [10]  642 	pop	de
+    00000090 79               [ 4]  643 	ld	a, c
+    00000091 43               [ 4]  644 	ld	b, e
+    00000092 1B               [ 6]  645 	dec	de
+    00000093 14               [ 4]  646 	inc	d
+    00000094                        647 	 fll16_loop_start:
+    00000094 D3 98            [11]  648 	out	(0x98), a
+    00000096 00               [ 4]  649 	nop
+    00000097 10 FB            [13]  650 	djnz	fll16_loop_start
+    00000099 15               [ 4]  651 	dec	d
+    0000009A C2r94r00         [10]  652 	jp	nz, fll16_loop_start
+    0000009D                        653 	 fll16_loop_end:
+    0000009D FB               [ 4]  654 	ei
+    0000009E FD E9            [ 8]  655 	jp	(iy)
+                                    656 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:405: }
+                                    657 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:518: void VDP_ReadVRAM_16K(u16 src, u8* dest, u16 count)
+                                    658 ;	---------------------------------
+                                    659 ; Function VDP_ReadVRAM_16K
+                                    660 ; ---------------------------------
+    000000A0                        661 _VDP_ReadVRAM_16K::
+                                    662 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:588: __endasm;
+    000000A0 FD 21 02 00      [14]  663 	ld	iy, #2
+    000000A4 FD 39            [15]  664 	add	iy, sp
+    000000A6 7D               [ 4]  665 	ld	a, l
+    000000A7 F3               [ 4]  666 	di
+    000000A8 D3 99            [11]  667 	out	(0x99), a
+    000000AA 7C               [ 4]  668 	ld	a, h
+    000000AB E6 3F            [ 7]  669 	and	a, #0x3F
+    000000AD FB               [ 4]  670 	ei
+    000000AE D3 99            [11]  671 	out	(0x99), a
+    000000B0 EB               [ 4]  672 	ex	de, hl
+    000000B1 FD 5E 00         [19]  673 	ld	e, 0(iy)
+    000000B4 FD 56 01         [19]  674 	ld	d, 1(iy)
+    000000B7 0E 98            [ 7]  675 	ld	c, #0x98
+    000000B9 43               [ 4]  676 	ld	b, e
+    000000BA 1B               [ 6]  677 	dec	de
+    000000BB 14               [ 4]  678 	inc	d
+    000000BC                        679 	 rd16_loop_start:
+    000000BC ED A2            [16]  680 	ini
+    000000BE C2rBCr00         [10]  681 	jp	nz, rd16_loop_start
+    000000C1 15               [ 4]  682 	dec	d
+    000000C2 C2rBCr00         [10]  683 	jp	nz, rd16_loop_start
+    000000C5                        684 	 rd16_loop_end:
+                                    685 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:589: }
+    000000C5 E1               [10]  686 	pop	hl
+    000000C6 F1               [10]  687 	pop	af
+    000000C7 E9               [ 4]  688 	jp	(hl)
+                                    689 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:599: u8 VDP_Peek_16K(u16 dest) __NAKED __PRESERVES(b, c, d, e, iyl, iyh)
+                                    690 ;	---------------------------------
+                                    691 ; Function VDP_Peek_16K
+                                    692 ; ---------------------------------
+    000000C8                        693 _VDP_Peek_16K::
+                                    694 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:635: __endasm;
+    000000C8 7D               [ 4]  695 	ld	a, l
+    000000C9 F3               [ 4]  696 	di
+    000000CA D3 99            [11]  697 	out	(0x99), a
+    000000CC 7C               [ 4]  698 	ld	a, h
+    000000CD E6 3F            [ 7]  699 	and	a, #0x3F
+    000000CF D3 99            [11]  700 	out	(0x99), a
+    000000D1 29               [11]  701 	add	hl, hl
+    000000D2 FB               [ 4]  702 	ei
+    000000D3 DB 98            [11]  703 	in	a, (0x98)
+    000000D5 C9               [10]  704 	ret
+                                    705 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:636: }
+                                    706 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:644: void VDP_Poke_16K(u8 val, u16 dest) __PRESERVES(c, h, l, iyl, iyh)
+                                    707 ;	---------------------------------
+                                    708 ; Function VDP_Poke_16K
+                                    709 ; ---------------------------------
+    000000D6                        710 _VDP_Poke_16K::
+                                    711 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:681: __endasm;
+    000000D6 47               [ 4]  712 	ld	b, a
+    000000D7 7B               [ 4]  713 	ld	a, e
+    000000D8 F3               [ 4]  714 	di
+    000000D9 D3 99            [11]  715 	out	(0x99), a
+    000000DB 7A               [ 4]  716 	ld	a, d
+    000000DC E6 3F            [ 7]  717 	and	a, #0x3F
+    000000DE F6 40            [ 7]  718 	or	a, #0x40
+    000000E0 D3 99            [11]  719 	out	(0x99), a
+    000000E2 13               [ 6]  720 	inc	de
+    000000E3 78               [ 4]  721 	ld	a, b
+    000000E4 FB               [ 4]  722 	ei
+    000000E5 D3 98            [11]  723 	out	(0x98), a
+                                    724 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:682: }
+    000000E7 C9               [10]  725 	ret
+                                    726 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1454: void VDP_Initialize()
+                                    727 ;	---------------------------------
+                                    728 ; Function VDP_Initialize
+                                    729 ; ---------------------------------
+    000000E8                        730 _VDP_Initialize::
+                                    731 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1462: __endasm;
+    000000E8 21 DF F3         [10]  732 	ld	hl, #0xF3DF
+    000000EB 11r00r00         [10]  733 	ld	de, #_g_VDP_REGSAV+0
+    000000EE 01 08 00         [10]  734 	ld	bc, #8
+    000000F1 ED B0            [21]  735 	ldir
+                                    736 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1485: g_VDPInitilized = TRUE;
+    000000F3 21r00r00         [10]  737 	ld	hl, #_g_VDPInitilized
+    000000F6 36 01            [10]  738 	ld	(hl), #0x01
+                                    739 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1487: }
+    000000F8 C9               [10]  740 	ret
+                                    741 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1495: void VDP_SetMode(const u8 mode)
+                                    742 ;	---------------------------------
+                                    743 ; Function VDP_SetMode
+                                    744 ; ---------------------------------
+    000000F9                        745 _VDP_SetMode::
+    000000F9 4F               [ 4]  746 	ld	c, a
+                                    747 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1498: if (!g_VDPInitilized)
+    000000FA 3Ar00r00         [13]  748 	ld	a, (_g_VDPInitilized+0)
+    000000FD B7               [ 4]  749 	or	a, a
+    000000FE 20 05            [12]  750 	jr	NZ, 00102$
+                                    751 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1499: VDP_Initialize();
+    00000100 C5               [11]  752 	push	bc
+    00000101 CDrE8r00         [17]  753 	call	_VDP_Initialize
+    00000104 C1               [10]  754 	pop	bc
+    00000105                        755 00102$:
+                                    756 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1506: g_VDP_Data.Mode = mode;
+    00000105 21r1Cr00         [10]  757 	ld	hl, #_g_VDP_Data
+                                    758 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1507: switch (mode)
+    00000108 79               [ 4]  759 	ld	a,c
+    00000109 77               [ 7]  760 	ld	(hl),a
+    0000010A D6 03            [ 7]  761 	sub	a, #0x03
+    0000010C 20 03            [12]  762 	jr	NZ, 00110$
+                                    763 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1536: VDP_SetModeGraphic2();
+    0000010E CDr29r00         [17]  764 	call	_VDP_SetModeGraphic2
+                                    765 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:707: inline void VDP_EnableDisplay(bool enable) { VDP_RegWriteBakMask(1, (u8)~R01_BL, enable ? R01_BL : 0); }
+    00000111                        766 00110$:
+    00000111 3E 40            [ 7]  767 	ld	a, #0x40
+    00000113 F5               [11]  768 	push	af
+    00000114 33               [ 6]  769 	inc	sp
+    00000115 2E BF            [ 7]  770 	ld	l, #0xbf
+                                    771 ;	spillPairReg hl
+                                    772 ;	spillPairReg hl
+    00000117 3E 01            [ 7]  773 	ld	a, #0x01
+    00000119 CDr96r01         [17]  774 	call	_VDP_RegWriteBakMask
+                                    775 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.h:714: inline void VDP_EnableVBlank(bool enable) { VDP_RegWriteBakMask(1, (u8)~R01_IE0, enable ? R01_IE0 : 0); }
+    0000011C 3E 20            [ 7]  776 	ld	a, #0x20
+    0000011E F5               [11]  777 	push	af
+    0000011F 33               [ 6]  778 	inc	sp
+    00000120 2E DF            [ 7]  779 	ld	l, #0xdf
+                                    780 ;	spillPairReg hl
+                                    781 ;	spillPairReg hl
+    00000122 3E 01            [ 7]  782 	ld	a, #0x01
+    00000124 CDr96r01         [17]  783 	call	_VDP_RegWriteBakMask
+                                    784 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1619: VDP_EnableVBlank(TRUE);
+                                    785 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1642: }
+    00000127 C9               [10]  786 	ret
+                                    787 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1648: u8 VDP_GetVersion() __NAKED
+                                    788 ;	---------------------------------
+                                    789 ; Function VDP_GetVersion
+                                    790 ; ---------------------------------
+    00000128                        791 _VDP_GetVersion::
+                                    792 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1717: __endasm;
+    00000128                        793 	 VDP_GetVersionAsm:
+    00000128 CDr47r01         [17]  794 	call	VDP_IsTMS9918A
+    0000012B C8               [11]  795 	ret	z
+    0000012C 3E 01            [ 7]  796 	ld	a, #1
+    0000012E F3               [ 4]  797 	di
+    0000012F D3 99            [11]  798 	out	(0x99), a
+    00000131 3E 8F            [ 7]  799 	ld	a, #(0x80 | 15)
+    00000133 D3 99            [11]  800 	out	(0x99), a
+    00000135 DB 99            [11]  801 	in	a, (0x99)
+    00000137 E6 3E            [ 7]  802 	and	#0b00111110
+    00000139 0F               [ 4]  803 	rrca
+    0000013A 08               [ 4]  804 	ex	af, af'					; '
+    0000013B AF               [ 4]  805 	xor	a
+    0000013C D3 99            [11]  806 	out	(0x99), a
+    0000013E 3E 8F            [ 7]  807 	ld	a, #(0x80 | 15)
+    00000140 FB               [ 4]  808 	ei
+    00000141 D3 99            [11]  809 	out	(0x99), a
+    00000143 08               [ 4]  810 	ex	af, af'					; '
+    00000144 C0               [11]  811 	ret	nz
+    00000145 3C               [ 4]  812 	inc	a
+    00000146 C9               [10]  813 	ret
+    00000147                        814 	 VDP_IsTMS9918A:
+    00000147 AF               [ 4]  815 	xor	a
+    00000148 F3               [ 4]  816 	di
+    00000149 D3 99            [11]  817 	out	(0x99), a
+    0000014B 3E 8F            [ 7]  818 	ld	a, #(0x80 | 15)
+    0000014D D3 99            [11]  819 	out	(0x99), a
+    0000014F DB 99            [11]  820 	in	a, (0x99)
+    00000151                        821 	 VDP_IsTMS9918A_Wait:
+    00000151 DB 99            [11]  822 	in	a,(0x99)
+    00000153 A7               [ 4]  823 	and	a
+    00000154 F2r51r01         [10]  824 	jp	p, VDP_IsTMS9918A_Wait
+    00000157 3E 02            [ 7]  825 	ld	a, #2
+    00000159 D3 99            [11]  826 	out	(0x99), a
+    0000015B 3E 8F            [ 7]  827 	ld	a, #(0x80 | 15)
+    0000015D D3 99            [11]  828 	out	(0x99), a
+    0000015F DB 99            [11]  829 	in	a, (0x99)
+    00000161 08               [ 4]  830 	ex	af, af'					; '
+    00000162 AF               [ 4]  831 	xor	a
+    00000163 D3 99            [11]  832 	out	(0x99), a
+    00000165 3E 8F            [ 7]  833 	ld	a, #(0x80 | 15)
+    00000167 D3 99            [11]  834 	out	(0x99), a
+    00000169 3A E6 F3         [13]  835 	ld	a, (0xF3E6)
+    0000016C D3 99            [11]  836 	out	(0x99), a
+    0000016E 3E 87            [ 7]  837 	ld	a, #(0x80 | 7)
+    00000170 FB               [ 4]  838 	ei
+    00000171 D3 99            [11]  839 	out	(0x99), a
+    00000173 08               [ 4]  840 	ex	af, af'					; '
+    00000174 E6 40            [ 7]  841 	and	#0b01000000
+    00000176 C9               [10]  842 	ret
+                                    843 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1718: }
+                                    844 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1726: void VDP_RegWrite(u8 reg, u8 value) __PRESERVES(b, c, d, e, iyl, iyh)
+                                    845 ;	---------------------------------
+                                    846 ; Function VDP_RegWrite
+                                    847 ; ---------------------------------
+    00000177                        848 _VDP_RegWrite::
+                                    849 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1740: __endasm;
+    00000177 67               [ 4]  850 	ld	h, a
+    00000178 7D               [ 4]  851 	ld	a, l
+    00000179 F3               [ 4]  852 	di
+    0000017A D3 99            [11]  853 	out	(0x99), a
+    0000017C 7C               [ 4]  854 	ld	a, h
+    0000017D C6 80            [ 7]  855 	add	#0x80
+    0000017F FB               [ 4]  856 	ei
+    00000180 D3 99            [11]  857 	out	(0x99), a
+                                    858 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1741: }
+    00000182 C9               [10]  859 	ret
+                                    860 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1749: void VDP_RegWriteBak(u8 reg, u8 value) __PRESERVES(d, e, iyl, iyh)
+                                    861 ;	---------------------------------
+                                    862 ; Function VDP_RegWriteBak
+                                    863 ; ---------------------------------
+    00000183                        864 _VDP_RegWriteBak::
+                                    865 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1769: __endasm;
+    00000183 4F               [ 4]  866 	ld	c, a
+    00000184 7D               [ 4]  867 	ld	a, l
+    00000185 06 00            [ 7]  868 	ld	b, #0
+    00000187 21r00r00         [10]  869 	ld	hl, #_g_VDP_REGSAV
+    0000018A 09               [11]  870 	add	hl, bc
+    0000018B 77               [ 7]  871 	ld	(hl), a
+    0000018C F3               [ 4]  872 	di
+    0000018D D3 99            [11]  873 	out	(0x99), a
+    0000018F 79               [ 4]  874 	ld	a, c
+    00000190 C6 80            [ 7]  875 	add	#0x80
+    00000192 FB               [ 4]  876 	ei
+    00000193 D3 99            [11]  877 	out	(0x99), a
+                                    878 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1770: }
+    00000195 C9               [10]  879 	ret
+                                    880 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1779: void VDP_RegWriteBakMask(u8 reg, u8 mask, u8 flag)
+                                    881 ;	---------------------------------
+                                    882 ; Function VDP_RegWriteBakMask
+                                    883 ; ---------------------------------
+    00000196                        884 _VDP_RegWriteBakMask::
+    00000196 DD E5            [15]  885 	push	ix
+    00000198 DD 21 00 00      [14]  886 	ld	ix,#0
+    0000019C DD 39            [15]  887 	add	ix,sp
+    0000019E 4F               [ 4]  888 	ld	c, a
+    0000019F 5D               [ 4]  889 	ld	e, l
+                                    890 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1781: u8 value = g_VDP_REGSAV[reg];
+    000001A0 21r00r00         [10]  891 	ld	hl, #_g_VDP_REGSAV+0
+    000001A3 06 00            [ 7]  892 	ld	b, #0x00
+    000001A5 09               [11]  893 	add	hl, bc
+    000001A6 7E               [ 7]  894 	ld	a, (hl)
+                                    895 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1782: value &= mask;
+    000001A7 A3               [ 4]  896 	and	a, e
+                                    897 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1783: value |= flag;
+    000001A8 DD B6 04         [19]  898 	or	a, 4 (ix)
+    000001AB 6F               [ 4]  899 	ld	l, a
+                                    900 ;	spillPairReg hl
+                                    901 ;	spillPairReg hl
+                                    902 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1784: VDP_RegWriteBak(reg, value);
+    000001AC 79               [ 4]  903 	ld	a, c
+    000001AD CDr83r01         [17]  904 	call	_VDP_RegWriteBak
+                                    905 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1785: }
+    000001B0 DD E1            [14]  906 	pop	ix
+    000001B2 E1               [10]  907 	pop	hl
+    000001B3 33               [ 6]  908 	inc	sp
+    000001B4 E9               [ 4]  909 	jp	(hl)
+                                    910 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1789: u8 VDP_ReadDefaultStatus() __NAKED __PRESERVES(b, c, d, e, h, l, iyl, iyh)
+                                    911 ;	---------------------------------
+                                    912 ; Function VDP_ReadDefaultStatus
+                                    913 ; ---------------------------------
+    000001B5                        914 _VDP_ReadDefaultStatus::
+                                    915 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1794: __endasm;
+    000001B5 DB 99            [11]  916 	in	a, (0x99)
+    000001B7 C9               [10]  917 	ret
+                                    918 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1795: }
+                                    919 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1812: void VDP_SetLayoutTable(VADDR addr)
+                                    920 ;	---------------------------------
+                                    921 ; Function VDP_SetLayoutTable
+                                    922 ; ---------------------------------
+    000001B8                        923 _VDP_SetLayoutTable::
+                                    924 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1814: g_ScreenLayoutLow = (u16)addr;
+    000001B8 22r22r00         [16]  925 	ld	(_g_ScreenLayoutLow), hl
+                                    926 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1817: reg = (u8)(addr >> 10);
+    000001BB 7C               [ 4]  927 	ld	a, h
+    000001BC 0F               [ 4]  928 	rrca
+    000001BD 0F               [ 4]  929 	rrca
+    000001BE E6 3F            [ 7]  930 	and	a, #0x3f
+    000001C0 6F               [ 4]  931 	ld	l, a
+                                    932 ;	spillPairReg hl
+                                    933 ;	spillPairReg hl
+    000001C1 26 00            [ 7]  934 	ld	h, #0x00
+                                    935 ;	spillPairReg hl
+                                    936 ;	spillPairReg hl
+                                    937 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1838: VDP_RegWrite(2, reg);
+    000001C3 3E 02            [ 7]  938 	ld	a, #0x02
+                                    939 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1843: }
+    000001C5 C3r77r01         [10]  940 	jp	_VDP_RegWrite
+                                    941 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1847: void VDP_SetColorTable(VADDR addr)
+                                    942 ;	---------------------------------
+                                    943 ; Function VDP_SetColorTable
+                                    944 ; ---------------------------------
+    000001C8                        945 _VDP_SetColorTable::
+                                    946 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1849: g_ScreenColorLow = (u16)addr;
+    000001C8 22r24r00         [16]  947 	ld	(_g_ScreenColorLow), hl
+                                    948 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1852: reg = (u8)(addr >> 6);
+    000001CB CB 3C            [ 8]  949 	srl	h
+    000001CD CB 1D            [ 8]  950 	rr	l
+    000001CF CB 3C            [ 8]  951 	srl	h
+    000001D1 CB 1D            [ 8]  952 	rr	l
+    000001D3 CB 3C            [ 8]  953 	srl	h
+    000001D5 CB 1D            [ 8]  954 	rr	l
+    000001D7 CB 3C            [ 8]  955 	srl	h
+    000001D9 CB 1D            [ 8]  956 	rr	l
+    000001DB CB 3C            [ 8]  957 	srl	h
+    000001DD CB 1D            [ 8]  958 	rr	l
+    000001DF CB 3C            [ 8]  959 	srl	h
+    000001E1 CB 1D            [ 8]  960 	rr	l
+    000001E3 4D               [ 4]  961 	ld	c, l
+                                    962 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1853: switch (g_VDP_Data.Mode)
+    000001E4 3Ar1Cr00         [13]  963 	ld	a, (#_g_VDP_Data + 0)
+    000001E7 D6 03            [ 7]  964 	sub	a, #0x03
+    000001E9 20 04            [12]  965 	jr	NZ, 00102$
+                                    966 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1873: reg |= 0b1111111;
+    000001EB 79               [ 4]  967 	ld	a, c
+    000001EC F6 7F            [ 7]  968 	or	a, #0x7f
+    000001EE 4F               [ 4]  969 	ld	c, a
+                                    970 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1875: };	
+    000001EF                        971 00102$:
+                                    972 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1876: VDP_RegWrite(3, reg);
+    000001EF 69               [ 4]  973 	ld	l, c
+                                    974 ;	spillPairReg hl
+                                    975 ;	spillPairReg hl
+    000001F0 3E 03            [ 7]  976 	ld	a, #0x03
+                                    977 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1884: }
+    000001F2 C3r77r01         [10]  978 	jp	_VDP_RegWrite
+                                    979 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1888: void VDP_SetPatternTable(VADDR addr)
+                                    980 ;	---------------------------------
+                                    981 ; Function VDP_SetPatternTable
+                                    982 ; ---------------------------------
+    000001F5                        983 _VDP_SetPatternTable::
+                                    984 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1890: g_ScreenPatternLow = (u16)addr;
+    000001F5 22r26r00         [16]  985 	ld	(_g_ScreenPatternLow), hl
+                                    986 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1893: reg = (u8)(addr >> 11);
+    000001F8 7C               [ 4]  987 	ld	a, h
+    000001F9 0F               [ 4]  988 	rrca
+    000001FA 0F               [ 4]  989 	rrca
+    000001FB 0F               [ 4]  990 	rrca
+    000001FC E6 1F            [ 7]  991 	and	a, #0x1f
+    000001FE 4F               [ 4]  992 	ld	c, a
+    000001FF 06 00            [ 7]  993 	ld	b, #0x00
+                                    994 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1894: switch (g_VDP_Data.Mode)
+    00000201 3Ar1Cr00         [13]  995 	ld	a, (#_g_VDP_Data + 0)
+    00000204 D6 03            [ 7]  996 	sub	a, #0x03
+    00000206 20 04            [12]  997 	jr	NZ, 00102$
+                                    998 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1908: reg |= 0b11;
+    00000208 79               [ 4]  999 	ld	a, c
+    00000209 F6 03            [ 7] 1000 	or	a, #0x03
+    0000020B 4F               [ 4] 1001 	ld	c, a
+                                   1002 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1909: };
+    0000020C                       1003 00102$:
+                                   1004 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1910: VDP_RegWrite(4, reg);
+    0000020C 69               [ 4] 1005 	ld	l, c
+                                   1006 ;	spillPairReg hl
+                                   1007 ;	spillPairReg hl
+    0000020D 3E 04            [ 7] 1008 	ld	a, #0x04
+                                   1009 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1915: }
+    0000020F C3r77r01         [10] 1010 	jp	_VDP_RegWrite
+                                   1011 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1929: void VDP_SetSpriteAttributeTable(VADDR addr)
+                                   1012 ;	---------------------------------
+                                   1013 ; Function VDP_SetSpriteAttributeTable
+                                   1014 ; ---------------------------------
+    00000212                       1015 _VDP_SetSpriteAttributeTable::
+    00000212 EB               [ 4] 1016 	ex	de, hl
+                                   1017 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1931: g_SpriteAttributeLow = (u16)addr;
+    00000213 ED 53r28r00      [20] 1018 	ld	(_g_SpriteAttributeLow), de
+                                   1019 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1934: reg = (u8)(addr >> 7);
+    00000217 6B               [ 4] 1020 	ld	l, e
+                                   1021 ;	spillPairReg hl
+                                   1022 ;	spillPairReg hl
+    00000218 4A               [ 4] 1023 	ld	c, d
+    00000219 CB 39            [ 8] 1024 	srl	c
+    0000021B CB 1D            [ 8] 1025 	rr	l
+    0000021D CB 39            [ 8] 1026 	srl	c
+    0000021F CB 1D            [ 8] 1027 	rr	l
+    00000221 CB 39            [ 8] 1028 	srl	c
+    00000223 CB 1D            [ 8] 1029 	rr	l
+    00000225 CB 39            [ 8] 1030 	srl	c
+    00000227 CB 1D            [ 8] 1031 	rr	l
+    00000229 CB 39            [ 8] 1032 	srl	c
+    0000022B CB 1D            [ 8] 1033 	rr	l
+    0000022D CB 39            [ 8] 1034 	srl	c
+    0000022F CB 1D            [ 8] 1035 	rr	l
+    00000231 CB 39            [ 8] 1036 	srl	c
+    00000233 CB 1D            [ 8] 1037 	rr	l
+                                   1038 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1957: VDP_RegWrite(5, reg);
+    00000235 3E 05            [ 7] 1039 	ld	a, #0x05
+    00000237 CDr77r01         [17] 1040 	call	_VDP_RegWrite
+                                   1041 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1966: addr -= 0x200;
+                                   1042 ;	spillPairReg hl
+                                   1043 ;	spillPairReg hl
+    0000023A 6B               [ 4] 1044 	ld	l, e
+    0000023B 7A               [ 4] 1045 	ld	a,d
+    0000023C C6 FE            [ 7] 1046 	add	a,#0xfe
+    0000023E 67               [ 4] 1047 	ld	h, a
+                                   1048 ;	spillPairReg hl
+                                   1049 ;	spillPairReg hl
+    0000023F 22r2Cr00         [16] 1050 	ld	(_g_SpriteColorLow), hl
+                                   1051 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1967: g_SpriteColorLow = (u16)addr;
+                                   1052 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1971: }
+    00000242 C9               [10] 1053 	ret
+                                   1054 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1977: void VDP_SetSpritePatternTable(VADDR addr)
+                                   1055 ;	---------------------------------
+                                   1056 ; Function VDP_SetSpritePatternTable
+                                   1057 ; ---------------------------------
+    00000243                       1058 _VDP_SetSpritePatternTable::
+                                   1059 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1979: g_SpritePatternLow  = (u16)addr;
+    00000243 22r2Ar00         [16] 1060 	ld	(_g_SpritePatternLow), hl
+                                   1061 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1984: u8 reg = (u8)(addr >> 11);
+    00000246 7C               [ 4] 1062 	ld	a, h
+    00000247 0F               [ 4] 1063 	rrca
+    00000248 0F               [ 4] 1064 	rrca
+    00000249 0F               [ 4] 1065 	rrca
+    0000024A E6 1F            [ 7] 1066 	and	a, #0x1f
+    0000024C 6F               [ 4] 1067 	ld	l, a
+                                   1068 ;	spillPairReg hl
+                                   1069 ;	spillPairReg hl
+    0000024D 26 00            [ 7] 1070 	ld	h, #0x00
+                                   1071 ;	spillPairReg hl
+                                   1072 ;	spillPairReg hl
+                                   1073 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1985: VDP_RegWrite(6, reg);
+    0000024F 3E 06            [ 7] 1074 	ld	a, #0x06
+                                   1075 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1987: }
+    00000251 C3r77r01         [10] 1076 	jp	_VDP_RegWrite
+                                   1077 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1991: void VDP_LoadSpritePattern(const u8* addr, u8 index, u8 count)
+                                   1078 ;	---------------------------------
+                                   1079 ; Function VDP_LoadSpritePattern
+                                   1080 ; ---------------------------------
+    00000254                       1081 _VDP_LoadSpritePattern::
+    00000254 DD E5            [15] 1082 	push	ix
+    00000256 DD 21 00 00      [14] 1083 	ld	ix,#0
+    0000025A DD 39            [15] 1084 	add	ix,sp
+    0000025C 4D               [ 4] 1085 	ld	c, l
+    0000025D 44               [ 4] 1086 	ld	b, h
+                                   1087 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1993: u16 low = g_SpritePatternLow;
+    0000025E ED 5Br2Ar00      [20] 1088 	ld	de, (_g_SpritePatternLow)
+                                   1089 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1994: low += (index * 8);
+    00000262 DD 6E 04         [19] 1090 	ld	l, 4 (ix)
+                                   1091 ;	spillPairReg hl
+                                   1092 ;	spillPairReg hl
+    00000265 26 00            [ 7] 1093 	ld	h, #0x00
+                                   1094 ;	spillPairReg hl
+                                   1095 ;	spillPairReg hl
+    00000267 29               [11] 1096 	add	hl, hl
+    00000268 29               [11] 1097 	add	hl, hl
+    00000269 29               [11] 1098 	add	hl, hl
+    0000026A 19               [11] 1099 	add	hl, de
+    0000026B EB               [ 4] 1100 	ex	de, hl
+                                   1101 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1995: VDP_WriteVRAM(addr, low, g_SpritePatternHigh, count * 8);
+    0000026C DD 6E 05         [19] 1102 	ld	l, 5 (ix)
+                                   1103 ;	spillPairReg hl
+                                   1104 ;	spillPairReg hl
+    0000026F 26 00            [ 7] 1105 	ld	h, #0x00
+                                   1106 ;	spillPairReg hl
+                                   1107 ;	spillPairReg hl
+    00000271 29               [11] 1108 	add	hl, hl
+    00000272 29               [11] 1109 	add	hl, hl
+    00000273 29               [11] 1110 	add	hl, hl
+    00000274 E5               [11] 1111 	push	hl
+    00000275 69               [ 4] 1112 	ld	l, c
+                                   1113 ;	spillPairReg hl
+                                   1114 ;	spillPairReg hl
+    00000276 60               [ 4] 1115 	ld	h, b
+                                   1116 ;	spillPairReg hl
+                                   1117 ;	spillPairReg hl
+    00000277 CDr58r00         [17] 1118 	call	_VDP_WriteVRAM_16K
+                                   1119 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:1996: }
+    0000027A DD E1            [14] 1120 	pop	ix
+    0000027C E1               [10] 1121 	pop	hl
+    0000027D F1               [10] 1122 	pop	af
+    0000027E E9               [ 4] 1123 	jp	(hl)
+                                   1124 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2000: void VDP_SetSpriteSM1(u8 index, u8 x, u8 y, u8 shape, u8 color)
+                                   1125 ;	---------------------------------
+                                   1126 ; Function VDP_SetSpriteSM1
+                                   1127 ; ---------------------------------
+    0000027F                       1128 _VDP_SetSpriteSM1::
+    0000027F DD E5            [15] 1129 	push	ix
+    00000281 DD 21 00 00      [14] 1130 	ld	ix,#0
+    00000285 DD 39            [15] 1131 	add	ix,sp
+    00000287 5F               [ 4] 1132 	ld	e, a
+    00000288 4D               [ 4] 1133 	ld	c, l
+                                   1134 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2002: g_VDP_Sprite.Y = y;				// Y coordinate on screen (all lower priority sprite will be disable if equal to 216 or 0xD0)
+    00000289 21r1Er00         [10] 1135 	ld	hl, #_g_VDP_Sprite
+    0000028C DD 7E 04         [19] 1136 	ld	a, 4 (ix)
+    0000028F 77               [ 7] 1137 	ld	(hl), a
+                                   1138 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2003: g_VDP_Sprite.X = x;				// X coordinate of the sprite
+    00000290 21r1Fr00         [10] 1139 	ld	hl, #(_g_VDP_Sprite + 1)
+    00000293 71               [ 7] 1140 	ld	(hl), c
+                                   1141 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2004: g_VDP_Sprite.Pattern = shape;	// Pattern index
+    00000294 21r20r00         [10] 1142 	ld	hl, #(_g_VDP_Sprite + 2)
+    00000297 DD 7E 05         [19] 1143 	ld	a, 5 (ix)
+    0000029A 77               [ 7] 1144 	ld	(hl), a
+                                   1145 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2005: g_VDP_Sprite.Color = color;		// Color index (Sprite Mode 1 only) + Early clock
+    0000029B 21r21r00         [10] 1146 	ld	hl, #(_g_VDP_Sprite + 3)
+    0000029E DD 7E 06         [19] 1147 	ld	a, 6 (ix)
+    000002A1 77               [ 7] 1148 	ld	(hl), a
+                                   1149 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2007: u16 low = g_SpriteAttributeLow;
+    000002A2 ED 4Br28r00      [20] 1150 	ld	bc, (_g_SpriteAttributeLow)
+                                   1151 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2008: low += (index * 4);
+    000002A6 6B               [ 4] 1152 	ld	l, e
+                                   1153 ;	spillPairReg hl
+                                   1154 ;	spillPairReg hl
+    000002A7 26 00            [ 7] 1155 	ld	h, #0x00
+                                   1156 ;	spillPairReg hl
+                                   1157 ;	spillPairReg hl
+    000002A9 29               [11] 1158 	add	hl, hl
+    000002AA 29               [11] 1159 	add	hl, hl
+    000002AB 09               [11] 1160 	add	hl, bc
+    000002AC EB               [ 4] 1161 	ex	de, hl
+                                   1162 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2009: VDP_WriteVRAM((u8*)&g_VDP_Sprite, low, g_SpriteAttributeHigh, 4);
+    000002AD 21 04 00         [10] 1163 	ld	hl, #0x0004
+    000002B0 E5               [11] 1164 	push	hl
+    000002B1 21r1Er00         [10] 1165 	ld	hl, #_g_VDP_Sprite
+    000002B4 CDr58r00         [17] 1166 	call	_VDP_WriteVRAM_16K
+                                   1167 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2010: }
+    000002B7 DD E1            [14] 1168 	pop	ix
+    000002B9 E1               [10] 1169 	pop	hl
+    000002BA F1               [10] 1170 	pop	af
+    000002BB 33               [ 6] 1171 	inc	sp
+    000002BC E9               [ 4] 1172 	jp	(hl)
+                                   1173 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2014: void VDP_SetSprite(u8 index, u8 x, u8 y, u8 shape)
+                                   1174 ;	---------------------------------
+                                   1175 ; Function VDP_SetSprite
+                                   1176 ; ---------------------------------
+    000002BD                       1177 _VDP_SetSprite::
+    000002BD DD E5            [15] 1178 	push	ix
+    000002BF DD 21 00 00      [14] 1179 	ld	ix,#0
+    000002C3 DD 39            [15] 1180 	add	ix,sp
+    000002C5 5F               [ 4] 1181 	ld	e, a
+    000002C6 4D               [ 4] 1182 	ld	c, l
+                                   1183 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2016: g_VDP_Sprite.Y = y;				// Y coordinate on screen (all lower priority sprite will be disable if equal to 216 or 0xD0)
+    000002C7 21r1Er00         [10] 1184 	ld	hl, #_g_VDP_Sprite
+    000002CA DD 7E 04         [19] 1185 	ld	a, 4 (ix)
+    000002CD 77               [ 7] 1186 	ld	(hl), a
+                                   1187 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2017: g_VDP_Sprite.X = x;				// X coordinate of the sprite
+    000002CE 21r1Fr00         [10] 1188 	ld	hl, #(_g_VDP_Sprite + 1)
+    000002D1 71               [ 7] 1189 	ld	(hl), c
+                                   1190 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2018: g_VDP_Sprite.Pattern = shape;	// Pattern index
+    000002D2 21r20r00         [10] 1191 	ld	hl, #(_g_VDP_Sprite + 2)
+    000002D5 DD 7E 05         [19] 1192 	ld	a, 5 (ix)
+    000002D8 77               [ 7] 1193 	ld	(hl), a
+                                   1194 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2020: u16 low = g_SpriteAttributeLow;
+    000002D9 ED 4Br28r00      [20] 1195 	ld	bc, (_g_SpriteAttributeLow)
+                                   1196 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2021: low += (index * 4);
+    000002DD 6B               [ 4] 1197 	ld	l, e
+                                   1198 ;	spillPairReg hl
+                                   1199 ;	spillPairReg hl
+    000002DE 26 00            [ 7] 1200 	ld	h, #0x00
+                                   1201 ;	spillPairReg hl
+                                   1202 ;	spillPairReg hl
+    000002E0 29               [11] 1203 	add	hl, hl
+    000002E1 29               [11] 1204 	add	hl, hl
+    000002E2 09               [11] 1205 	add	hl, bc
+    000002E3 EB               [ 4] 1206 	ex	de, hl
+                                   1207 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2022: VDP_WriteVRAM((u8*)&g_VDP_Sprite, low, g_SpriteAttributeHigh, 3);
+    000002E4 21 03 00         [10] 1208 	ld	hl, #0x0003
+    000002E7 E5               [11] 1209 	push	hl
+    000002E8 21r1Er00         [10] 1210 	ld	hl, #_g_VDP_Sprite
+    000002EB CDr58r00         [17] 1211 	call	_VDP_WriteVRAM_16K
+                                   1212 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2023: }
+    000002EE DD E1            [14] 1213 	pop	ix
+    000002F0 E1               [10] 1214 	pop	hl
+    000002F1 F1               [10] 1215 	pop	af
+    000002F2 E9               [ 4] 1216 	jp	(hl)
+                                   1217 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2061: void VDP_SetSpritePosition(u8 index, u8 x, u8 y)
+                                   1218 ;	---------------------------------
+                                   1219 ; Function VDP_SetSpritePosition
+                                   1220 ; ---------------------------------
+    000002F3                       1221 _VDP_SetSpritePosition::
+    000002F3 DD E5            [15] 1222 	push	ix
+    000002F5 DD 21 00 00      [14] 1223 	ld	ix,#0
+    000002F9 DD 39            [15] 1224 	add	ix,sp
+    000002FB 5F               [ 4] 1225 	ld	e, a
+    000002FC 4D               [ 4] 1226 	ld	c, l
+                                   1227 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2063: g_VDP_Sprite.Y = y;				// Y coordinate on screen (all lower priority sprite will be disable if equal to 216 or 0xD0)
+    000002FD 21r1Er00         [10] 1228 	ld	hl, #_g_VDP_Sprite
+    00000300 DD 7E 04         [19] 1229 	ld	a, 4 (ix)
+    00000303 77               [ 7] 1230 	ld	(hl), a
+                                   1231 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2064: g_VDP_Sprite.X = x;				// X coordinate of the sprite
+    00000304 21r1Fr00         [10] 1232 	ld	hl, #(_g_VDP_Sprite + 1)
+    00000307 71               [ 7] 1233 	ld	(hl), c
+                                   1234 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2066: u16 low = g_SpriteAttributeLow;
+    00000308 ED 4Br28r00      [20] 1235 	ld	bc, (_g_SpriteAttributeLow)
+                                   1236 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2067: low += (index * 4);
+    0000030C 6B               [ 4] 1237 	ld	l, e
+                                   1238 ;	spillPairReg hl
+                                   1239 ;	spillPairReg hl
+    0000030D 26 00            [ 7] 1240 	ld	h, #0x00
+                                   1241 ;	spillPairReg hl
+                                   1242 ;	spillPairReg hl
+    0000030F 29               [11] 1243 	add	hl, hl
+    00000310 29               [11] 1244 	add	hl, hl
+    00000311 09               [11] 1245 	add	hl, bc
+    00000312 EB               [ 4] 1246 	ex	de, hl
+                                   1247 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2068: VDP_WriteVRAM((u8*)&g_VDP_Sprite, low, g_SpriteAttributeHigh, 2);
+    00000313 21 02 00         [10] 1248 	ld	hl, #0x0002
+    00000316 E5               [11] 1249 	push	hl
+    00000317 21r1Er00         [10] 1250 	ld	hl, #_g_VDP_Sprite
+    0000031A CDr58r00         [17] 1251 	call	_VDP_WriteVRAM_16K
+                                   1252 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2069: }
+    0000031D DD E1            [14] 1253 	pop	ix
+    0000031F E1               [10] 1254 	pop	hl
+    00000320 33               [ 6] 1255 	inc	sp
+    00000321 E9               [ 4] 1256 	jp	(hl)
+                                   1257 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2073: void VDP_SetSpritePositionX(u8 index, u8 x)
+                                   1258 ;	---------------------------------
+                                   1259 ; Function VDP_SetSpritePositionX
+                                   1260 ; ---------------------------------
+    00000322                       1261 _VDP_SetSpritePositionX::
+    00000322 47               [ 4] 1262 	ld	b, a
+    00000323 4D               [ 4] 1263 	ld	c, l
+                                   1264 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2075: u16 low = g_SpriteAttributeLow;
+    00000324 ED 5Br28r00      [20] 1265 	ld	de, (_g_SpriteAttributeLow)
+                                   1266 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2076: low += (index * 4);
+    00000328 68               [ 4] 1267 	ld	l, b
+                                   1268 ;	spillPairReg hl
+                                   1269 ;	spillPairReg hl
+    00000329 26 00            [ 7] 1270 	ld	h, #0x00
+                                   1271 ;	spillPairReg hl
+                                   1272 ;	spillPairReg hl
+    0000032B 29               [11] 1273 	add	hl, hl
+    0000032C 29               [11] 1274 	add	hl, hl
+    0000032D 19               [11] 1275 	add	hl, de
+    0000032E EB               [ 4] 1276 	ex	de, hl
+                                   1277 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2077: VDP_Poke(x, ++low, g_SpriteAttributeHigh);
+    0000032F 13               [ 6] 1278 	inc	de
+    00000330 79               [ 4] 1279 	ld	a, c
+                                   1280 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2078: }
+    00000331 C3rD6r00         [10] 1281 	jp	_VDP_Poke_16K
+                                   1282 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2082: void VDP_SetSpritePositionY(u8 index, u8 y)
+                                   1283 ;	---------------------------------
+                                   1284 ; Function VDP_SetSpritePositionY
+                                   1285 ; ---------------------------------
+    00000334                       1286 _VDP_SetSpritePositionY::
+    00000334 47               [ 4] 1287 	ld	b, a
+    00000335 4D               [ 4] 1288 	ld	c, l
+                                   1289 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2084: u16 low = g_SpriteAttributeLow;
+    00000336 ED 5Br28r00      [20] 1290 	ld	de, (_g_SpriteAttributeLow)
+                                   1291 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2085: low += (index * 4);
+    0000033A 68               [ 4] 1292 	ld	l, b
+                                   1293 ;	spillPairReg hl
+                                   1294 ;	spillPairReg hl
+    0000033B 26 00            [ 7] 1295 	ld	h, #0x00
+                                   1296 ;	spillPairReg hl
+                                   1297 ;	spillPairReg hl
+    0000033D 29               [11] 1298 	add	hl, hl
+    0000033E 29               [11] 1299 	add	hl, hl
+    0000033F 19               [11] 1300 	add	hl, de
+    00000340 EB               [ 4] 1301 	ex	de, hl
+                                   1302 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2086: VDP_Poke(y, low, g_SpriteAttributeHigh);
+    00000341 79               [ 4] 1303 	ld	a, c
+                                   1304 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2087: }
+    00000342 C3rD6r00         [10] 1305 	jp	_VDP_Poke_16K
+                                   1306 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2091: void VDP_SetSpritePattern(u8 index, u8 shape)
+                                   1307 ;	---------------------------------
+                                   1308 ; Function VDP_SetSpritePattern
+                                   1309 ; ---------------------------------
+    00000345                       1310 _VDP_SetSpritePattern::
+    00000345 47               [ 4] 1311 	ld	b, a
+    00000346 4D               [ 4] 1312 	ld	c, l
+                                   1313 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2093: u16 low = g_SpriteAttributeLow + 2;
+    00000347 ED 5Br28r00      [20] 1314 	ld	de, (_g_SpriteAttributeLow)
+    0000034B 13               [ 6] 1315 	inc	de
+    0000034C 13               [ 6] 1316 	inc	de
+                                   1317 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2094: low += (index * 4);
+    0000034D 68               [ 4] 1318 	ld	l, b
+                                   1319 ;	spillPairReg hl
+                                   1320 ;	spillPairReg hl
+    0000034E 26 00            [ 7] 1321 	ld	h, #0x00
+                                   1322 ;	spillPairReg hl
+                                   1323 ;	spillPairReg hl
+    00000350 29               [11] 1324 	add	hl, hl
+    00000351 29               [11] 1325 	add	hl, hl
+    00000352 19               [11] 1326 	add	hl, de
+    00000353 EB               [ 4] 1327 	ex	de, hl
+                                   1328 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2095: VDP_Poke(shape, low, g_SpriteAttributeHigh);
+    00000354 79               [ 4] 1329 	ld	a, c
+                                   1330 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2096: }
+    00000355 C3rD6r00         [10] 1331 	jp	_VDP_Poke_16K
+                                   1332 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2100: void VDP_SetSpriteColorSM1(u8 index, u8 color)
+                                   1333 ;	---------------------------------
+                                   1334 ; Function VDP_SetSpriteColorSM1
+                                   1335 ; ---------------------------------
+    00000358                       1336 _VDP_SetSpriteColorSM1::
+    00000358 47               [ 4] 1337 	ld	b, a
+    00000359 4D               [ 4] 1338 	ld	c, l
+                                   1339 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2102: u16 low = g_SpriteAttributeLow + 3;
+    0000035A ED 5Br28r00      [20] 1340 	ld	de, (_g_SpriteAttributeLow)
+    0000035E 13               [ 6] 1341 	inc	de
+    0000035F 13               [ 6] 1342 	inc	de
+    00000360 13               [ 6] 1343 	inc	de
+                                   1344 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2103: low += (index * 4);
+    00000361 68               [ 4] 1345 	ld	l, b
+                                   1346 ;	spillPairReg hl
+                                   1347 ;	spillPairReg hl
+    00000362 26 00            [ 7] 1348 	ld	h, #0x00
+                                   1349 ;	spillPairReg hl
+                                   1350 ;	spillPairReg hl
+    00000364 29               [11] 1351 	add	hl, hl
+    00000365 29               [11] 1352 	add	hl, hl
+    00000366 19               [11] 1353 	add	hl, de
+    00000367 EB               [ 4] 1354 	ex	de, hl
+                                   1355 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2104: VDP_Poke(color, low, g_SpriteAttributeHigh);
+    00000368 79               [ 4] 1356 	ld	a, c
+                                   1357 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2105: }
+    00000369 C3rD6r00         [10] 1358 	jp	_VDP_Poke_16K
+                                   1359 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2138: void VDP_DisableSpritesFrom(u8 index)
+                                   1360 ;	---------------------------------
+                                   1361 ; Function VDP_DisableSpritesFrom
+                                   1362 ; ---------------------------------
+    0000036C                       1363 _VDP_DisableSpritesFrom::
+    0000036C 4F               [ 4] 1364 	ld	c, a
+                                   1365 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2145: VDP_SetSpritePositionY(index, y);
+    0000036D 2E D0            [ 7] 1366 	ld	l, #0xd0
+                                   1367 ;	spillPairReg hl
+                                   1368 ;	spillPairReg hl
+    0000036F 79               [ 4] 1369 	ld	a, c
+                                   1370 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2146: }
+    00000370 C3r34r03         [10] 1371 	jp	_VDP_SetSpritePositionY
+                                   1372 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2212: void VDP_LoadPattern_GM2(const u8* src, u8 count, u8 offset)
+                                   1373 ;	---------------------------------
+                                   1374 ; Function VDP_LoadPattern_GM2
+                                   1375 ; ---------------------------------
+    00000373                       1376 _VDP_LoadPattern_GM2::
+    00000373 DD E5            [15] 1377 	push	ix
+    00000375 DD 21 00 00      [14] 1378 	ld	ix,#0
+    00000379 DD 39            [15] 1379 	add	ix,sp
+    0000037B 4D               [ 4] 1380 	ld	c, l
+    0000037C 44               [ 4] 1381 	ld	b, h
+                                   1382 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2214: u16 cnt = count == 0 ? 256 * 8 : count * 8;
+    0000037D DD 7E 04         [19] 1383 	ld	a, 4 (ix)
+    00000380 B7               [ 4] 1384 	or	a, a
+    00000381 20 06            [12] 1385 	jr	NZ, 00103$
+    00000383 21 00 08         [10] 1386 	ld	hl, #0x0800
+    00000386 C3r91r03         [10] 1387 	jp	00104$
+    00000389                       1388 00103$:
+    00000389 DD 6E 04         [19] 1389 	ld	l, 4 (ix)
+                                   1390 ;	spillPairReg hl
+                                   1391 ;	spillPairReg hl
+    0000038C 26 00            [ 7] 1392 	ld	h, #0x00
+                                   1393 ;	spillPairReg hl
+                                   1394 ;	spillPairReg hl
+    0000038E 29               [11] 1395 	add	hl, hl
+    0000038F 29               [11] 1396 	add	hl, hl
+    00000390 29               [11] 1397 	add	hl, hl
+    00000391                       1398 00104$:
+    00000391 E5               [11] 1399 	push	hl
+    00000392 FD E1            [14] 1400 	pop	iy
+                                   1401 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2215: u16 dst = g_ScreenPatternLow + (offset * 8);
+    00000394 DD 6E 05         [19] 1402 	ld	l, 5 (ix)
+                                   1403 ;	spillPairReg hl
+                                   1404 ;	spillPairReg hl
+    00000397 26 00            [ 7] 1405 	ld	h, #0x00
+                                   1406 ;	spillPairReg hl
+                                   1407 ;	spillPairReg hl
+    00000399 29               [11] 1408 	add	hl, hl
+    0000039A 29               [11] 1409 	add	hl, hl
+    0000039B 29               [11] 1410 	add	hl, hl
+    0000039C ED 5Br26r00      [20] 1411 	ld	de, (_g_ScreenPatternLow)
+    000003A0 19               [11] 1412 	add	hl, de
+                                   1413 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2216: VDP_WriteVRAM(src, dst, g_ScreenPatternHigh, cnt);
+    000003A1 E5               [11] 1414 	push	hl
+    000003A2 C5               [11] 1415 	push	bc
+    000003A3 FD E5            [15] 1416 	push	iy
+    000003A5 FD E5            [15] 1417 	push	iy
+    000003A7 EB               [ 4] 1418 	ex	de,hl
+    000003A8 69               [ 4] 1419 	ld	l, c
+                                   1420 ;	spillPairReg hl
+                                   1421 ;	spillPairReg hl
+    000003A9 60               [ 4] 1422 	ld	h, b
+                                   1423 ;	spillPairReg hl
+                                   1424 ;	spillPairReg hl
+    000003AA CDr58r00         [17] 1425 	call	_VDP_WriteVRAM_16K
+    000003AD FD E1            [14] 1426 	pop	iy
+    000003AF C1               [10] 1427 	pop	bc
+    000003B0 E1               [10] 1428 	pop	hl
+                                   1429 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2217: dst += 0x800;
+    000003B1 7C               [ 4] 1430 	ld	a, h
+    000003B2 C6 08            [ 7] 1431 	add	a, #0x08
+    000003B4 67               [ 4] 1432 	ld	h, a
+                                   1433 ;	spillPairReg hl
+                                   1434 ;	spillPairReg hl
+                                   1435 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2218: VDP_WriteVRAM(src, dst, g_ScreenPatternHigh, cnt);
+    000003B5 E5               [11] 1436 	push	hl
+    000003B6 C5               [11] 1437 	push	bc
+    000003B7 FD E5            [15] 1438 	push	iy
+    000003B9 FD E5            [15] 1439 	push	iy
+    000003BB EB               [ 4] 1440 	ex	de,hl
+    000003BC 69               [ 4] 1441 	ld	l, c
+                                   1442 ;	spillPairReg hl
+                                   1443 ;	spillPairReg hl
+    000003BD 60               [ 4] 1444 	ld	h, b
+                                   1445 ;	spillPairReg hl
+                                   1446 ;	spillPairReg hl
+    000003BE CDr58r00         [17] 1447 	call	_VDP_WriteVRAM_16K
+    000003C1 FD E1            [14] 1448 	pop	iy
+    000003C3 C1               [10] 1449 	pop	bc
+    000003C4 E1               [10] 1450 	pop	hl
+                                   1451 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2219: dst += 0x800;
+    000003C5 5D               [ 4] 1452 	ld	e, l
+    000003C6 7C               [ 4] 1453 	ld	a, h
+    000003C7 C6 08            [ 7] 1454 	add	a, #0x08
+    000003C9 57               [ 4] 1455 	ld	d, a
+                                   1456 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2220: VDP_WriteVRAM(src, dst, g_ScreenPatternHigh, cnt);
+    000003CA FD E5            [15] 1457 	push	iy
+    000003CC 69               [ 4] 1458 	ld	l, c
+                                   1459 ;	spillPairReg hl
+                                   1460 ;	spillPairReg hl
+    000003CD 60               [ 4] 1461 	ld	h, b
+                                   1462 ;	spillPairReg hl
+                                   1463 ;	spillPairReg hl
+    000003CE CDr58r00         [17] 1464 	call	_VDP_WriteVRAM_16K
+                                   1465 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2221: }
+    000003D1 DD E1            [14] 1466 	pop	ix
+    000003D3 E1               [10] 1467 	pop	hl
+    000003D4 F1               [10] 1468 	pop	af
+    000003D5 E9               [ 4] 1469 	jp	(hl)
+                                   1470 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2225: void VDP_LoadColor_GM2(const u8* src, u8 count, u8 offset)
+                                   1471 ;	---------------------------------
+                                   1472 ; Function VDP_LoadColor_GM2
+                                   1473 ; ---------------------------------
+    000003D6                       1474 _VDP_LoadColor_GM2::
+    000003D6 DD E5            [15] 1475 	push	ix
+    000003D8 DD 21 00 00      [14] 1476 	ld	ix,#0
+    000003DC DD 39            [15] 1477 	add	ix,sp
+    000003DE 4D               [ 4] 1478 	ld	c, l
+    000003DF 44               [ 4] 1479 	ld	b, h
+                                   1480 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2227: u16 cnt = count == 0 ? 256 * 8 : count * 8;
+    000003E0 DD 7E 04         [19] 1481 	ld	a, 4 (ix)
+    000003E3 B7               [ 4] 1482 	or	a, a
+    000003E4 20 06            [12] 1483 	jr	NZ, 00103$
+    000003E6 21 00 08         [10] 1484 	ld	hl, #0x0800
+    000003E9 C3rF4r03         [10] 1485 	jp	00104$
+    000003EC                       1486 00103$:
+    000003EC DD 6E 04         [19] 1487 	ld	l, 4 (ix)
+                                   1488 ;	spillPairReg hl
+                                   1489 ;	spillPairReg hl
+    000003EF 26 00            [ 7] 1490 	ld	h, #0x00
+                                   1491 ;	spillPairReg hl
+                                   1492 ;	spillPairReg hl
+    000003F1 29               [11] 1493 	add	hl, hl
+    000003F2 29               [11] 1494 	add	hl, hl
+    000003F3 29               [11] 1495 	add	hl, hl
+    000003F4                       1496 00104$:
+    000003F4 E5               [11] 1497 	push	hl
+    000003F5 FD E1            [14] 1498 	pop	iy
+                                   1499 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2228: u16 dst = g_ScreenColorLow + (offset * 8);
+    000003F7 DD 6E 05         [19] 1500 	ld	l, 5 (ix)
+                                   1501 ;	spillPairReg hl
+                                   1502 ;	spillPairReg hl
+    000003FA 26 00            [ 7] 1503 	ld	h, #0x00
+                                   1504 ;	spillPairReg hl
+                                   1505 ;	spillPairReg hl
+    000003FC 29               [11] 1506 	add	hl, hl
+    000003FD 29               [11] 1507 	add	hl, hl
+    000003FE 29               [11] 1508 	add	hl, hl
+    000003FF ED 5Br24r00      [20] 1509 	ld	de, (_g_ScreenColorLow)
+    00000403 19               [11] 1510 	add	hl, de
+                                   1511 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2229: VDP_WriteVRAM(src, dst, g_ScreenColorHigh, cnt);
+    00000404 E5               [11] 1512 	push	hl
+    00000405 C5               [11] 1513 	push	bc
+    00000406 FD E5            [15] 1514 	push	iy
+    00000408 FD E5            [15] 1515 	push	iy
+    0000040A EB               [ 4] 1516 	ex	de,hl
+    0000040B 69               [ 4] 1517 	ld	l, c
+                                   1518 ;	spillPairReg hl
+                                   1519 ;	spillPairReg hl
+    0000040C 60               [ 4] 1520 	ld	h, b
+                                   1521 ;	spillPairReg hl
+                                   1522 ;	spillPairReg hl
+    0000040D CDr58r00         [17] 1523 	call	_VDP_WriteVRAM_16K
+    00000410 FD E1            [14] 1524 	pop	iy
+    00000412 C1               [10] 1525 	pop	bc
+    00000413 E1               [10] 1526 	pop	hl
+                                   1527 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2230: dst += 0x800;
+    00000414 7C               [ 4] 1528 	ld	a, h
+    00000415 C6 08            [ 7] 1529 	add	a, #0x08
+    00000417 67               [ 4] 1530 	ld	h, a
+                                   1531 ;	spillPairReg hl
+                                   1532 ;	spillPairReg hl
+                                   1533 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2231: VDP_WriteVRAM(src, dst, g_ScreenColorHigh, cnt);
+    00000418 E5               [11] 1534 	push	hl
+    00000419 C5               [11] 1535 	push	bc
+    0000041A FD E5            [15] 1536 	push	iy
+    0000041C FD E5            [15] 1537 	push	iy
+    0000041E EB               [ 4] 1538 	ex	de,hl
+    0000041F 69               [ 4] 1539 	ld	l, c
+                                   1540 ;	spillPairReg hl
+                                   1541 ;	spillPairReg hl
+    00000420 60               [ 4] 1542 	ld	h, b
+                                   1543 ;	spillPairReg hl
+                                   1544 ;	spillPairReg hl
+    00000421 CDr58r00         [17] 1545 	call	_VDP_WriteVRAM_16K
+    00000424 FD E1            [14] 1546 	pop	iy
+    00000426 C1               [10] 1547 	pop	bc
+    00000427 E1               [10] 1548 	pop	hl
+                                   1549 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2232: dst += 0x800;
+    00000428 5D               [ 4] 1550 	ld	e, l
+    00000429 7C               [ 4] 1551 	ld	a, h
+    0000042A C6 08            [ 7] 1552 	add	a, #0x08
+    0000042C 57               [ 4] 1553 	ld	d, a
+                                   1554 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2233: VDP_WriteVRAM(src, dst, g_ScreenColorHigh, cnt);
+    0000042D FD E5            [15] 1555 	push	iy
+    0000042F 69               [ 4] 1556 	ld	l, c
+                                   1557 ;	spillPairReg hl
+                                   1558 ;	spillPairReg hl
+    00000430 60               [ 4] 1559 	ld	h, b
+                                   1560 ;	spillPairReg hl
+                                   1561 ;	spillPairReg hl
+    00000431 CDr58r00         [17] 1562 	call	_VDP_WriteVRAM_16K
+                                   1563 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2234: }
+    00000434 DD E1            [14] 1564 	pop	ix
+    00000436 E1               [10] 1565 	pop	hl
+    00000437 F1               [10] 1566 	pop	af
+    00000438 E9               [ 4] 1567 	jp	(hl)
+                                   1568 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2238: void VDP_WriteLayout_GM2(const u8* src, u8 dx, u8 dy, u8 nx, u8 ny)
+                                   1569 ;	---------------------------------
+                                   1570 ; Function VDP_WriteLayout_GM2
+                                   1571 ; ---------------------------------
+    00000439                       1572 _VDP_WriteLayout_GM2::
+    00000439 DD E5            [15] 1573 	push	ix
+    0000043B DD 21 00 00      [14] 1574 	ld	ix,#0
+    0000043F DD 39            [15] 1575 	add	ix,sp
+    00000441 3B               [ 6] 1576 	dec	sp
+    00000442 4D               [ 4] 1577 	ld	c, l
+    00000443 44               [ 4] 1578 	ld	b, h
+                                   1579 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2240: u16 dst = g_ScreenLayoutLow + (dy * 32) + dx;
+    00000444 DD 6E 05         [19] 1580 	ld	l, 5 (ix)
+                                   1581 ;	spillPairReg hl
+                                   1582 ;	spillPairReg hl
+    00000447 26 00            [ 7] 1583 	ld	h, #0x00
+                                   1584 ;	spillPairReg hl
+                                   1585 ;	spillPairReg hl
+    00000449 29               [11] 1586 	add	hl, hl
+    0000044A 29               [11] 1587 	add	hl, hl
+    0000044B 29               [11] 1588 	add	hl, hl
+    0000044C 29               [11] 1589 	add	hl, hl
+    0000044D 29               [11] 1590 	add	hl, hl
+    0000044E ED 5Br22r00      [20] 1591 	ld	de, (_g_ScreenLayoutLow)
+    00000452 19               [11] 1592 	add	hl, de
+    00000453 DD 5E 04         [19] 1593 	ld	e, 4 (ix)
+    00000456 16 00            [ 7] 1594 	ld	d, #0x00
+    00000458 19               [11] 1595 	add	hl, de
+                                   1596 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2241: for (u8 y = 0; y < ny; ++y)
+    00000459 DD 36 FF 00      [19] 1597 	ld	-1 (ix), #0x00
+    0000045D                       1598 00103$:
+    0000045D DD 7E FF         [19] 1599 	ld	a, -1 (ix)
+    00000460 DD 96 07         [19] 1600 	sub	a, 7 (ix)
+    00000463 30 22            [12] 1601 	jr	NC, 00105$
+                                   1602 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2243: VDP_WriteVRAM(src, dst, g_ScreenLayoutHigh, nx);
+    00000465 DD 5E 06         [19] 1603 	ld	e, 6 (ix)
+    00000468 16 00            [ 7] 1604 	ld	d, #0x00
+    0000046A E5               [11] 1605 	push	hl
+    0000046B C5               [11] 1606 	push	bc
+    0000046C EB               [ 4] 1607 	ex	de, hl
+    0000046D E5               [11] 1608 	push	hl
+    0000046E 69               [ 4] 1609 	ld	l, c
+                                   1610 ;	spillPairReg hl
+                                   1611 ;	spillPairReg hl
+    0000046F 60               [ 4] 1612 	ld	h, b
+                                   1613 ;	spillPairReg hl
+                                   1614 ;	spillPairReg hl
+    00000470 CDr58r00         [17] 1615 	call	_VDP_WriteVRAM_16K
+    00000473 C1               [10] 1616 	pop	bc
+    00000474 E1               [10] 1617 	pop	hl
+                                   1618 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2244: src += nx;
+    00000475 79               [ 4] 1619 	ld	a, c
+    00000476 DD 86 06         [19] 1620 	add	a, 6 (ix)
+    00000479 4F               [ 4] 1621 	ld	c, a
+    0000047A 30 01            [12] 1622 	jr	NC, 00118$
+    0000047C 04               [ 4] 1623 	inc	b
+    0000047D                       1624 00118$:
+                                   1625 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2245: dst += 32;
+    0000047D 11 20 00         [10] 1626 	ld	de, #0x0020
+    00000480 19               [11] 1627 	add	hl, de
+                                   1628 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2241: for (u8 y = 0; y < ny; ++y)
+    00000481 DD 34 FF         [23] 1629 	inc	-1 (ix)
+    00000484 C3r5Dr04         [10] 1630 	jp	00103$
+    00000487                       1631 00105$:
+                                   1632 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2247: }
+    00000487 33               [ 6] 1633 	inc	sp
+    00000488 DD E1            [14] 1634 	pop	ix
+    0000048A E1               [10] 1635 	pop	hl
+    0000048B F1               [10] 1636 	pop	af
+    0000048C F1               [10] 1637 	pop	af
+    0000048D E9               [ 4] 1638 	jp	(hl)
+                                   1639 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2251: void VDP_FillLayout_GM2(u8 value, u8 dx, u8 dy, u8 nx, u8 ny)
+                                   1640 ;	---------------------------------
+                                   1641 ; Function VDP_FillLayout_GM2
+                                   1642 ; ---------------------------------
+    0000048E                       1643 _VDP_FillLayout_GM2::
+    0000048E DD E5            [15] 1644 	push	ix
+    00000490 DD 21 00 00      [14] 1645 	ld	ix,#0
+    00000494 DD 39            [15] 1646 	add	ix,sp
+    00000496 4F               [ 4] 1647 	ld	c, a
+    00000497 45               [ 4] 1648 	ld	b, l
+                                   1649 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2253: u16 dst = g_ScreenLayoutLow + (dy * 32) + dx;
+    00000498 DD 6E 04         [19] 1650 	ld	l, 4 (ix)
+                                   1651 ;	spillPairReg hl
+                                   1652 ;	spillPairReg hl
+    0000049B 26 00            [ 7] 1653 	ld	h, #0x00
+                                   1654 ;	spillPairReg hl
+                                   1655 ;	spillPairReg hl
+    0000049D 29               [11] 1656 	add	hl, hl
+    0000049E 29               [11] 1657 	add	hl, hl
+    0000049F 29               [11] 1658 	add	hl, hl
+    000004A0 29               [11] 1659 	add	hl, hl
+    000004A1 29               [11] 1660 	add	hl, hl
+    000004A2 ED 5Br22r00      [20] 1661 	ld	de, (_g_ScreenLayoutLow)
+    000004A6 19               [11] 1662 	add	hl, de
+    000004A7 58               [ 4] 1663 	ld	e, b
+    000004A8 16 00            [ 7] 1664 	ld	d, #0x00
+    000004AA 19               [11] 1665 	add	hl, de
+                                   1666 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2254: for (u8 y = 0; y < ny; ++y)
+    000004AB 06 00            [ 7] 1667 	ld	b, #0x00
+    000004AD                       1668 00103$:
+    000004AD 78               [ 4] 1669 	ld	a, b
+    000004AE DD 96 06         [19] 1670 	sub	a, 6 (ix)
+    000004B1 30 17            [12] 1671 	jr	NC, 00105$
+                                   1672 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2256: VDP_FillVRAM(value, dst, g_ScreenLayoutHigh, nx);
+    000004B3 DD 5E 05         [19] 1673 	ld	e, 5 (ix)
+    000004B6 16 00            [ 7] 1674 	ld	d, #0x00
+    000004B8 E5               [11] 1675 	push	hl
+    000004B9 C5               [11] 1676 	push	bc
+    000004BA EB               [ 4] 1677 	ex	de, hl
+    000004BB E5               [11] 1678 	push	hl
+    000004BC 79               [ 4] 1679 	ld	a, c
+    000004BD CDr81r00         [17] 1680 	call	_VDP_FillVRAM_16K
+    000004C0 C1               [10] 1681 	pop	bc
+    000004C1 E1               [10] 1682 	pop	hl
+                                   1683 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2257: dst += 32;
+    000004C2 11 20 00         [10] 1684 	ld	de, #0x0020
+    000004C5 19               [11] 1685 	add	hl, de
+                                   1686 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2254: for (u8 y = 0; y < ny; ++y)
+    000004C6 04               [ 4] 1687 	inc	b
+    000004C7 C3rADr04         [10] 1688 	jp	00103$
+    000004CA                       1689 00105$:
+                                   1690 ;C:\Users\Antxiko\Documents\PuyoPuyoVS\MSXgl\engine/src/vdp.c:2259: }
+    000004CA DD E1            [14] 1691 	pop	ix
+    000004CC E1               [10] 1692 	pop	hl
+    000004CD F1               [10] 1693 	pop	af
+    000004CE 33               [ 6] 1694 	inc	sp
+    000004CF E9               [ 4] 1695 	jp	(hl)
+                                   1696 	.area _CODE
+                                   1697 	.area _INITIALIZER
+    00000000                       1698 __xinit__g_VDPInitilized:
+    00000000 00                    1699 	.db #0x00	; 0
+                                   1700 	.area _CABS (ABS)
