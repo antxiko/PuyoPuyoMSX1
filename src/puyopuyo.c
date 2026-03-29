@@ -90,7 +90,6 @@ typedef struct {
     u16 prevScore;
     u8 chainCount;
     u8 pendingGarbage;
-    u8 prevGarbage;
     u8 alive;
     u8 boardX, boardY;
     u8 rotateDelay;
@@ -128,9 +127,10 @@ static u16 g_NbDirtyIdx[NB_DIRTY_MAX];
 static u8 g_NbDirtyCount;
 
 static void NB_Flush(void) {
-    u8 i;
-    for (i = 0; i < g_NbDirtyCount; i++)
-        VDP_Poke_16K(g_NameBuffer[g_NbDirtyIdx[i]], g_ScreenLayoutLow + g_NbDirtyIdx[i]);
+    // msxlib-style: blast entire 768-byte buffer to VRAM in one LDIRVM
+    // Starts at VBlank, writes sequentially top-to-bottom (matches VDP scan)
+    // ~6ms total but always ahead of the scanline = visually clean
+    VDP_WriteVRAM_16K(g_NameBuffer, g_ScreenLayoutLow, 768);
     g_NbDirtyCount = 0;
 }
 
@@ -193,9 +193,6 @@ static void WaitFrames(u8 count) {
     while (count > 0) { Halt(); count--; }
 }
 
-//=============================================================================
-// MUSIC PLAYER (custom, row-based)
-//=============================================================================
 
 //=============================================================================
 // TITLE MUSIC PLAYER
@@ -600,9 +597,8 @@ static void Game_DrawConnections(Player* p, u8 pi) {
 static void Game_DrawScore(Player* p) {
     u8 sx, sy;
 
-    if (p->score == p->prevScore && p->pendingGarbage == p->prevGarbage) return;
+    if (p->score == p->prevScore) return;
     p->prevScore = p->score;
-    p->prevGarbage = p->pendingGarbage;
 
     if (p == &g_Player[0]) {
         sx = CENTER_X; sy = 6;
@@ -610,79 +606,40 @@ static void Game_DrawScore(Player* p) {
         sx = CENTER_X; sy = 13;
     }
 
-    Print_SetPosition(sx, sy);
-    Print_DrawChar('0' + (p->score / 10000) % 10);
-    Print_DrawChar('0' + (p->score / 1000) % 10);
-    Print_DrawChar('0' + (p->score / 100) % 10);
-    Print_DrawChar('0' + (p->score / 10) % 10);
+    // Write score digits to name buffer (tile 80 = '0')
+    VDP_Poke_GM2(sx,     sy, 80 + (p->score / 10000) % 10);
+    VDP_Poke_GM2(sx + 1, sy, 80 + (p->score / 1000) % 10);
+    VDP_Poke_GM2(sx + 2, sy, 80 + (p->score / 100) % 10);
+    VDP_Poke_GM2(sx + 3, sy, 80 + (p->score / 10) % 10);
 
-    {
-        u8 gy = (p == &g_Player[0]) ? 19 : 20;
-        if (p->pendingGarbage > 0) {
-            Print_SetPosition(CENTER_X, gy);
-            Print_DrawChar('G');
-            Print_DrawChar('0' + (p->pendingGarbage / 10) % 10);
-            Print_DrawChar('0' + p->pendingGarbage % 10);
-        } else {
-            Print_SetPosition(CENTER_X, gy);
-            RestoreTile(CENTER_X, gy);
-            RestoreTile(CENTER_X + 1, gy);
-            RestoreTile(CENTER_X + 2, gy);
-        }
-    }
-}
-
-// Draw a 3x4 puyo letter at tile position (tx, ty)
-// data = 4 bytes, each with 3 bits: bit2=left, bit1=center, bit0=right
-static void DrawPuyoLetter(u8 tx, u8 ty, const u8* data, u8 color) {
-    u8 r, c;
-    for (r = 0; r < 4; r++) {
-        for (c = 0; c < 3; c++) {
-            if (data[r] & (4 >> c)) {
-                DrawPuyo16(tx + c * 2, ty + r * 2, color);
-            }
-        }
-    }
 }
 
 static void Game_DrawTitle(void) {
-    // Letter patterns: 3 cols x 4 rows, 3 bits per row
-    static const u8 letP[] = { 0x07, 0x05, 0x07, 0x04 }; // ### #.# ### #..
-    static const u8 letU[] = { 0x05, 0x05, 0x05, 0x07 }; // #.# #.# #.# ###
-    static const u8 letY[] = { 0x05, 0x02, 0x02, 0x02 }; // #.# .#. .#. .#.
-    static const u8 letO[] = { 0x07, 0x05, 0x05, 0x07 }; // ### #.# #.# ###
-    static const u8 letV[] = { 0x05, 0x05, 0x05, 0x02 }; // #.# #.# #.# .#.
-    static const u8 letS[] = { 0x07, 0x04, 0x07, 0x01 }; // ### #.. ### ..#
+    u8 i;
+    // "PUYO PUYO VS" as text (tiles = ASCII + 32)
+    static const u8 title1[] = {'P'+32,'U'+32,'Y'+32,'O'+32};
+    static const u8 title2[] = {'V'+32,'S'+32};
+    static const u8 arcTxt[] = {'A'+32,'R'+32,'C'+32,'A'+32,'D'+32,'E'+32};
+    static const u8 vsTxt[]  = {'V'+32,'S'+32};
 
     // Disable BIOS key click
     *((u8*)0xF3DB) = 0;
 
     VDP_Setup();
     VDP_FillScreen_GM2(PAT_EMPTY);
-    // Sync buffer with VRAM (all empty)
-    { u16 i; for (i = 0; i < 768; i++) g_NameBuffer[i] = PAT_EMPTY; }
+    { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = PAT_EMPTY; }
     g_NbDirtyCount = 0;
 
-    // "PUYO" line 1 - tile row 1, each letter 6 tiles wide + 2 tile gap
-    DrawPuyoLetter(1,  1, letP, PUYO_RED);
-    DrawPuyoLetter(9,  1, letU, PUYO_GREEN);
-    DrawPuyoLetter(17, 1, letY, PUYO_BLUE);
-    DrawPuyoLetter(25, 1, letO, PUYO_YELLOW);
-
-    Halt(); NB_Flush();
-    // "PUYO" line 2 - tile row 10, different colors
-    DrawPuyoLetter(1,  10, letP, PUYO_PURPLE);
-    DrawPuyoLetter(9,  10, letU, PUYO_RED);
-    DrawPuyoLetter(17, 10, letY, PUYO_GREEN);
-    DrawPuyoLetter(25, 10, letO, PUYO_BLUE);
-
-    // "VS" between the two PUYOs - text
+    // "PUYO" line 1 centered at row 4
+    for (i = 0; i < 4; i++) VDP_Poke_GM2(10 + i, 4, title1[i]);
+    // "PUYO" line 2 at row 6
+    for (i = 0; i < 4; i++) VDP_Poke_GM2(18 + i, 4, title1[i]);
+    // "VS" centered at row 8
+    for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 8, title2[i]);
 
     // Menu options
-    Print_SetPosition(11, 19);
-    Print_DrawText("  ARCADE  ");
-    Print_SetPosition(11, 21);
-    Print_DrawText("    VS    ");
+    for (i = 0; i < 6; i++) VDP_Poke_GM2(13 + i, 19, arcTxt[i]);
+    for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 21, vsTxt[i]);
 }
 
 // Animate loser's board turning grey, row by row from top
@@ -717,15 +674,6 @@ static void Game_DrawGameOver(void) {
         Game_AnimateGameOver();
     }
 
-    // Show winner in center
-    Print_SetPosition(CENTER_X, 10);
-    if (!g_Player[0].alive && !g_Player[1].alive) {
-        Print_DrawText("DRAW");
-    } else if (!g_Player[0].alive) {
-        Print_DrawText("P2 W");
-    } else {
-        Print_DrawText("P1 W");
-    }
 }
 
 // Dedicated stats screen with "STATS" written using puyos
@@ -809,7 +757,6 @@ static void Game_InitPlayer(Player* p, u8 bx, u8 by) {
     p->prevScore = 0xFFFF;
     p->chainCount = 0;
     p->pendingGarbage = 0;
-    p->prevGarbage = 0xFF;
     p->alive = TRUE;
     p->dropSpeed = DROP_SPEED_INIT;
     p->dropTimer = 0;
@@ -1011,17 +958,17 @@ static u8 Game_ClearGroups(Player* p) {
                     for (i = 0; i < g_GroupSize; i++)
                         p->board[g_GroupY[i]][g_GroupX[i]] = PUYO_EMPTY;
                     totalCleared += g_GroupSize;
-                    // Convert adjacent garbage to random color puyos
+                    // Destroy adjacent garbage
                     for (i = 0; i < g_GroupSize; i++) {
                         u8 gx = g_GroupX[i], gy = g_GroupY[i];
                         if (gx > 0 && p->board[gy][gx-1] == PUYO_GARBAGE)
-                            p->board[gy][gx-1] = (Math_GetRandom8() % PUYO_COUNT) + 1;
+                            p->board[gy][gx-1] = PUYO_EMPTY;
                         if (gx < BOARD_W-1 && p->board[gy][gx+1] == PUYO_GARBAGE)
-                            p->board[gy][gx+1] = (Math_GetRandom8() % PUYO_COUNT) + 1;
+                            p->board[gy][gx+1] = PUYO_EMPTY;
                         if (gy > 0 && p->board[gy-1][gx] == PUYO_GARBAGE)
-                            p->board[gy-1][gx] = (Math_GetRandom8() % PUYO_COUNT) + 1;
+                            p->board[gy-1][gx] = PUYO_EMPTY;
                         if (gy < BOARD_H-1 && p->board[gy+1][gx] == PUYO_GARBAGE)
-                            p->board[gy+1][gx] = (Math_GetRandom8() % PUYO_COUNT) + 1;
+                            p->board[gy+1][gx] = PUYO_EMPTY;
                     }
                 }
             }
@@ -1047,66 +994,76 @@ static void Game_FlashCleared(Player* p, u8 playerIdx) {
     }
 }
 
-// Chain window: 10x5 tiles
-static const u8 g_ChainWindow[50] = {
-    61, 62, 61, 62, 61, 62, 61, 62, 61, 62,
-    62,  0,  0,  0,  0,  0,  0,  0,  0, 61,
-    61, 80, 80,152, 99,104, 97,105,110, 62,
-    62,  0,  0,  0,  0,  0,  0,  0,  0, 61,
-    61, 62, 61, 62, 61, 62, 61, 62, 61, 62
-};
 #define CHAIN_WIN_W 10
 #define CHAIN_WIN_H 5
-static u8 g_ChainSaved[50]; // saved tiles under chain window
-static u8 g_ChainWinX;      // current window position
-static u8 g_ChainWinActive;
-static u8 g_ChainWinTimer;  // frames remaining before auto-hide (0=no timer)
-static u8 g_ChainWinPlayer; // which player's window is showing
-static u8 g_ChainWinCount;  // last chain count (for redraw)
+// Chain window text row: "00xchain" (tiles at row 2, columns 1-8)
+static const u8 g_ChainText[] = {80, 80, 152, 99, 104, 97, 105, 110};
+static u8 g_ChainWinActive[2];
+static u8 g_ChainWinTimer[2];
+static u8 g_ChainWinCount[2];
+static u8 g_ChainWinTotal[2];
 
-static void Game_ShowChainWindow(u8 playerIdx) {
-    u8 wx, x, y;
-    wx = (playerIdx == 0) ? 2 : 20;
-    g_ChainWinX = wx;
-    g_ChainWinActive = 1;
-    // Save tiles underneath
-    for (y = 0; y < CHAIN_WIN_H; y++)
-        for (x = 0; x < CHAIN_WIN_W; x++)
-            g_ChainSaved[y * CHAIN_WIN_W + x] = g_NameBuffer[(u16)(2 + y) * 32 + (wx + x)];
-    // Draw window
-    for (y = 0; y < CHAIN_WIN_H; y++)
-        for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(wx + x, 2 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
+// Generate chain window procedurally: border=61or62, inside=0, text row=g_ChainText
+static void Game_DrawChainWin(u8 pi, u8 count, u8 flip) {
+    u8 x, y, wx, border;
+    wx = (pi == 0) ? 2 : 20;
+    border = flip ? 62 : 61;
+    for (y = 0; y < CHAIN_WIN_H; y++) {
+        for (x = 0; x < CHAIN_WIN_W; x++) {
+            u8 tile;
+            if (y == 0 || y == CHAIN_WIN_H - 1 || x == 0 || x == CHAIN_WIN_W - 1)
+                tile = border;
+            else if (y == 2)
+                tile = g_ChainText[x - 1];
+            else
+                tile = 0;
+            VDP_Poke_GM2(wx + x, 2 + y, tile);
+        }
+    }
+    VDP_Poke_GM2(wx + 1, 4, 80 + (count / 10));
+    VDP_Poke_GM2(wx + 2, 4, 80 + (count % 10));
 }
 
-// Redraw chain window on top (call after Game_DrawBoard to prevent overwrite)
-static void Game_RedrawChainWindow(u8 playerIdx, u8 chainCount) {
+static void Game_ShowChainWindow(u8 pi) {
+    g_ChainWinActive[pi] = 1;
+    Game_DrawChainWin(pi, 0, 0);
+}
+
+static u8 g_ChainFlipTimer[2];
+static void Game_RedrawChainWindow(u8 pi, u8 count) {
+    if (!g_ChainWinActive[pi]) return;
+    g_ChainFlipTimer[pi]++;
+    Game_DrawChainWin(pi, count, (g_ChainFlipTimer[pi] / 2) & 1);
+}
+
+static void Game_UpdateChainNumber(u8 pi, u8 count) {
+    u8 wx = (pi == 0) ? 2 : 20;
+    VDP_Poke_GM2(wx + 1, 4, 80 + (count / 10));
+    VDP_Poke_GM2(wx + 2, 4, 80 + (count % 10));
+}
+
+static void Game_HideChainWindow(u8 pi) {
     u8 x, y, wx;
-    if (!g_ChainWinActive) return;
-    wx = g_ChainWinX;
-    for (y = 0; y < CHAIN_WIN_H; y++)
-        for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(wx + x, 2 + y, g_ChainWindow[y * CHAIN_WIN_W + x]);
-    VDP_Poke_GM2(wx + 1, 4, 80 + (chainCount / 10));
-    VDP_Poke_GM2(wx + 2, 4, 80 + (chainCount % 10));
-}
-
-static void Game_UpdateChainNumber(u8 playerIdx, u8 chainCount) {
-    u8 wx = (playerIdx == 0) ? 2 : 20;
-    // 2 digits with leading zero at relative (1,2) = absolute (wx+1, 5)
-    VDP_Poke_GM2(wx + 1, 4, 80 + (chainCount / 10));
-    VDP_Poke_GM2(wx + 2, 4, 80 + (chainCount % 10));
-}
-
-static void Game_HideChainWindow(void) {
-    u8 x, y;
-    if (!g_ChainWinActive) return;
-    // Restore saved tiles
-    for (y = 0; y < CHAIN_WIN_H; y++)
-        for (x = 0; x < CHAIN_WIN_W; x++)
-            VDP_Poke_GM2(g_ChainWinX + x, 2 + y, g_ChainSaved[y * CHAIN_WIN_W + x]);
-    g_ChainWinActive = 0;
-    g_ChainWinTimer = 0;
+    if (!g_ChainWinActive[pi]) return;
+    wx = (pi == 0) ? 2 : 20;
+    {
+        u8 bx = g_Player[pi].boardX;
+        u8 by = g_Player[pi].boardY;
+        for (y = 0; y < CHAIN_WIN_H; y++)
+            for (x = 0; x < CHAIN_WIN_W; x++) {
+                u8 ty = 2 + y, tx = wx + x;
+                VDP_Poke_GM2(tx, ty, g_ScreenLayout[ty * 32 + tx]);
+                if (tx >= bx && tx < bx + BOARD_W * 2 && ty >= by && ty < by + BOARD_H * 2) {
+                    u8 cy = (ty - by) / 2, cx = (tx - bx) / 2;
+                    if (cx < BOARD_W && cy < BOARD_H)
+                        g_Shadow[pi][cy][cx] = 0xFF;
+                }
+            }
+        g_BoardDirty[pi] = TRUE;
+    }
+    g_ChainWinActive[pi] = 0;
+    g_ChainWinTimer[pi] = 0;
+    g_ChainWinTotal[pi] = 0;
 }
 
 
@@ -1164,8 +1121,7 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         if (cleared == 0) break;
 
         chainCount++;
-        if (chainCount == 1) Game_ShowChainWindow(playerIdx);
-        Game_UpdateChainNumber(playerIdx, chainCount);
+        g_ChainWinTotal[playerIdx]++;
         p->score += cleared * 10 * chainCount;
         p->totalCleared += cleared;
 
@@ -1187,7 +1143,6 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
             Game_DrawBoard(p, playerIdx);
             Game_DrawConnections(p, playerIdx);
             Game_DrawScore(p);
-            Game_RedrawChainWindow(playerIdx, chainCount);
             Halt(); NB_Flush();
 
             // Longer pause for bigger chains
@@ -1207,13 +1162,13 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         VDP_SetColor(COLOR_BLACK);
     }
 
-    // Start auto-hide timer (60 frames = 1 second)
+    // Show chain window AFTER all animations
     if (chainCount > 0) {
-        g_ChainWinTimer = 60;
-        g_ChainWinPlayer = (p == &g_Player[0]) ? 0 : 1;
-        g_ChainWinCount = chainCount;
-    } else {
-        Game_HideChainWindow();
+        Game_ShowChainWindow(playerIdx);
+        Game_UpdateChainNumber(playerIdx, g_ChainWinTotal[playerIdx]);
+        g_ChainFlipTimer[playerIdx] = 0;
+        g_ChainWinTimer[playerIdx] = 15;
+        g_ChainWinCount[playerIdx] = g_ChainWinTotal[playerIdx];
     }
     p->chainCount = chainCount;
     if (chainCount > p->maxChain) p->maxChain = chainCount;
@@ -1229,16 +1184,6 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
         if (totalGarbage > 0) {
             opponent->pendingGarbage += totalGarbage;
             SFX_Garbage();
-            // Show garbage count in center
-            Print_SetPosition(CENTER_X, 10);
-            Print_DrawChar('+');
-            Print_DrawChar('0' + (totalGarbage / 10) % 10);
-            Print_DrawChar('0' + totalGarbage % 10);
-            Halt(); Halt(); Halt(); Halt(); Halt(); Halt();
-            Print_SetPosition(CENTER_X, 10);
-            Print_DrawChar(' ');
-            Print_DrawChar(' ');
-            Print_DrawChar(' ');
         }
     }
 
@@ -1514,6 +1459,9 @@ static void Game_Init(void) {
     ZX0_UnpackToRAM(g_GameScreen_Zx0, g_ScreenLayout);
     VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
     NB_Init(); // sync RAM buffer with VRAM
+    g_ChainWinActive[0] = 0; g_ChainWinActive[1] = 0;
+    g_ChainWinTimer[0] = 0; g_ChainWinTimer[1] = 0;
+    g_ChainWinTotal[0] = 0; g_ChainWinTotal[1] = 0;
     Game_InitBgScroll();
     Shadow_Invalidate();
     g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
@@ -1546,31 +1494,19 @@ static void Game_Init(void) {
 }
 
 
-// Background scroll
-static u8 g_BgPatP1[8]; // current pattern for tile 59
-static u8 g_BgPatP2[8]; // current pattern for tile 60
-
-static u8 g_BgOrigP1[8]; // original P1 pattern
-static u8 g_BgOrigP2[8]; // original P2 pattern
-static u8 g_BgColOrigP1[8]; // original P1 colors
-static u8 g_BgColOrigP2[8]; // original P2 colors
-static u8 g_BgColP1[8]; // current rotated P1 colors
-static u8 g_BgColP2[8]; // current rotated P2 colors
+// Background scroll (pattern only, colors stay from tileset)
+static u8 g_BgPatP1[8];
+static u8 g_BgPatP2[8];
+static u8 g_BgOrigP1[8];
+static u8 g_BgOrigP2[8];
 static u8 g_BgStep;
 
 static void Game_InitBgScroll(void) {
     u8 i;
-    // Read original patterns
     ZX0_UnpackToRAM(g_TilesetPat_Zx0, g_PT3Buffer);
     for (i = 0; i < 8; i++) {
         g_BgOrigP1[i] = g_PT3Buffer[PAT_BG_P1 * 8 + i];
         g_BgOrigP2[i] = g_PT3Buffer[PAT_BG_P2 * 8 + i];
-    }
-    // Read original colors
-    ZX0_UnpackToRAM(g_TilesetCol_Zx0, g_PT3Buffer);
-    for (i = 0; i < 8; i++) {
-        g_BgColOrigP1[i] = g_PT3Buffer[PAT_BG_P1 * 8 + i];
-        g_BgColOrigP2[i] = g_PT3Buffer[PAT_BG_P2 * 8 + i];
     }
     g_BgStep = 0;
 }
@@ -1580,27 +1516,23 @@ static void Game_UpdateBackground(void) {
     u8 bank, i;
 
     frameDiv++;
-    if ((frameDiv & 1) != 0) return; // update every 2 frames (4x speed)
+    if ((frameDiv & 1) != 0) return;
 
     g_BgStep++;
 
     {
         u8 step = g_BgStep & 7;
 
-        // P1: diagonal down-right (shift rows down + rotate bits right)
         for (i = 0; i < 8; i++) {
             u8 row = g_BgOrigP1[(i - step) & 7];
-            g_BgColP1[i] = g_BgColOrigP1[(i - step) & 7];
             if (step > 0)
                 g_BgPatP1[i] = (row >> step) | (row << (8 - step));
             else
                 g_BgPatP1[i] = row;
         }
 
-        // P2: diagonal down-left (shift rows down + rotate bits left)
         for (i = 0; i < 8; i++) {
             u8 row = g_BgOrigP2[(i - step) & 7];
-            g_BgColP2[i] = g_BgColOrigP2[(i - step) & 7];
             if (step > 0)
                 g_BgPatP2[i] = (row << step) | (row >> (8 - step));
             else
@@ -1608,14 +1540,11 @@ static void Game_UpdateBackground(void) {
         }
     }
 
-    // Write patterns + colors to all 3 banks
+    // Write patterns only to all 3 banks (colors stay from tileset)
     for (bank = 0; bank < 3; bank++) {
         u16 patBase = g_ScreenPatternLow + (u16)bank * 0x800;
-        u16 colBase = g_ScreenColorLow + (u16)bank * 0x800;
         VDP_WriteVRAM_16K(g_BgPatP1, patBase + PAT_BG_P1 * 8, 8);
         VDP_WriteVRAM_16K(g_BgPatP2, patBase + PAT_BG_P2 * 8, 8);
-        VDP_WriteVRAM_16K(g_BgColP1, colBase + PAT_BG_P1 * 8, 8);
-        VDP_WriteVRAM_16K(g_BgColP2, colBase + PAT_BG_P2 * 8, 8);
     }
 }
 
@@ -1632,19 +1561,22 @@ static void Game_Update(void) {
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
 
-    // Chain window: redraw on top of board + auto-hide timer
-    if (g_ChainWinActive) {
-        if (g_ChainWinTimer > 0) {
-            g_ChainWinTimer--;
-            if (g_ChainWinTimer == 0) {
-                Game_HideChainWindow();
+    // Chain windows: per-player redraw + auto-hide timer
+    { u8 pi;
+      for (pi = 0; pi < 2; pi++) {
+        if (g_ChainWinActive[pi]) {
+            if (g_ChainWinTimer[pi] > 0) {
+                g_ChainWinTimer[pi]--;
+                if (g_ChainWinTimer[pi] == 0) {
+                    Game_HideChainWindow(pi);
+                } else {
+                    Game_RedrawChainWindow(pi, g_ChainWinCount[pi]);
+                }
             } else {
-                Game_RedrawChainWindow(g_ChainWinPlayer, g_ChainWinCount);
+                Game_RedrawChainWindow(pi, g_ChainWinCount[pi]);
             }
-        } else {
-            Game_RedrawChainWindow(g_ChainWinPlayer, g_ChainWinCount);
         }
-    }
+    } }
 
     // Wait for VBlank, then flush only changed tiles to VRAM
     Halt();
@@ -1681,32 +1613,41 @@ void main(void) {
             TitleMusic_Start();
             // Menu selection
             {
-                u8 joy1, joy2, dir, sel, prevSel, inputDelay;
+                u8 joy1, joy2, dir, sel, prevSel, inputDelay, cpuLvl, prevLvl;
                 sel = 0; // 0=ARCADE, 1=VS
+                cpuLvl = 0; // CPU level 1-8 (0-indexed)
                 prevSel = 0xFF;
+                prevLvl = 0xFF;
                 inputDelay = 0;
                 while (1) {
-                    Halt();
+                    Halt(); NB_Flush();
                     TitleMusic_Update();
                     joy1 = Joystick_Read(JOY_PORT_1);
                     joy2 = Joystick_Read(JOY_PORT_2);
                     dir = JOY_GET_DIR(joy1);
                     if (Keyboard_IsKeyPressed(KEY_UP)) dir |= JOY_INPUT_DIR_UP;
                     if (Keyboard_IsKeyPressed(KEY_DOWN)) dir |= JOY_INPUT_DIR_DOWN;
+                    if (Keyboard_IsKeyPressed(KEY_LEFT)) dir |= JOY_INPUT_DIR_LEFT;
+                    if (Keyboard_IsKeyPressed(KEY_RIGHT)) dir |= JOY_INPUT_DIR_RIGHT;
 
                     if (inputDelay > 0) inputDelay--;
                     if (inputDelay == 0) {
                         if (dir & JOY_INPUT_DIR_UP) { sel = 0; inputDelay = 10; }
                         if (dir & JOY_INPUT_DIR_DOWN) { sel = 1; inputDelay = 10; }
+                        if (sel == 0) {
+                            if ((dir & JOY_INPUT_DIR_LEFT) && cpuLvl > 0) { cpuLvl--; inputDelay = 10; }
+                            if ((dir & JOY_INPUT_DIR_RIGHT) && cpuLvl < 7) { cpuLvl++; inputDelay = 10; }
+                        }
                     }
 
-                    // Draw cursor
-                    if (sel != prevSel) {
-                        Print_SetPosition(10, 19);
-                        Print_DrawChar(sel == 0 ? '>' : ' ');
-                        Print_SetPosition(10, 21);
-                        Print_DrawChar(sel == 1 ? '>' : ' ');
+                    // Draw cursor + level
+                    if (sel != prevSel || cpuLvl != prevLvl) {
+                        VDP_Poke_GM2(10, 19, sel == 0 ? '>'+32 : 0);
+                        VDP_Poke_GM2(10, 21, sel == 1 ? '>'+32 : 0);
+                        // Show CPU level next to ARCADE
+                        VDP_Poke_GM2(20, 19, sel == 0 ? 80 + cpuLvl + 1 : 0);
                         prevSel = sel;
+                        prevLvl = cpuLvl;
                     }
 
                     if (JOY_GET_A(joy1) || JOY_GET_A(joy2) ||
@@ -1714,11 +1655,12 @@ void main(void) {
                         Keyboard_IsKeyPressed(KEY_SPACE)) break;
                 }
                 g_GameMode = sel;
+                if (sel == 0) g_CpuLevel = cpuLvl;
             }
             Music_Stop();
             WaitFrames(10);
             g_GameState = STATE_PLAYING;
-            if (g_GameMode == MODE_ARCADE) g_CpuLevel = 0;
+            // g_CpuLevel already set from menu selection
             VDP_Setup();
             Game_Init();
             Music_Start();
