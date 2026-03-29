@@ -24,7 +24,7 @@ A real, playable, feature-complete Puyo Puyo VS running on 3.58 MHz and 16KB of 
 - **Blob connections** — same-color puyos fuse visually when adjacent, 30 pre-computed connection tiles
 - **Smooth 8px falling** — half-tile precision at 2x speed, not the usual 16px jumps
 - **Spawn animation** — puyos emerge from the top, 8 pixels at a time
-- **Garbage from above** — animated non-blocking gravity, like the arcade
+- **Garbage from above** — animated non-blocking gravity, randomized columns, like the arcade
 - **Zero-flicker rendering** — RAM-buffered name table with VBlank-only differential flush
 - **PT3 tracker music** — 3 channels of AY-3-8910 goodness via VBlank ISR
 - **Diagonal scrolling backgrounds** — each player gets their own animated pattern

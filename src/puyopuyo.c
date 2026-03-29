@@ -1292,7 +1292,8 @@ static void Game_ChainLoop(Player* p, Player* opponent) {
 }
 
 static void Game_AddGarbage(Player* p) {
-    u8 count, rows, remaining, x, y;
+    u8 count, rows, remaining, x, y, i, j, tmp;
+    u8 cols[BOARD_W];
     if (p->pendingGarbage == 0) return;
     SFX_GarbageReceive();
     count = p->pendingGarbage;
@@ -1302,15 +1303,21 @@ static void Game_AddGarbage(Player* p) {
 
     // Place garbage at top rows (will fall down via gravity)
     remaining = count;
-    for (y = 0; y < rows && remaining > 0; y++)
-        for (x = 0; x < BOARD_W && remaining > 0; x++) {
+    for (y = 0; y < rows && remaining > 0; y++) {
+        // Shuffle column order (Fisher-Yates)
+        for (i = 0; i < BOARD_W; i++) cols[i] = i;
+        for (i = BOARD_W - 1; i > 0; i--) {
+            j = Math_GetRandom8() % (i + 1);
+            tmp = cols[i]; cols[i] = cols[j]; cols[j] = tmp;
+        }
+        for (i = 0; i < BOARD_W && remaining > 0; i++) {
+            x = cols[i];
             if (p->board[y][x] == PUYO_EMPTY) {
-                if (Math_GetRandom8() % 6 != 0) {
-                    p->board[y][x] = PUYO_GARBAGE;
-                    remaining--;
-                }
+                p->board[y][x] = PUYO_GARBAGE;
+                remaining--;
             }
         }
+    }
 }
 
 //=============================================================================
