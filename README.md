@@ -184,7 +184,9 @@ The assets dwell in the vaults of page 0. The code inhabits pages 1-2. The RAM h
 
 50Hz PAL realms receive automatic speed compensation: every 5th frame, the game skips the Halt and runs an extra logic tick. 6 updates per 5 VBlanks. The player cannot tell the difference. Time flows equally for all.
 
-*200+ expeditions. One Z80. The game runs at 2x speed on hardware forged in 1983, with zero flicker, attract mode, chain combos, and a title screen conjured from 317 bytes of compressed runes. The dungeon is conquered. But the Z80 hungers for more.*
+**Build 204** — The final polish. The chain window shed its padding — from 5 rows to 3. Border, counter, border. No wasted tiles, no empty rows. And the next piece oracle, which had been showing the future upside down since build 1, finally learned which puyo falls on top and which falls below. `nextColor2` draws above, `nextColor1` draws below — matching `DIR_UP`, the starting orientation. Two hundred and four builds to notice the preview was inverted. The dungeon master wept.
+
+*204 expeditions. One Z80. The game runs at 2x speed on hardware forged in 1983, with zero flicker, attract mode, chain combos, and a title screen conjured from 317 bytes of compressed runes. The dungeon is conquered. But the Z80 hungers for more.*
 
 ---
 

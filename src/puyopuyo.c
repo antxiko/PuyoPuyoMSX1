@@ -534,13 +534,13 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     {
         u8 nx, ny;
         if (playerIdx == 0) { nx = 16; ny = 7; } else { nx = 16; ny = 14; }
-        if (p->nextColor1 != g_ShadowNext[playerIdx][0]) {
-            g_ShadowNext[playerIdx][0] = p->nextColor1;
-            DrawPuyo16(nx, ny, p->nextColor1);
-        }
         if (p->nextColor2 != g_ShadowNext[playerIdx][1]) {
             g_ShadowNext[playerIdx][1] = p->nextColor2;
-            DrawPuyo16(nx, ny + 2, p->nextColor2);
+            DrawPuyo16(nx, ny, p->nextColor2);
+        }
+        if (p->nextColor1 != g_ShadowNext[playerIdx][0]) {
+            g_ShadowNext[playerIdx][0] = p->nextColor1;
+            DrawPuyo16(nx, ny + 2, p->nextColor1);
         }
     }
 }
@@ -1097,7 +1097,7 @@ static void Game_FlashCleared(Player* p, u8 playerIdx) {
 }
 
 #define CHAIN_WIN_W 10
-#define CHAIN_WIN_H 5
+#define CHAIN_WIN_H 3
 // Chain window text row: "00xchain" (tiles at row 2, columns 1-8)
 static const u8 g_ChainText[] = {80, 80, 152, 99, 104, 97, 105, 110};
 static u8 g_ChainWinActive[2];
@@ -1115,15 +1115,15 @@ static void Game_DrawChainWin(u8 pi, u8 count, u8 flip) {
             u8 tile;
             if (y == 0 || y == CHAIN_WIN_H - 1 || x == 0 || x == CHAIN_WIN_W - 1)
                 tile = border;
-            else if (y == 2)
+            else if (y == 1)
                 tile = g_ChainText[x - 1];
             else
                 tile = 0;
             VDP_Poke_GM2(wx + x, 2 + y, tile);
         }
     }
-    VDP_Poke_GM2(wx + 1, 4, 80 + (count / 10));
-    VDP_Poke_GM2(wx + 2, 4, 80 + (count % 10));
+    VDP_Poke_GM2(wx + 1, 3, 80 + (count / 10));
+    VDP_Poke_GM2(wx + 2, 3, 80 + (count % 10));
 }
 
 static void Game_ShowChainWindow(u8 pi) {
@@ -1140,8 +1140,8 @@ static void Game_RedrawChainWindow(u8 pi, u8 count) {
 
 static void Game_UpdateChainNumber(u8 pi, u8 count) {
     u8 wx = (pi == 0) ? 2 : 20;
-    VDP_Poke_GM2(wx + 1, 4, 80 + (count / 10));
-    VDP_Poke_GM2(wx + 2, 4, 80 + (count % 10));
+    VDP_Poke_GM2(wx + 1, 3, 80 + (count / 10));
+    VDP_Poke_GM2(wx + 2, 3, 80 + (count % 10));
 }
 
 static void Game_HideChainWindow(u8 pi) {
