@@ -23,6 +23,17 @@ Target = "ROM_64K_ISR";
 
 Optim = "Speed";
 
+// Assets in page 0 (0x0100-0x3FFF) — accessible via direct pointer
+RawFiles = [
+    { page: 0, file: "out/tileset_pat.zx0" },
+    { page: 0, file: "out/tileset_col.zx0" },
+    { page: 0, file: "out/music_game.zx0" },
+    { page: 0, file: "out/screen_game.zx0" },
+    { page: 0, file: "out/title_pat.zx0" },
+    { page: 0, file: "out/title_col.zx0" },
+    { page: 0, file: "out/title_map.zx0" },
+];
+
 
 //*******************************************************************************
 // SIGNATURE SETTINGS

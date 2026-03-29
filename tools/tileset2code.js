@@ -184,6 +184,13 @@ output += `static const u8 g_TilesetCol_Zx0[] = {\n${buf2cArray(colZx0)}\n};\n`;
 
 fs.writeFileSync(outputFile, output);
 
+// Copy .zx0 files to build output directory for RawFiles
+const buildOutDir = path.join(baseDir, 'MSXgl/projects/puyopuyo/out');
+try { fs.mkdirSync(buildOutDir, { recursive: true }); } catch(e) {}
+fs.copyFileSync(patZx0File, path.join(buildOutDir, 'tileset_pat.zx0'));
+fs.copyFileSync(colZx0File, path.join(buildOutDir, 'tileset_col.zx0'));
+console.log(`Copied .zx0 to ${buildOutDir}`);
+
 // Cleanup temp files
 fs.unlinkSync(patBinFile);
 fs.unlinkSync(colBinFile);

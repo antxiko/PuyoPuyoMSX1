@@ -618,7 +618,10 @@ static void Game_DrawScore(Player* p) {
 }
 
 static void Game_DrawTitle(void) {
-    u8 i, x, y, bank;
+    u8 i;
+    // "PUYO PUYO VS" as text (tiles = ASCII + 32)
+    static const u8 title1[] = {'P'+32,'U'+32,'Y'+32,'O'+32};
+    static const u8 title2[] = {'V'+32,'S'+32};
     static const u8 arcTxt[] = {'A'+32,'R'+32,'C'+32,'A'+32,'D'+32,'E'+32};
     static const u8 vsTxt[]  = {'V'+32,'S'+32};
 
@@ -626,64 +629,26 @@ static void Game_DrawTitle(void) {
     *((u8*)0xF3DB) = 0;
 
     VDP_Setup();
-
-    // Load title tileset (64 tiles) into VRAM tiles 0-63
-    ZX0_UnpackToRAM((const void*)TITLE_PAT_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenPatternLow + (u16)bank * 0x800, 512);
-    ZX0_UnpackToRAM((const void*)TITLE_COL_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + (u16)bank * 0x800, 512);
-
-    // Fill screen with tile 4 (black tile in title tileset)
-    VDP_FillScreen_GM2(0);
-    { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = 0; }
+    VDP_FillScreen_GM2(PAT_EMPTY);
+    { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = PAT_EMPTY; }
     g_NbDirtyCount = 0;
 
-    // Decompress title map
-    ZX0_UnpackToRAM((const void*)TITLE_MAP_ZX0_ABS, g_PT3Buffer);
-
-    // Draw "PUYO" line 1 (1 tile left)
-    { u8 ox = 9, oy = 3;
-      for (y = 0; y < 5; y++)
-        for (x = 0; x < 11; x++)
-            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 11 + x]);
-    }
-
-    // Draw "PUYO" line 2 (1 tile right, 1 tile up) — map still in g_PT3Buffer
-    { u8 ox = 11, oy = 8;
-      for (y = 0; y < 5; y++)
-        for (x = 0; x < 11; x++)
-            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 11 + x]);
-    }
-
-    // Change bank 1 colors (rows 8-15): green → red for second PUYO
-    {
-        u16 j;
-        ZX0_UnpackToRAM((const void*)TITLE_COL_ZX0_ABS, g_PT3Buffer);
-        for (j = 0; j < 512; j++) {
-            u8 fg = (g_PT3Buffer[j] >> 4) & 0x0F;
-            u8 bg = g_PT3Buffer[j] & 0x0F;
-            if (fg == COLOR_DARK_GREEN) fg = COLOR_MEDIUM_RED;
-            else if (fg == COLOR_MEDIUM_GREEN) fg = COLOR_MEDIUM_RED;
-            else if (fg == COLOR_LIGHT_GREEN) fg = COLOR_LIGHT_RED;
-            if (bg == COLOR_DARK_GREEN) bg = COLOR_MEDIUM_RED;
-            else if (bg == COLOR_MEDIUM_GREEN) bg = COLOR_MEDIUM_RED;
-            else if (bg == COLOR_LIGHT_GREEN) bg = COLOR_LIGHT_RED;
-            g_PT3Buffer[j] = (fg << 4) | bg;
-        }
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + 0x800, 512);
-    }
+    // "PUYO" line 1 centered at row 4
+    for (i = 0; i < 4; i++) VDP_Poke_GM2(10 + i, 4, title1[i]);
+    // "PUYO" line 2 at row 6
+    for (i = 0; i < 4; i++) VDP_Poke_GM2(18 + i, 4, title1[i]);
+    // "VS" centered at row 8
+    for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 8, title2[i]);
 
     // Menu options
     for (i = 0; i < 6; i++) VDP_Poke_GM2(13 + i, 19, arcTxt[i]);
     for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 21, vsTxt[i]);
 }
 
-// Animate loser's board turning grey, row by row from bottom to top
+// Animate loser's board turning grey, row by row from top
+// Uses dedicated grey puyo patterns so winner's puyos are unaffected
 static void Game_AnimateGameOver(void) {
-    u8 loserIdx, x, bx, by;
-    i8 y;
+    u8 loserIdx, y, x, bx, by;
     Player* loser;
 
     if (!g_Player[0].alive) loserIdx = 0;
@@ -692,16 +657,17 @@ static void Game_AnimateGameOver(void) {
     bx = loser->boardX;
     by = loser->boardY;
 
-    for (y = BOARD_H - 1; y >= 0; y--) {
+    for (y = 0; y < BOARD_H; y++) {
         for (x = 0; x < BOARD_W; x++) {
-            if (loser->board[(u8)y][x] != PUYO_EMPTY) {
-                VDP_Poke_GM2(bx + x * 2,     by + (u8)y * 2,     PAT_GRAY_BASE);
-                VDP_Poke_GM2(bx + x * 2 + 1, by + (u8)y * 2,     PAT_GRAY_BASE + 1);
-                VDP_Poke_GM2(bx + x * 2,     by + (u8)y * 2 + 1, PAT_GRAY_BASE + 2);
-                VDP_Poke_GM2(bx + x * 2 + 1, by + (u8)y * 2 + 1, PAT_GRAY_BASE + 3);
+            if (loser->board[y][x] != PUYO_EMPTY) {
+                // Replace with grey puyo pattern
+                VDP_Poke_GM2(bx + x * 2,     by + y * 2,     PAT_GRAY_BASE);
+                VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2,     PAT_GRAY_BASE + 1);
+                VDP_Poke_GM2(bx + x * 2,     by + y * 2 + 1, PAT_GRAY_BASE + 2);
+                VDP_Poke_GM2(bx + x * 2 + 1, by + y * 2 + 1, PAT_GRAY_BASE + 3);
             }
         }
-        Halt(); NB_Flush(); Halt();
+        Halt(); Halt();
     }
 }
 
@@ -1565,9 +1531,9 @@ static void Game_UpdateBackground(void) {
     u8 p1Fast, p2Fast;
     u8 p1Update, p2Update;
 
-    // Speed up scroll when tower >= 8 puyos high
-    p1Fast = (Game_GetMaxHeight(&g_Player[0]) >= 8) ? 1 : 0;
-    p2Fast = (Game_GetMaxHeight(&g_Player[1]) >= 8) ? 1 : 0;
+    // Speed up scroll when tower > 8 puyos high
+    p1Fast = (Game_GetMaxHeight(&g_Player[0]) > 8) ? 1 : 0;
+    p2Fast = (Game_GetMaxHeight(&g_Player[1]) > 8) ? 1 : 0;
 
     // P1 scroll: every 1 frame if danger, every 2 frames if safe
     frameDivP1++;
