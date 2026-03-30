@@ -95,6 +95,7 @@ typedef struct {
     u8 alive;
     u8 boardX, boardY;
     u8 rotateDelay;
+    u8 groundRotations; // rotations while grounded, max 8
     u8 subY;  // 0 = aligned, 1 = offset 8px down (half-cell)
     u8 garbageFalling; // 1 = garbage is falling, wait before spawning
     u8 piecesPlaced; // count of locked pieces (for speed progression)
@@ -166,6 +167,7 @@ static void Game_SpawnPair(Player* p);
 static void Game_Update(void);
 static void Game_UpdatePlayer(Player* p, u8 joyPort);
 static bool Game_CanPlace(Player* p, u8 x, u8 y);
+static bool Game_CellFree(Player* p, i8 x, i8 y);
 static void Game_LockPair(Player* p);
 static u8 Game_ClearGroups(Player* p);
 static void Game_ChainLoop(Player* p, Player* opponent);
@@ -202,10 +204,14 @@ static void WaitFrames(u8 count) {
 // TITLE MUSIC PLAYER
 //=============================================================================
 
+static u8 g_MusicActive;
+
 // ISR: called automatically every VBlank by crt0
 void VDP_InterruptHandler(void) {
-    PT3_UpdatePSG();
-    PT3_Decode();
+    if (g_MusicActive) {
+        PT3_Decode();
+        PT3_UpdatePSG();
+    }
 }
 
 static void TitleMusic_Start(void) {}
@@ -216,17 +222,18 @@ static void TitleMusic_Update(void) {}
 //=============================================================================
 
 static void Music_Start(void) {
-    PT3_Pause();
+    g_MusicActive = 0;
     PT3_SetNoteTable(PT3_NT2);
     PT3_Init();
     ZX0_UnpackToRAM((const void*)MUSIC_GAME_ZX0_ABS, g_PT3Buffer);
     PT3_InitSong(g_PT3Buffer);
     PT3_SetLoop(TRUE);
     PT3_Resume();
+    g_MusicActive = 1;
 }
 
 static void Music_Stop(void) {
-    PT3_Pause();
+    g_MusicActive = 0;
     PT3_Silence();
 }
 
@@ -888,6 +895,7 @@ static void Game_SpawnPair(Player* p) {
     p->nextColor2 = (Math_GetRandom8() % PUYO_COUNT) + 1;
     p->dropTimer = 0;
     p->lockTimer = 0;
+    p->groundRotations = 0;
     if (p->board[0][2] != PUYO_EMPTY || p->board[0][3] != PUYO_EMPTY) {
         p->alive = FALSE;
     }
@@ -903,11 +911,18 @@ static bool Game_CanMovePair(Player* p, i8 dx, i8 dy) {
     i8 ny = (i8)p->puyoY + dy;
     i8 sx = nx + Game_GetSatX(p->puyoDir);
     i8 sy = ny + Game_GetSatY(p->puyoDir);
-    if (nx < 0 || nx >= BOARD_W || ny < 0 || ny >= BOARD_H) return FALSE;
-    if (p->board[ny][nx] != PUYO_EMPTY) return FALSE;
-    if (sx < 0 || sx >= BOARD_W) return FALSE;
-    if (sy >= 0 && sy < BOARD_H && p->board[sy][sx] != PUYO_EMPTY) return FALSE;
-    if (sy >= BOARD_H) return FALSE;
+    if (!Game_CellFree(p, nx, ny)) return FALSE;
+    if (ny < 0) return FALSE;
+    if (sy < 0) return TRUE; // satellite above screen is OK
+    if (!Game_CellFree(p, sx, sy)) return FALSE;
+    return TRUE;
+}
+
+static bool Game_CellFree(Player* p, i8 x, i8 y) {
+    // Check cell and, if subY==1, the row below (piece extends 8px down)
+    if (x < 0 || x >= BOARD_W || y >= BOARD_H) return FALSE;
+    if (y >= 0 && p->board[y][x] != PUYO_EMPTY) return FALSE;
+    if (p->subY == 1 && y + 1 >= 0 && y + 1 < BOARD_H && p->board[y + 1][x] != PUYO_EMPTY) return FALSE;
     return TRUE;
 }
 
@@ -916,21 +931,22 @@ static void Game_RotatePair(Player* p, i8 direction) {
     i8 sx = (i8)p->puyoX + Game_GetSatX(newDir);
     i8 sy = (i8)p->puyoY + Game_GetSatY(newDir);
     i8 kickX, kickY, px, py;
-    if (sx >= 0 && sx < BOARD_W && sy >= 0 && sy < BOARD_H) {
-        if (p->board[sy][sx] == PUYO_EMPTY) { p->puyoDir = newDir; return; }
-    }
+    // Direct rotation
     if (sx >= 0 && sx < BOARD_W && sy < 0) { p->puyoDir = newDir; return; }
+    if (Game_CellFree(p, sx, sy)) { p->puyoDir = newDir; return; }
+    // Wall kick: move main away from satellite
     kickX = -Game_GetSatX(newDir);
     kickY = -Game_GetSatY(newDir);
     px = (i8)p->puyoX + kickX;
     py = (i8)p->puyoY + kickY;
-    if (px >= 0 && px < BOARD_W && py >= 0 && py < BOARD_H) {
-        if (p->board[py][px] == PUYO_EMPTY) {
-            sx = px + Game_GetSatX(newDir);
-            sy = py + Game_GetSatY(newDir);
-            if (sx >= 0 && sx < BOARD_W && sy >= 0 && sy < BOARD_H && p->board[sy][sx] == PUYO_EMPTY) {
-                p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
-            }
+    if (Game_CellFree(p, px, py)) {
+        sx = px + Game_GetSatX(newDir);
+        sy = py + Game_GetSatY(newDir);
+        if (sx >= 0 && sx < BOARD_W && sy < 0) {
+            p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
+        }
+        if (Game_CellFree(p, sx, sy)) {
+            p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
         }
     }
 }
@@ -1519,9 +1535,25 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         p->rotateDelay--;
         if (!btnA && !btnB && !btnUp) p->rotateDelay = 0;
     }
-    if (p->rotateDelay == 0) {
-        if (btnUp || btnA) { Game_RotatePair(p, 1); p->rotateDelay = 8; }
-        else if (btnB) { Game_RotatePair(p, -1); p->rotateDelay = 8; }
+    if (p->rotateDelay == 0 && p->groundRotations < 8) {
+        if (btnUp || btnA) {
+            Game_RotatePair(p, 1); p->rotateDelay = 8;
+            if (!Game_CanMovePair(p, 0, 1)) p->groundRotations++;
+        }
+        else if (btnB) {
+            Game_RotatePair(p, -1); p->rotateDelay = 8;
+            if (!Game_CanMovePair(p, 0, 1)) p->groundRotations++;
+        }
+    }
+    // Lock timer: advance when piece is grid-aligned and can't fall
+    // Only at subY==0: subY==1 means mid-fall (must complete), subY==2 means spawning
+    if (p->subY == 0 && !Game_CanMovePair(p, 0, 1)) {
+        p->lockTimer++;
+        if (p->lockTimer >= LOCK_DELAY) {
+            Game_LockPair(p);
+            Game_ChainLoop(p, (p == &g_Player[0]) ? &g_Player[1] : &g_Player[0]);
+            return;
+        }
     }
     currentSpeed = p->dropSpeed / 4;
     if (currentSpeed < 1) currentSpeed = 1;
@@ -1537,19 +1569,13 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
             if (Game_CanMovePair(p, 0, 1)) {
                 p->subY = 1;
                 p->lockTimer = 0;
-            } else {
-                // Can't move down even half-step, try to lock
-                p->lockTimer++;
-                if (p->lockTimer >= LOCK_DELAY) {
-                    Game_LockPair(p);
-                    Game_ChainLoop(p, (p == &g_Player[0]) ? &g_Player[1] : &g_Player[0]);
-                }
             }
         } else {
             // Full step: complete the move to next row
             p->subY = 0;
             p->puyoY++;
             p->lockTimer = 0;
+            p->groundRotations = 0;
         }
     }
 }
@@ -1893,18 +1919,9 @@ void main(void) {
             Game_DrawStatsScreen();
             WaitButton();
 
-            if (g_GameMode == MODE_ARCADE && g_Player[0].alive && g_CpuLevel < 7) {
-                // P1 won — advance to next CPU level
-                g_CpuLevel++;
-                g_GameState = STATE_PLAYING;
-                VDP_Setup();
-                Game_Init();
-                Music_Start();
-            } else {
-                // VS mode, P1 lost, or beat final boss — back to title
-                g_GameState = STATE_TITLE;
-                VDP_Setup();
-            }
+            // Always return to title/menu after stats
+            g_GameState = STATE_TITLE;
+            VDP_Setup();
         }
     }
 }
