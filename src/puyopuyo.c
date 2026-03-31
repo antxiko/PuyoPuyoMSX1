@@ -1653,7 +1653,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
             return;
         }
     }
-    currentSpeed = p->dropSpeed / 4;
+    currentSpeed = p->dropSpeed / 8;
     if (currentSpeed < 1) currentSpeed = 1;
     if (dir & JOY_INPUT_DIR_DOWN) currentSpeed = DROP_SPEED_SOFT;
     p->dropTimer++;
