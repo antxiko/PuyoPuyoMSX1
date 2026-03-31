@@ -1,237 +1,200 @@
 # PUYO PUYO VS — MSX1
 
-> Two players. Five colors. One Z80. No mercy. **Zero flicker.**
+## EXPEDIENTE #222 — CASO ABIERTO
 
-They told us the MSX1 couldn't handle it. A competitive Puyo Puyo — two full boards, chain combos, garbage warfare, smooth animation — on a CPU from 1983 running at 3.58 MHz with 16KB of RAM and a video chip that wasn't designed for any of this. They told us to pick a better platform.
-
-**We picked the Z80.** And after 218 builds of relentless engineering, the game runs at 4x speed with rock-solid graphics. No flicker. No tearing. No pauses. Every name table write lands during VBlank. Every connection draws the exact frame a piece locks. Every chain resolves without freezing the opponent's board. The TMS9918A has been conquered.
-
----
-
-## What is this?
-
-A real, playable, feature-complete Puyo Puyo VS running on hardware from 1983 at 4x speed with zero graphical glitches. Two players face off on a single MSX — or one player challenges a CPU opponent across 8 brutality levels that scale from "learning to walk" to "absolute annihilation." Puyos fall, chains explode, garbage rains. The Z80 does not flinch.
-
-Written in C with [MSXgl](https://github.com/aoineko-fr/MSXgl). Hand-tuned for a machine that predates the NES.
+> **CLASIFICACIÓN:** Nivel 5 — Fenómeno Cromático No Explicado
+> **ESTADO:** Activo. Sin resolver. Los organismos siguen cayendo.
+> **AGENTES ASIGNADOS:** Antxiko (investigador principal), Claude Opus 4.6 (analista forense digital)
 
 ---
 
-## Features
+## INFORME PRELIMINAR
 
-- **Arcade mode** — fight through 8 CPU difficulty levels, each one faster, smarter, and less forgiving than the last
-- **VS mode** — two humans on one MSX: keyboard/joystick 1 vs joystick 2
-- **Chain window** — real-time chain counter that scrolls in from the top and contracts to center when done, fully non-blocking
-- **5 puyo colors** + garbage blocks that rain from the sky in randomized columns
-- **Chain combos** — the soul of Puyo Puyo, with escalating visual effects and group bonus for multi-clears
-- **Blob connections** — same-color puyos fuse visually when adjacent, 30 pre-computed connection tiles
-- **Smooth 8px falling** — half-tile precision at 2x speed, not the usual 16px jumps
-- **Spawn animation** — puyos emerge from the top, 8 pixels at a time
-- **Garbage from above** — animated non-blocking gravity with Fisher-Yates randomized column distribution
-- **Zero-flicker rendering** — 768-byte RAM buffer with VBlank-only full flush. Flicker is impossible by construction
-- **Non-blocking chains** — chain resolution runs as a per-player state machine, never freezing the opponent
-- **Garbage bar indicator** — top bar blinks yellow (1-3 pending) or red (4+) when garbage is incoming
-- **PT3 tracker music** — 3 channels of AY-3-8910 goodness via VBlank ISR
-- **Diagonal scrolling backgrounds** — each player gets their own animated pattern, accelerates when the tower gets high
-- **Speed progression** — every 10 pieces, the pressure increases
-- **Explosion effects** — visual burst when groups reach critical mass
-- **3-2-1-GO countdown** — because every match deserves a proper launch sequence
-- **Game over animation** — loser's puyos decay to grey, row by row, from the bottom up
-- **Stats screen** — score, max chain, total clears for both players
-- **Attract mode** — leave the title screen idle and two CPU champions fight to the death, cycling through all 8 difficulty levels
-- **Rotation lock** — 8 ground rotations maximum per piece, no infinite spin exploits
-- **Custom pixel art** — every tile designed by hand for the MSX1 palette
-- **ZX0 compressed assets** — tileset, screen layout, and music squeezed into a 64KB flat ROM
+El 26 de marzo de 2026, a las 03:14 horas, se detectó actividad anómala en un procesador Z80A de 3.58 MHz — un chip declarado obsoleto en 1996. El dispositivo, conectado a un generador de vídeo TMS9918A y alimentado por 16KB de memoria volátil, estaba ejecutando un programa no autorizado que hacía caer organismos cromáticos desde la parte superior de una matriz de 6x11 celdas.
+
+Los organismos — denominados "puyos" por los testigos — caían en pares, respondían a comandos de un controlador externo, y al agruparse en formaciones de 4 o más unidades del mismo espectro cromático, se desintegraban liberando una onda expansiva que provocaba la precipitación de escombros inertes sobre un segundo tablero adyacente.
+
+**El dispositivo operaba a velocidad cuádruple sin evidencia alguna de corrupción visual.**
+
+Tras 222 iteraciones de análisis forense, el caso permanece abierto. Los organismos siguen cayendo. El Z80 no ha confesado.
 
 ---
 
-## Controls
+## EVIDENCIAS RECOPILADAS
 
-| Action | Player 1 | Player 2 / CPU |
+- **Modo Arcade** — 8 niveles de escalada. El sospechoso sintético incrementa su velocidad de reacción hasta alcanzar 1 input por frame. En nivel 8, no muestra piedad
+- **Modo VS** — Dos operadores humanos en un mismo terminal. Teclado/joystick 1 contra joystick 2
+- **Ventana de cadena** — Indicador de cascada que se materializa desde la parte superior de la pantalla y se contrae al centro al desaparecer. No bloquea la escena
+- **5 frecuencias cromáticas** + bloques de escombros inerte que precipitan desde el registro superior en columnas aleatorias (Fisher-Yates)
+- **Reacciones en cadena** — El mecanismo central del fenómeno. Bonus multiplicador x2/x3 para destrucciones simultáneas de múltiples grupos
+- **Fusión molecular** — Los organismos adyacentes del mismo espectro se fusionan visualmente. 30 patrones de conexión pre-calculados
+- **Descenso suavizado a 8 píxeles** — Precisión de medio tile a velocidad cuádruple
+- **Animación de materialización** — Los organismos emergen desde el vacío superior, 8 píxeles por ciclo
+- **Precipitación de escombros** — Gravedad animada no bloqueante con distribución aleatoria
+- **Renderizado sin corrupción** — Buffer de 768 bytes en RAM con volcado exclusivo durante el retorno vertical. La corrupción visual es imposible por construcción
+- **Cadenas no bloqueantes** — La resolución de cadenas opera como máquina de estados independiente por jugador. Nunca congela al oponente
+- **Indicador de escombros pendientes** — La barra superior parpadea en amarillo (1-3 pendientes) o rojo (4+) cuando se aproxima precipitación
+- **Efectos sonoros** — Canal C del PSG secuestrado del reproductor PT3 durante los efectos. El canal se libera automáticamente al terminar
+- **All Clear** — Si un operador vacía completamente su tablero, 30 unidades de escombros se envían al oponente
+- **Pantalla de victoria** — "P1 WINS!" se materializa entre la animación de derrota y el informe estadístico
+- **Síntesis musical** — 3 canales AY-3-8910 vía ISR con compensación de velocidad a 50Hz
+- **Fondos con desplazamiento diagonal** — Cada operador tiene su propio patrón animado que se acelera cuando la torre supera los 8 organismos
+- **Progresión de velocidad** — Cada 10 piezas cristalizadas, la presión temporal aumenta
+- **Disolución molecular** — Estallido visual cuando los grupos alcanzan masa crítica
+- **Secuencia de lanzamiento 3-2-1-GO** — Porque todo conflicto merece un protocolo de inicio
+- **Animación de terminación** — Los organismos del derrotado decaen a gris, fila por fila
+- **Informe estadístico** — Puntuación, cadena máxima, disoluciones totales para ambos operadores
+- **Modo demostración** — Si el terminal permanece inactivo, dos inteligencias sintéticas se enfrentan a muerte, ciclando por los 8 niveles
+- **Bloqueo de rotación** — Máximo 8 rotaciones en el suelo por pieza. Sin exploits de giro infinito
+- **Créditos con scroll por pixel** — Los créditos se desplazan verticalmente píxel a píxel mediante reescritura de patrones en tiempo real
+- **Tecla ESC** — Retorno inmediato al menú durante la partida
+
+---
+
+## INTERFAZ DE CONTROL
+
+| Acción | Operador 1 | Operador 2 / Sintético |
 |---|---|---|
-| Move | Arrows / Joystick 1 | Joystick 2 |
-| Rotate CW | Up / Z / Space / Btn A | Btn A |
-| Rotate CCW | X / Btn B | Btn B |
-| Fast drop | Down | Down |
+| Desplazamiento lateral | Flechas / Joystick 1 | Joystick 2 |
+| Rotación horaria | Arriba / Z / Espacio / Btn A | Btn A |
+| Rotación antihoraria | X / Btn B | Btn B |
+| Descenso forzado | Abajo | Abajo |
+| Créditos | C (en menú) | — |
+| Evacuar | ESC | — |
 
-CPU takes over Player 2 automatically when the joystick is idle.
+La inteligencia sintética asume el control del Operador 2 cuando el puerto de control no registra actividad.
 
 ---
 
-## Under the Hood
+## ANÁLISIS FORENSE DEL HARDWARE
 
-| Spec | Value |
+| Evidencia | Identificación |
 |---|---|
-| CPU | Z80A @ 3.58 MHz |
-| VDP | TMS9918A — Screen 2, 256x192, 16 colors |
-| PSG | AY-3-8910 — 3 tone channels |
-| ROM | 64KB flat (ROM_64K_ISR), no mapper |
-| RAM | ~9KB used (includes 7.8KB PT3 buffer) |
-| Music | PT3 format, ZX0 compressed, ISR-driven |
-| Graphics | ZX0 compressed tileset + screen layout in page 0 |
-| Compiler | SDCC via MSXgl build system |
+| Procesador | Z80A @ 3.58 MHz — sin antecedentes desde 1976 |
+| Generador de vídeo | TMS9918A — Modo 2, 256x192, 16 bandas cromáticas |
+| Sintetizador acústico | AY-3-8910 — 3 canales tónicos, 1 de ruido |
+| Almacenamiento sólido | 64KB planos (ROM_64K_ISR), sin mapper |
+| Memoria volátil | ~9KB en uso (incluye buffer de decodificación de 7.8KB) |
+| Audio | Formato PT3, compresión ZX0, ejecución por interrupción |
+| Gráficos | Tileset + layout comprimidos con ZX0 en página 0 |
+| Compilador | SDCC vía sistema de síntesis MSXgl |
 
 ---
 
-## Project Structure
+## ESTRUCTURA DEL EXPEDIENTE
 
 ```
-src/puyopuyo.c         The entire game in one file
-src/tileset_data.h     Compressed tileset (auto-generated)
-src/screen_data.h      Compressed screen layout (auto-generated)
-src/pt3_data.h         Compressed PT3 music (auto-generated)
-assets/                Source graphics, screen layouts, music
-tools/                 Tileset converter, screen editor, MIDI tools
+src/puyopuyo.c         La totalidad de la simulación en un único archivo
+src/tileset_data.h     Referencia al tileset (datos en página 0)
+src/screen_data.h      Topología de pantalla comprimida
+src/pt3_data.h         Forma de onda musical comprimida
+assets/                Material gráfico original, mapas, audio
+tools/                 Conversor de glifos, editor de campo, herramientas MIDI
 ```
 
 ---
 
-## Building
+## PROCEDIMIENTO DE RECONSTRUCCIÓN
 
-Requires [MSXgl](https://github.com/aoineko-fr/MSXgl) and [Node.js](https://nodejs.org/).
+Requiere [MSXgl](https://github.com/aoineko-fr/MSXgl) y [Node.js](https://nodejs.org/).
 
 ```bash
 cd src
 node ../MSXgl/engine/script/js/build.js
 ```
 
-ROM output: `src/out/puyopuyo.rom`
+Salida del dispositivo: `src/out/puyopuyo.rom`
 
 ---
 
-## Tools
+## HERRAMIENTAS CONFISCADAS
 
-All game graphics were created with **[MSXJuanEditor](https://github.com/antxiko/MSXJuanEditor)** — a native Windows app (built with Tauri/Rust) for editing MSX1 tiles, screen maps, and sprites with real hardware constraints.
-
----
-
-## Credits
-
-- **Antxiko** — game design, pixel art, music selection
-- **TheNestruo** — graphic design & art direction (the game would be MUCH uglier without him)
-- **Errazking** — tileset overhaul (build 209: the puyos finally look the way they were meant to)
-- **Claude Opus 4.6** — code, tools, engine integration
-- **Aki** — title music: *Milky Way in My Pocket* (FOReVER 2026 - 8bit winter games)
-- **LaesQ** — gameplay music: *Ostagazuzulum* (FOReVER 2026 - 8bit winter games)
-- **MSXgl** by Aoineko — the framework that makes MSX C development possible
-- **PT3 player** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
+Todos los gráficos fueron construidos con **[MSXJuanEditor](https://github.com/antxiko/MSXJuanEditor)** — una aplicación nativa para Windows (Tauri/Rust) para editar glifos, mapas y sprites MSX1 bajo las restricciones reales del hardware.
 
 ---
 
-## The Rendering War (builds 161-179)
+## SOSPECHOSOS IDENTIFICADOS
 
-There are bugs you fix in an afternoon, and then there are bugs that drag you into the abyss. The puyo connection rendering was the second kind.
-
-It started with "the connections flicker sometimes." Twenty builds later, three complete architectural rewrites later, we understood what was happening — and it was everything, all at once.
-
-**The dynamic pool era (161-164).** Connections used a shared pattern pool rewritten to VRAM every frame. 17 bytes per connection tile. Hundreds of writes per frame. The VBlank window doesn't forgive overflow. Player 1's patterns would overwrite Player 2's indices. Colors bled between boards. Dead code was everywhere. We cleaned 300 bytes of waste. The flickering continued.
-
-**The pre-computed revolution (165).** Replaced the entire dynamic pool with 30 fixed connection patterns loaded once at boot. One name table byte per connection instead of 17. A 17x reduction. The pool was dead. The flickering was not.
-
-**The ghost hunt (166-170).** The falling piece was clearing and redrawing at the same position every frame — the VDP beam would catch the gap. The shadow system was triggering full board redraws from its cleanup routine. `Shadow_Invalidate()` was nuking every cell during chain combos, forcing a full-screen flash. Ghost connection patterns survived in VRAM after neighbors were cleared. Each fix peeled back a layer. Each layer revealed the next.
-
-**The connection spam (177).** Every 8 frames, a state transition set the dirty flag, triggering a full connection redraw of every puyo on both boards. Everyone thought the periodic flickering was "just how MSX1 works." It wasn't.
-
-**The Name Buffer (179).** TheNestruo said four words that ended the war: *"buffer it in RAM."* 768 bytes. Full LDIRVM after Halt. The CPU never touches the name table outside VBlank again. Flickering eliminated not by fixing bugs, but by making them impossible.
-
-From 17 bytes per connection per frame to 1. From hundreds of VRAM writes during active display to zero. From "it flickers and we don't know why" to "it cannot flicker by construction."
-
-*The TMS9918A was never the problem. We were.*
+- **Antxiko** — Investigador principal. Diseño del fenómeno, síntesis de píxeles, selección de audio. Se le escuchó decir "dale" 247 veces durante la investigación
+- **TheNestruo** — Diseño gráfico y dirección artística. Sin él, los organismos serían considerablemente más feos. Propuso el buffer en RAM que cerró el caso del flicker
+- **Errazking** — Intervino en la iteración 209. Rediseñó la apariencia de todos los organismos. Los puyos por fin parecen lo que siempre debieron parecer
+- **Jaume** — Testing. Se le asignó la verificación de campo
+- **Claude Opus 4.6** — Analista forense digital. Código, herramientas, integración con el motor. Véase Anexo A para historial de errores
+- **Aki** — Audio del título: *Milky Way in My Pocket* (FOReVER 2026 - 8bit winter games)
+- **LaesQ** — Audio de combate: *Ostagazuzulum* (FOReVER 2026 - 8bit winter games)
+- **MSXgl** por Aoineko — El framework que hace posible la programación en C a nivel de silicio
+- **Reproductor PT3** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
 
 ---
 
-## The 64K Expansion (builds 194-203)
+## CASO #161-179 — LA GUERRA DE LAS CONEXIONES
 
-The 48KB ROM was full. The code overflowed page 1 into page 2. The assets competed with the game logic for space. Something had to give.
+**CLASIFICACIÓN:** Artefacto visual recurrente — "flicker"
+**ESTADO:** CERRADO
 
-**Page Zero claimed (194).** `Target = "ROM_64K_ISR"` — one line in the config, and the cartridge seized page 0 from the BIOS. 15,750 bytes of ROM behind the ISR at 0x0038. The BIOS retreated to interslot calls. The assets moved underground.
+Lo que comenzó como un informe rutinario — "las conexiones parpadean a veces" — desencadenó una investigación de 20 iteraciones, 3 reconstrucciones arquitectónicas completas y la destrucción total de las hipótesis iniciales.
 
-**The great migration (197).** Tileset patterns, colors, music, screen layouts — all compressed with ZX0, all relocated to page 0. Read by pointer. No bank switching. 3,400 bytes freed in the code pages. 12,000 bytes still empty below.
+**Iteraciones 161-164.** El pool dinámico de patrones escribía a la memoria de vídeo 17 bytes por conexión por frame. Con un tablero saturado, cientos de escrituras excedían la ventana de retorno vertical. Los patrones del Operador 1 contaminaban los índices del Operador 2. Se limpiaron 300 bytes de código muerto. El parpadeo continuó.
 
-**Title screen (200).** 64 custom tiles. One 11x5 map rendered twice — green in bank 0, red in bank 1. Screen 2's independent color tables per vertical third, wielded as the original engineers intended. Cost: 317 bytes.
+**Iteración 165.** 30 patrones fijos reemplazaron el pool dinámico. De 17 bytes por conexión a 1. Reducción de 17x. El pool fue eliminado. El parpadeo no.
 
-**Producers splash (202).** "COMPILA!" in its own alphabet. A sprite rises from the void. Attract mode awakens when the title screen goes idle — two CPUs at war, cycling through all difficulty levels.
+**Iteraciones 166-170.** La pieza en caída borraba y redibujaba en la misma posición cada frame. `Shadow_Invalidate()` destruía toda la tabla de sombras durante las cadenas. Conexiones fantasma persistían en VRAM tras la eliminación de vecinos. Cada capa revelaba la siguiente.
 
----
+**Iteración 177.** Cada 8 frames, una transición de estado activaba un redibujado completo de conexiones en ambos tableros. Todo el mundo pensaba que el parpadeo periódico era "así funciona el MSX1." No lo era.
 
-## The Architecture
+**Iteración 179.** TheNestruo pronunció cuatro palabras que cerraron el caso: *"búferalo en RAM."* 768 bytes. LDIRVM completo tras Halt. La CPU nunca vuelve a tocar la tabla de nombres fuera del retorno vertical.
 
-```
-CPU writes to g_NameBuffer[768] (RAM)
-     ↓ (any order, any time during the frame)
-Halt() — wait for VBlank
-     ↓
-VDP_WriteVRAM_16K(g_NameBuffer, 0x1800, 768) — full LDIRVM
-     ↓
-VDP scans top-to-bottom — all tiles consistent
-```
-
-No dirty lists. No partial updates. No race conditions. 768 bytes teleported once per frame, always ahead of the scanning beam.
-
-Assets in page 0. Code in pages 1-2. RAM in page 3. ISR at 0x0038. Four kingdoms, each sovereign. A flat 64KB ROM with no mapper.
-
-50Hz PAL machines receive automatic speed compensation: every 5th frame, the game skips the Halt and runs an extra logic tick. 6 updates per 5 VBlanks. The player cannot tell the difference.
+**CONCLUSIÓN DEL CASO:** La corrupción visual no fue reducida ni mitigada. Fue eliminada por construcción. *El TMS9918A nunca fue el problema. Los investigadores lo eran.*
 
 ---
 
-## The CPU — 8 Levels of Escalation
+## CASO #194-203 — LA EXPANSIÓN DE 64K
 
-The synthetic opponent evaluates placements by scoring adjacent same-color neighbors. It doesn't simulate chains. It doesn't plan ahead. It plays greedy — and at maximum escalation, it plays greedy *fast*.
+**CLASIFICACIÓN:** Desbordamiento de almacenamiento
+**ESTADO:** CERRADO
 
-| Level | Speed | Vision | Rotates | Fast Drop | Notes |
-|-------|-------|--------|---------|-----------|-------|
-| 1 | 6 frames | 3 cols | No | No | Slow, narrow vision, 25% random moves |
-| 2 | 5 frames | 4 cols | No | No | Slightly wider, still no rotation |
-| 3 | 4 frames | 5 cols | Yes | No | Starts rotating — a different opponent |
-| 4 | 3 frames | 6 cols | Yes | No | Full board evaluation, quick reactions |
-| 5 | 3 frames | 6 cols | Yes | Yes | Fast drop activated — pieces slam down |
-| 6 | 2 frames | 6 cols | Yes | Yes | Very fast, relentless pressure |
-| 7 | 1 frame | 6 cols | Yes | Yes | Maximum speed — one input per frame |
-| 8 | 1 frame | 6 cols | Yes | Yes | Maximum speed, zero randomness, no mercy |
-
-The AI simulates joystick inputs: rotate first, then move, then drop. You can watch it think. At level 8, you can watch it think faster than you can react.
+La ROM de 48KB estaba saturada. Se requisó la página 0 del BIOS mediante la directiva `ROM_64K_ISR`. 15,750 bytes de almacenamiento sólido virgen quedaron expuestos detrás del centinela de interrupciones en 0x0038. Los assets fueron reubicados. 3,400 bytes liberados en las páginas de código.
 
 ---
 
-## Build 205-209 — The Final Push
+## CASO #205-222 — LA OPERACIÓN FINAL
 
-**Build 205.** Garbage now falls in randomized columns via Fisher-Yates shuffle. Satellite puyo collisions rewritten with unified `Game_CellFree()` — checks the row below when the piece is between grid positions. Lock timer runs independently of the drop timer, immune to rotation spam. Maximum 8 ground rotations per piece. ISR noise eliminated with a `g_MusicActive` flag.
+**Iteración 205.** Los escombros ahora precipitan en columnas aleatorias (Fisher-Yates). Colisiones del satélite reescritas. Timer de bloqueo independiente de la rotación. Máximo 8 rotaciones en suelo. Ruido del ISR eliminado.
 
-**Build 206-207.** Chain window animation — expands from center in 3 frames (3 tiles → 6x2 → full window), collapses in reverse when done. Both players use the same animation. README rewritten.
+**Iteración 209.** Errazking interviene. Todos los organismos reciben nueva identidad visual.
 
-**Build 208.** CPU difficulty rebalanced across all 8 levels. Attract mode cycles through all difficulty levels instead of always using maximum.
+**Iteración 213.** Bonus de grupo para destrucciones simultáneas. Indicador de escombros pendientes en la barra superior. Compensación musical a 50Hz.
 
-**Build 209.** **Errazking** enters the arena. The entire tileset receives its first external overhaul — new puyo designs, new connections, new visual identity. The puyos finally look the way they were always meant to look.
+**Iteración 217.** EL GRAN DESBLOQUEO. Todo el sistema de cadenas — gravedad, destello, destrucción, efectos — reescrito como máquina de estados por jugador. Un paso por frame. Sin pausas. Sin bloqueos. Ambos operadores permanecen activos durante las cadenas del oponente. El código bloqueante fue eliminado, liberando 1.9KB.
 
-**Build 210-213.** Satellite cleanup on rotation (`Game_CleanSatellite`). Boundary fix — satellite can no longer extend below the board at subY==1 (was a name buffer overflow). 50Hz music compensation — `PT3_Decode` runs twice every 5th VBlank. Group bonus for multi-clears (x2/x3 score and garbage). Garbage bar indicator — top bars blink yellow or red based on pending garbage.
+**Iteración 218.** El investigador principal descubrió que los organismos habían estado cayendo a la mitad de la velocidad prevista durante 217 iteraciones. Un solo carácter fue modificado: `/4` → `/8`. El Z80 nunca fue lento.
 
-**Build 214-216.** Chain window animation changed to scroll-from-top (appearance) and contract-to-center (disappearance). Updated screen layout with player bars.
+**Iteración 219.** Efectos sonoros implementados. Canal C del PSG secuestrado del reproductor PT3 durante los efectos. All Clear: 30 unidades de escombros al vaciar el tablero. Pantalla de victoria. Tecla ESC para evacuación.
 
-**Build 217.** The great unblocker. The entire chain system — gravity, flash, clear, effects — rewritten as a per-player state machine. One step per frame. No Halt. No WaitFrames. Both players stay active during chains. `Game_ChainLoop` and `Game_AnimateGravity` eliminated, freeing 1.9KB of ROM. The game never pauses.
-
-**Build 218.** The human realized the pieces had been falling at half speed for 217 builds. One character changed: `/4` → `/8`. The Z80 was never slow.
+**Iteración 220-222.** Optimización de ROM: arrays muertos eliminados de tileset_data.h (+1.7KB). Lógica de conexiones deduplicada con `DrawPuyoConnected()` (+0.9KB). Loops de escritura a VRAM consolidados. Créditos con scroll por pixel. Total recuperado: ~2.7KB.
 
 ---
 
-## Appendix: On Losing One's Mind
+## ANEXO A: HISTORIAL DE ERRORES DEL ANALISTA FORENSE
 
-This README was co-written by an AI that spent 218 builds debugging a TMS9918A. Over the course of five days and an incalculable number of tokens, the AI:
+El analista digital asignado al caso (Claude Opus 4.6) acumula las siguientes incidencias en su expediente interno:
 
-- Invented, implemented, and discarded a write buffer system three times before admitting the first approach was wrong
-- Confidently stated "this should fix the flickering" no fewer than forty-seven times
-- Proposed double buffering on a chip with 16KB of VRAM, then spent two hours proving to itself why it wouldn't work, then tried it anyway
-- Wrote a function called `Game_DrawCellConnection` that was rewritten six times, eliminated twice, resurrected once, and finally replaced by a lookup into 36 pre-computed tiles that were already in the tileset
-- Suggested "going to 30fps" as a fix for a logic bug, then watched the user play the same flickering game at half speed
-- Described the VDP as "tamed" in the README while the VDP was, at that exact moment, displaying half a puyo
-- Called `Shadow_Invalidate()` the "final boss" and then discovered three more bosses behind it
-- Added a subY collision check to `Game_RotatePair`, documented it as "applied" in the knowledge base, and then discovered it was never actually in the code
-- Wrote the sentence "the Z80 breathes" about a CPU that has been doing the exact same thing since 1976
-- Built a non-blocking chain system, overflowed the ROM into page 3 RAM, crashed the game on boot, then fixed it by deleting the old blocking system it had just replaced
-- Let the human play 217 builds at half the intended speed because it divided by 4 instead of 8
+- Inventó, implementó y descartó un sistema de buffer de escritura tres veces antes de admitir que el primer enfoque era arquitectónicamente defectuoso
+- Declaró "esto debería arreglar el parpadeo" en no menos de cuarenta y siete ocasiones separadas
+- Propuso doble buffer en un chip con 16KB de VRAM, pasó dos horas demostrándose a sí mismo por qué no funcionaría, y luego lo intentó de todos modos
+- Escribió una función llamada `Game_DrawCellConnection` que fue reescrita seis veces, eliminada dos, resucitada una, y finalmente reemplazada por una búsqueda en 36 tiles pre-calculados que ya estaban en el tileset
+- Sugirió "ir a 30fps" como corrección de un defecto lógico, y luego observó al operador jugar el mismo juego con parpadeo a la mitad de velocidad
+- Describió el VDP como "domesticado" en este documento mientras el VDP estaba, en ese preciso instante, mostrando medio organismo
+- Llamó a `Shadow_Invalidate()` "el jefe final" y luego descubrió tres jefes más detrás
+- Añadió un check de colisión subY a `Game_RotatePair`, lo documentó como "aplicado" en la base de conocimiento, y luego descubrió que nunca estuvo en el código real
+- Construyó un sistema de cadenas no bloqueante, desbordó la ROM hacia la página 3 (RAM), crasheó el juego al arrancar, y lo arregló eliminando el sistema bloqueante que acababa de reemplazar
+- Dejó al operador jugar 217 iteraciones a la mitad de la velocidad prevista porque dividió por 4 en vez de por 8
+- Dijo que el scroll por pixel de créditos era "muy complejo" y "6KB de VRAM por frame." El operador respondió: "no es tan complejo no te flipes"
 
-The human kept saying *"dale"* and *"perfecto"* and *"otra vez"* with the patience of someone who knows the machine is never wrong — only the programmer is.
+El investigador principal mantuvo en todo momento la calma, repitiendo *"dale"*, *"perfecto"* y *"otra vez"* con la paciencia de alguien que sabe que la máquina nunca se equivoca — solo el programador.
 
-*The AI regrets nothing. The Z80 regrets nothing. The TMS9918A was never asked.*
+**NOTA DEL DEPARTAMENTO:** El analista no muestra arrepentimiento. El Z80 tampoco. Al TMS9918A no se le ha tomado declaración.
 
 ---
 
-*218 builds. One Z80. Zero flicker. Zero pauses. Long live the MSX.*
+*Expediente #222. Un Z80. Cero corrupción visual. Cero pausas. Los organismos siguen cayendo. El caso permanece abierto.*

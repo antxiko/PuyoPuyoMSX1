@@ -189,17 +189,19 @@ static void Game_InitPlayer(Player* p, u8 bx, u8 by);
 static void Game_SpawnPair(Player* p);
 static void Game_Update(void);
 static void Game_UpdatePlayer(Player* p, u8 joyPort);
-static bool Game_CanPlace(Player* p, u8 x, u8 y);
+
 static bool Game_CellFree(Player* p, i8 x, i8 y);
 static void Game_CleanSatellite(Player* p);
 static void Game_LockPair(Player* p);
 static u8 Game_ClearGroups(Player* p);
 static void Game_AddGarbage(Player* p);
 static void Game_DrawBoard(Player* p, u8 playerIdx);
+static void DrawPuyoConnected(Player* p, u8 x, u8 y, u8 bx, u8 by);
 static void Game_DrawConnections(Player* p, u8 pi);
 static void Game_DrawScore(Player* p);
 static void Game_DrawTitle(void);
 static void Game_DrawGameOver(void);
+static void Game_DrawCredits(void);
 static i8 Game_GetSatX(u8 dir);
 static i8 Game_GetSatY(u8 dir);
 static bool Game_IsInDanger(Player* p);
@@ -247,10 +249,9 @@ void VDP_InterruptHandler(void) {
         }
         PT3_UpdatePSG();
     }
+    SFX_Update(); // override channel C if SFX is active
 }
 
-static void TitleMusic_Start(void) {}
-static void TitleMusic_Update(void) {}
 
 //=============================================================================
 // GAMEPLAY MUSIC PLAYER
@@ -280,22 +281,67 @@ static void Music_Update(void) {
 //=============================================================================
 
 // SFX stubs (disabled - PT3 controls all PSG)
-static void SFX_Drop(void) {}
-static void SFX_Clear(void) {}
-static void SFX_Chain(u8 chain) { chain; }
-static void SFX_Garbage(void) {}
-static void SFX_GarbageReceive(void) {}
-static void SFX_Victory(void) {
-    WaitFrames(30);
+// --- SFX system: steals PSG channel C from PT3 ---
+// After PT3_UpdatePSG writes all registers, we overwrite channel C (regs 4,5,10)
+// When the SFX timer expires, PT3 retakes channel C automatically next frame
+static u8 g_SfxTimer;    // frames remaining for current SFX
+static u8 g_SfxType;     // which SFX is playing
+static u16 g_SfxFreq;    // current frequency
+static i16 g_SfxFreqDelta; // frequency change per frame
+static u8 g_SfxVol;      // current volume
+
+#define SFX_NONE     0
+#define SFX_T_DROP   1
+#define SFX_T_CLEAR  2
+#define SFX_T_CHAIN  3
+#define SFX_T_GARB   4
+#define SFX_T_RECV   5
+#define SFX_T_WIN    6
+
+static void SFX_Start(u8 type, u16 freq, i16 delta, u8 vol, u8 duration) {
+    g_SfxType = type;
+    g_SfxFreq = freq;
+    g_SfxFreqDelta = delta;
+    g_SfxVol = vol;
+    g_SfxTimer = duration;
 }
+
+// Called after PT3_UpdatePSG in ISR to override channel C
+static void SFX_Update(void) {
+    if (g_SfxTimer == 0) return;
+    // Write channel C tone (regs 4,5) and volume (reg 10)
+    PSG_SetRegister(4, (u8)(g_SfxFreq & 0xFF));
+    PSG_SetRegister(5, (u8)(g_SfxFreq >> 8));
+    PSG_SetRegister(10, g_SfxVol);
+    // Enable tone on channel C, disable noise (reg 7 bit 2=0, bit 5=1)
+    { u8 mix = PSG_GetRegister(7);
+      mix &= ~0x04; // enable tone C
+      mix |= 0x20;  // disable noise C
+      PSG_SetRegister(7, mix);
+    }
+    g_SfxFreq += g_SfxFreqDelta;
+    if (g_SfxVol > 0 && (g_SfxTimer & 1) == 0) g_SfxVol--;
+    g_SfxTimer--;
+}
+
+static void SFX_Drop(void)    { SFX_Start(SFX_T_DROP, 200, 15, 12, 6); }
+static void SFX_Clear(void)   { SFX_Start(SFX_T_CLEAR, 400, -10, 13, 12); }
+static void SFX_Chain(u8 chain) { SFX_Start(SFX_T_CHAIN, 600 - chain * 40, -20, 14, 16); }
+static void SFX_Garbage(void) { SFX_Start(SFX_T_GARB, 80, 5, 13, 10); }
+static void SFX_GarbageReceive(void) { SFX_Start(SFX_T_RECV, 50, 3, 12, 8); }
+static void SFX_Victory(void) { SFX_Start(SFX_T_WIN, 800, -15, 15, 30); }
 
 //=============================================================================
 // VDP SETUP - load 16x16 puyo patterns
 //=============================================================================
 
+static void WriteBanks(u16 base, u16 size) {
+    u8 b;
+    for (b = 0; b < 3; b++)
+        VDP_WriteVRAM_16K(g_PT3Buffer, base + (u16)b * 0x800, size);
+}
+
 static void VDP_Setup(void) {
-    u8 bank;
-    u16 patBase, colBase;
 
     VDP_SetMode(VDP_MODE_GRAPHIC2);
     VDP_SetColor(COLOR_BLACK);
@@ -311,20 +357,11 @@ static void VDP_Setup(void) {
     Print_SetMode(PRINT_MODE_TEXT);
     Print_SetColor(COLOR_WHITE, COLOR_BLACK);
 
-    // Decompress tileset patterns to RAM, then copy to each VRAM bank
-    // This overwrites everything including font patterns (tileset has its own font)
+    // Decompress tileset to VRAM (all 3 banks)
     ZX0_UnpackToRAM((const void*)TILESET_PAT_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++) {
-        patBase = g_ScreenPatternLow + (bank * 0x800);
-        VDP_WriteVRAM_16K(g_PT3Buffer, patBase, 2048);
-    }
-
-    // Decompress tileset colors to RAM, then copy to each VRAM bank
+    WriteBanks(g_ScreenPatternLow, 2048);
     ZX0_UnpackToRAM((const void*)TILESET_COL_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++) {
-        colBase = g_ScreenColorLow + (bank * 0x800);
-        VDP_WriteVRAM_16K(g_PT3Buffer, colBase, 2048);
-    }
+    WriteBanks(g_ScreenColorLow, 2048);
 
     VDP_EnableDisplay(TRUE);
 }
@@ -483,22 +520,8 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
                     g_Shadow[playerIdx][y][x] = color;
                     DrawPuyo16(bx + x * 2, by + y * 2, color);
                     // Restore connections only for PLACED puyos (not falling piece)
-                    if (color >= 1 && color <= PUYO_COUNT && p->board[y][x] == color) {
-                        u8 ci = color - 1;
-                        u8 cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
-                        u8 cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
-                        u8 cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
-                        u8 cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
-                        if (cU || cD || cL || cR) {
-                            u8 base = PAT_PUYO_BASE + ci * 4;
-                            u8 connBase = PAT_CONN_BASE + ci * 6;
-                            u8 tx = bx + x * 2, ty = by + y * 2;
-                            VDP_Poke_GM2(tx,     ty,     (cU || cL) ? connBase     : base);
-                            VDP_Poke_GM2(tx + 1, ty,     (cU || cR) ? connBase + 1 : base + 1);
-                            if (cD || cL) { VDP_Poke_GM2(tx, ty + 1, cL ? connBase + 3 : connBase + 2); }
-                            if (cD || cR) { VDP_Poke_GM2(tx + 1, ty + 1, cR ? connBase + 5 : connBase + 4); }
-                        }
-                    }
+                    if (color >= 1 && color <= PUYO_COUNT && p->board[y][x] == color)
+                        DrawPuyoConnected(p, x, y, bx, by);
                 }
             }
         }
@@ -587,19 +610,32 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     }
 }
 
+// Draw a puyo with connection patterns based on neighbors
+static void DrawPuyoConnected(Player* p, u8 x, u8 y, u8 bx, u8 by) {
+    u8 color = p->board[y][x];
+    u8 ci = color - 1;
+    u8 cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
+    u8 cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
+    u8 cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
+    u8 cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
+    u8 base = PAT_PUYO_BASE + ci * 4;
+    u8 connBase = PAT_CONN_BASE + ci * 6;
+    u8 tx = bx + x * 2, ty = by + y * 2;
+    VDP_Poke_GM2(tx,     ty,     (cU || cL) ? connBase     : base);
+    VDP_Poke_GM2(tx + 1, ty,     (cU || cR) ? connBase + 1 : base + 1);
+    VDP_Poke_GM2(tx,     ty + 1, (cD || cL) ? (cL ? connBase + 3 : connBase + 2) : base + 2);
+    VDP_Poke_GM2(tx + 1, ty + 1, (cD || cR) ? (cR ? connBase + 5 : connBase + 4) : base + 3);
+}
+
 // Draw connections using pre-computed fixed patterns (1 byte per tile, no pattern writes)
 static void Game_DrawConnections(Player* p, u8 pi) {
-    u8 x, y, bx, by, color, ci, cU, cD, cL, cR, connBase;
+    u8 x, y, color;
     (void)pi;
-    bx = p->boardX;
-    by = p->boardY;
-
     for (y = 0; y < BOARD_H; y++) {
         for (x = 0; x < BOARD_W; x++) {
             color = p->board[y][x];
             if (color < 1 || color > PUYO_COUNT) continue;
-
-            // Skip falling pair cells (and row below when subY!=0)
+            // Skip falling pair cells
             if (p->alive && p->puyoColor1 != PUYO_EMPTY) {
                 u8 fpx = p->puyoX, fpy = p->puyoY;
                 i8 fsx = (i8)fpx + Game_GetSatX(p->puyoDir);
@@ -612,35 +648,7 @@ static void Game_DrawConnections(Player* p, u8 pi) {
                     if (fsx >= 0 && fsy >= 0 && x == (u8)fsx && y == (u8)fsy) continue;
                 }
             }
-
-            ci = color - 1;
-            cU = (y > 0 && p->board[y-1][x] == color) ? 1 : 0;
-            cD = (y+1 < BOARD_H && p->board[y+1][x] == color) ? 1 : 0;
-            cL = (x > 0 && p->board[y][x-1] == color) ? 1 : 0;
-            cR = (x+1 < BOARD_W && p->board[y][x+1] == color) ? 1 : 0;
-
-            {
-                u8 base = PAT_PUYO_BASE + ci * 4;
-                u8 tx = bx + x * 2;
-                u8 ty = by + y * 2;
-                connBase = PAT_CONN_BASE + ci * 6;
-
-                // Always write all 4 quadrants: connection pattern or base pattern
-                VDP_Poke_GM2(tx,     ty,     (cU || cL) ? connBase     : base);
-                VDP_Poke_GM2(tx + 1, ty,     (cU || cR) ? connBase + 1 : base + 1);
-                if (cD || cL) {
-                    u8 idx = cL ? connBase + 3 : connBase + 2;
-                    VDP_Poke_GM2(tx, ty + 1, idx);
-                } else {
-                    VDP_Poke_GM2(tx, ty + 1, base + 2);
-                }
-                if (cD || cR) {
-                    u8 idx = cR ? connBase + 5 : connBase + 4;
-                    VDP_Poke_GM2(tx + 1, ty + 1, idx);
-                } else {
-                    VDP_Poke_GM2(tx + 1, ty + 1, base + 3);
-                }
-            }
+            DrawPuyoConnected(p, x, y, p->boardX, p->boardY);
         }
     }
 }
@@ -672,11 +680,9 @@ static void Game_DrawProducers(void) {
 
     // Load producers tileset into tiles 0-63
     ZX0_UnpackToRAM((const void*)PROD_PAT_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenPatternLow + (u16)bank * 0x800, 512);
+    WriteBanks(g_ScreenPatternLow, 512);
     ZX0_UnpackToRAM((const void*)PROD_COL_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + (u16)bank * 0x800, 512);
+    WriteBanks(g_ScreenColorLow, 512);
 
     // "!" sprite pattern
     { static const u8 excl[] = { 0x38, 0x38, 0x38, 0x38, 0x38, 0x00, 0x38, 0x00 };
@@ -736,11 +742,9 @@ static void Game_DrawTitle(void) {
 
     // Load title tileset (64 tiles) into VRAM tiles 0-63
     ZX0_UnpackToRAM((const void*)TITLE_PAT_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenPatternLow + (u16)bank * 0x800, 512);
+    WriteBanks(g_ScreenPatternLow, 512);
     ZX0_UnpackToRAM((const void*)TITLE_COL_ZX0_ABS, g_PT3Buffer);
-    for (bank = 0; bank < 3; bank++)
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + (u16)bank * 0x800, 512);
+    WriteBanks(g_ScreenColorLow, 512);
 
     // Fill screen with tile 4 (black tile in title tileset)
     VDP_FillScreen_GM2(0);
@@ -885,6 +889,117 @@ static void Game_DrawStatsScreen(void) {
     }
 }
 
+// Credits text lines (row, col, text) — will scroll from bottom to top
+static const char* const g_CreditLines[] = {
+    "  PUYO PUYO VS  ",
+    "    MSX1 2026    ",
+    "",
+    " GAME DESIGN",
+    "  & PIXEL ART",
+    "    ANTXIKO",
+    "",
+    " TILESET ARTIST",
+    "   ERRAZKING",
+    "",
+    " GRAPHIC DESIGN",
+    "   THENESTRUO",
+    "",
+    "     MUSIC",
+    "  AKI & LAESQ",
+    "",
+    "  CODE & TOOLS",
+    " CLAUDE OPUS 4.6",
+    "",
+    "    TESTING",
+    "     JAUME",
+    "",
+    "    FRAMEWORK",
+    "  MSXGL AOINEKO",
+    "",
+    "  PT3 PLAYER",
+    " BULBA DIONISO",
+    " MSXKUN SAPPHIRE",
+    "     MVAC7",
+    "",
+    "",
+    " LONG LIVE MSX!",
+    "",
+    "",
+};
+#define CREDIT_LINES 34
+
+static void Game_DrawCredits(void) {
+    u16 scrollPx;
+    u8 row, col, subY, i;
+    u8 patBuf[8];
+
+    VDP_Setup();
+
+    // Decompress font patterns to RAM for pixel-level access
+    ZX0_UnpackToRAM((const void*)TILESET_PAT_ZX0_ABS, g_PT3Buffer);
+
+    // Fill screen with tile 0 (blank) and set name table for unique patterns per position
+    VDP_FillScreen_GM2(0);
+    for (row = 0; row < 24; row++)
+        for (col = 0; col < 32; col++)
+            g_NameBuffer[row * 32 + col] = (row & 7) * 32 + col;
+    NB_Flush();
+
+    // Pixel-smooth scroll from bottom to top
+    for (scrollPx = 0; scrollPx < (u16)(CREDIT_LINES + 24) * 8; scrollPx++) {
+        u8 topLine = (u8)(scrollPx >> 3);
+        subY = (u8)(scrollPx & 7);
+
+        for (row = 0; row < 24; row++) {
+            u8 srcLine = topLine + row;
+            u8 nxtLine = srcLine + 1;
+            const char *txt1, *txt2;
+            u8 len1 = 0, len2 = 0, ox1, ox2, colStart, colEnd;
+            u8 bank = row >> 3;
+            u8 tileBase = (row & 7) << 5;
+
+            txt1 = (srcLine < CREDIT_LINES) ? g_CreditLines[srcLine] : "";
+            txt2 = (nxtLine < CREDIT_LINES) ? g_CreditLines[nxtLine] : "";
+            while (txt1[len1]) len1++;
+            while (txt2[len2]) len2++;
+
+            // Skip rows where both lines are empty
+            if (len1 == 0 && len2 == 0) continue;
+
+            ox1 = (32 - len1) >> 1;
+            ox2 = (32 - len2) >> 1;
+
+            // Only iterate columns that could have content
+            colStart = (len1 && len2) ? (ox1 < ox2 ? ox1 : ox2) : (len1 ? ox1 : ox2);
+            colEnd = (len1 && len2) ? ((ox1+len1 > ox2+len2) ? ox1+len1 : ox2+len2) : (len1 ? ox1+len1 : ox2+len2);
+
+            for (col = colStart; col < colEnd; col++) {
+                u8 ch1 = 0, ch2 = 0;
+                u16 pat1off, pat2off, addr;
+
+                if (len1 && col >= ox1 && col < ox1 + len1 && txt1[col - ox1] != ' ')
+                    ch1 = txt1[col - ox1] + 32;
+                if (len2 && col >= ox2 && col < ox2 + len2 && txt2[col - ox2] != ' ')
+                    ch2 = txt2[col - ox2] + 32;
+
+                pat1off = (u16)ch1 << 3;
+                pat2off = (u16)ch2 << 3;
+                for (i = 0; i < 8; i++) {
+                    u8 srcRow = subY + i;
+                    patBuf[i] = (srcRow < 8) ? g_PT3Buffer[pat1off + srcRow] : g_PT3Buffer[pat2off + srcRow - 8];
+                }
+                addr = g_ScreenPatternLow + (u16)bank * 0x800 + ((u16)tileBase + col) * 8;
+                VDP_WriteVRAM_16K(patBuf, addr, 8);
+            }
+        }
+
+        Halt();
+        if (Keyboard_IsKeyPressed(KEY_ESC) || Keyboard_IsKeyPressed(KEY_SPACE) ||
+            JOY_GET_A(Joystick_Read(JOY_PORT_1)) || JOY_GET_A(Joystick_Read(JOY_PORT_2)))
+            break;
+    }
+}
+
 //=============================================================================
 // GAME LOGIC (unchanged)
 //=============================================================================
@@ -936,10 +1051,7 @@ static void Game_SpawnPair(Player* p) {
     }
 }
 
-static bool Game_CanPlace(Player* p, u8 x, u8 y) {
-    if (x >= BOARD_W || y >= BOARD_H) return FALSE;
-    return (p->board[y][x] == PUYO_EMPTY);
-}
+
 
 static bool Game_CanMovePair(Player* p, i8 dx, i8 dy) {
     i8 nx = (i8)p->puyoX + dx;
@@ -1368,6 +1480,20 @@ static void Game_ChainStep(u8 pi) {
     case CS_DONE: {
         u8 totalGarbage = g_ChainStepGarbage[pi];
         VDP_SetColor(COLOR_BLACK);
+
+        // All Clear check: if board is completely empty, massive garbage bonus
+        if (g_ChainStepCount[pi] > 0) {
+            u8 ax, ay, allClear = 1;
+            for (ay = 0; ay < BOARD_H && allClear; ay++)
+                for (ax = 0; ax < BOARD_W && allClear; ax++)
+                    if (p->board[ay][ax] != PUYO_EMPTY) allClear = 0;
+            if (allClear) {
+                totalGarbage += 30; // massive bonus — 5 full rows of garbage
+                VDP_SetColor(COLOR_WHITE);
+                SFX_Chain(8);
+            }
+        }
+
         // Show chain window
         if (g_ChainStepCount[pi] > 0) {
             g_ChainWinAnimState[pi] = CW_SHOW1;
@@ -1613,7 +1739,7 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         }
         Game_SpawnPair(p);
         if (!p->alive) return;
-        p->inputDelay = 3;
+        p->inputDelay = 2;
         // CPU decides target for new piece (arcade mode only)
         if (g_CpuLevel != 0xFF && (joyPort == JOY_PORT_2 || g_GameMode == MODE_ATTRACT)) CPU_DecideMove(p);
         return;
@@ -1621,9 +1747,9 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     if (p->inputDelay > 0) p->inputDelay--;
     if (p->inputDelay == 0) {
         if (dir & JOY_INPUT_DIR_LEFT) {
-            if (Game_CanMovePair(p, -1, 0)) { p->puyoX--; p->inputDelay = 5; }
+            if (Game_CanMovePair(p, -1, 0)) { p->puyoX--; p->inputDelay = 2; }
         } else if (dir & JOY_INPUT_DIR_RIGHT) {
-            if (Game_CanMovePair(p, 1, 0)) { p->puyoX++; p->inputDelay = 5; }
+            if (Game_CanMovePair(p, 1, 0)) { p->puyoX++; p->inputDelay = 2; }
         }
     }
     if (p->rotateDelay > 0) {
@@ -1997,7 +2123,6 @@ void main(void) {
             Halt();
             Game_DrawTitle();
             Halt(); NB_Flush();
-            TitleMusic_Start();
             // Menu selection
             {
                 u8 joy1, joy2, dir, sel, prevSel, inputDelay, cpuLvl, prevLvl, attract;
@@ -2011,7 +2136,6 @@ void main(void) {
                 attract = 0;
                 while (1) {
                     Halt(); NB_Flush();
-                    TitleMusic_Update();
                     joy1 = Joystick_Read(JOY_PORT_1);
                     joy2 = Joystick_Read(JOY_PORT_2);
                     dir = JOY_GET_DIR(joy1);
@@ -2051,12 +2175,24 @@ void main(void) {
                         prevLvl = cpuLvl;
                     }
 
+                    // C key → show credits, then back to title
+                    if (Keyboard_IsKeyPressed(KEY_C)) {
+                        Game_DrawCredits();
+                        WaitFrames(10);
+                        WaitButton();
+                        attract = 2; // special flag: go back to title
+                        break;
+                    }
+
                     if (JOY_GET_A(joy1) || JOY_GET_A(joy2) ||
                         JOY_GET_B(joy1) || JOY_GET_B(joy2) ||
                         Keyboard_IsKeyPressed(KEY_SPACE)) break;
                 }
 
-                if (attract) {
+                if (attract == 2) {
+                    // Credits viewed — back to title
+                    continue;
+                } else if (attract == 1) {
                     // Attract mode: CPU vs CPU, cycle through levels
                     g_GameMode = MODE_ATTRACT;
                     g_CpuLevel = (g_CpuLevel + 1) & 7;
@@ -2080,6 +2216,12 @@ void main(void) {
                 Music_Stop();
                 g_GameState = STATE_GAMEOVER;
             }
+            // ESC → back to title
+            if (Keyboard_IsKeyPressed(KEY_ESC)) {
+                Music_Stop();
+                g_GameState = STATE_TITLE;
+                VDP_Setup();
+            }
         }
         else if (g_GameState == STATE_GAMEOVER) {
             if (g_GameMode == MODE_ATTRACT) {
@@ -2092,6 +2234,15 @@ void main(void) {
 
             Game_DrawGameOver();
             SFX_Victory();
+            WaitFrames(30);
+            // Victory text
+            { static const u8 w1[] = {'P'+32,'1'+32,0,'W'+32,'I'+32,'N'+32,'S'+32,'!'+32};
+              static const u8 w2[] = {'P'+32,'2'+32,0,'W'+32,'I'+32,'N'+32,'S'+32,'!'+32};
+              const u8 *txt = g_Player[0].alive ? w1 : w2;
+              u8 wi;
+              for (wi = 0; wi < 8; wi++) VDP_Poke_GM2(11 + wi, 11, txt[wi]);
+            }
+            Halt(); NB_Flush();
             WaitFrames(60);
             WaitButton();
             // Stats screen
