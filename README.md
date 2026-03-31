@@ -4,13 +4,13 @@
 
 They told us the MSX1 couldn't handle it. A competitive Puyo Puyo — two full boards, chain combos, garbage warfare, smooth animation — on a CPU from 1983 running at 3.58 MHz with 16KB of RAM and a video chip that wasn't designed for any of this. They told us to pick a better platform.
 
-**We picked the Z80.** And after 209 builds of relentless engineering, the game runs at 2x speed with rock-solid graphics. No flicker. No tearing. No compromise. Every name table write lands during VBlank. Every connection draws the exact frame a piece locks. Every puyo stays perfectly still. The TMS9918A has been conquered.
+**We picked the Z80.** And after 218 builds of relentless engineering, the game runs at 4x speed with rock-solid graphics. No flicker. No tearing. No pauses. Every name table write lands during VBlank. Every connection draws the exact frame a piece locks. Every chain resolves without freezing the opponent's board. The TMS9918A has been conquered.
 
 ---
 
 ## What is this?
 
-A real, playable, feature-complete Puyo Puyo VS running on hardware from 1983 at double speed with zero graphical glitches. Two players face off on a single MSX — or one player challenges a CPU opponent across 8 brutality levels that scale from "learning to walk" to "absolute annihilation." Puyos fall, chains explode, garbage rains. The Z80 does not flinch.
+A real, playable, feature-complete Puyo Puyo VS running on hardware from 1983 at 4x speed with zero graphical glitches. Two players face off on a single MSX — or one player challenges a CPU opponent across 8 brutality levels that scale from "learning to walk" to "absolute annihilation." Puyos fall, chains explode, garbage rains. The Z80 does not flinch.
 
 Written in C with [MSXgl](https://github.com/aoineko-fr/MSXgl). Hand-tuned for a machine that predates the NES.
 
@@ -20,14 +20,16 @@ Written in C with [MSXgl](https://github.com/aoineko-fr/MSXgl). Hand-tuned for a
 
 - **Arcade mode** — fight through 8 CPU difficulty levels, each one faster, smarter, and less forgiving than the last
 - **VS mode** — two humans on one MSX: keyboard/joystick 1 vs joystick 2
-- **Chain window** — real-time chain counter overlay that expands from the center and collapses when done
+- **Chain window** — real-time chain counter that scrolls in from the top and contracts to center when done, fully non-blocking
 - **5 puyo colors** + garbage blocks that rain from the sky in randomized columns
-- **Chain combos** — the soul of Puyo Puyo, with escalating visual effects and screen-shaking intensity
+- **Chain combos** — the soul of Puyo Puyo, with escalating visual effects and group bonus for multi-clears
 - **Blob connections** — same-color puyos fuse visually when adjacent, 30 pre-computed connection tiles
 - **Smooth 8px falling** — half-tile precision at 2x speed, not the usual 16px jumps
 - **Spawn animation** — puyos emerge from the top, 8 pixels at a time
 - **Garbage from above** — animated non-blocking gravity with Fisher-Yates randomized column distribution
 - **Zero-flicker rendering** — 768-byte RAM buffer with VBlank-only full flush. Flicker is impossible by construction
+- **Non-blocking chains** — chain resolution runs as a per-player state machine, never freezing the opponent
+- **Garbage bar indicator** — top bar blinks yellow (1-3 pending) or red (4+) when garbage is incoming
 - **PT3 tracker music** — 3 channels of AY-3-8910 goodness via VBlank ISR
 - **Diagonal scrolling backgrounds** — each player gets their own animated pattern, accelerates when the tower gets high
 - **Speed progression** — every 10 pieces, the pressure increases
@@ -198,13 +200,21 @@ The AI simulates joystick inputs: rotate first, then move, then drop. You can wa
 
 **Build 208.** CPU difficulty rebalanced across all 8 levels. Attract mode cycles through all difficulty levels instead of always using maximum.
 
-**Build 209.** **Errazking** enters the arena. The entire tileset receives its first external overhaul — new puyo designs, new connections, new visual identity. The puyos finally look the way they were always meant to look. 209 builds of engineering. One artist to make it beautiful.
+**Build 209.** **Errazking** enters the arena. The entire tileset receives its first external overhaul — new puyo designs, new connections, new visual identity. The puyos finally look the way they were always meant to look.
+
+**Build 210-213.** Satellite cleanup on rotation (`Game_CleanSatellite`). Boundary fix — satellite can no longer extend below the board at subY==1 (was a name buffer overflow). 50Hz music compensation — `PT3_Decode` runs twice every 5th VBlank. Group bonus for multi-clears (x2/x3 score and garbage). Garbage bar indicator — top bars blink yellow or red based on pending garbage.
+
+**Build 214-216.** Chain window animation changed to scroll-from-top (appearance) and contract-to-center (disappearance). Updated screen layout with player bars.
+
+**Build 217.** The great unblocker. The entire chain system — gravity, flash, clear, effects — rewritten as a per-player state machine. One step per frame. No Halt. No WaitFrames. Both players stay active during chains. `Game_ChainLoop` and `Game_AnimateGravity` eliminated, freeing 1.9KB of ROM. The game never pauses.
+
+**Build 218.** The human realized the pieces had been falling at half speed for 217 builds. One character changed: `/4` → `/8`. The Z80 was never slow.
 
 ---
 
 ## Appendix: On Losing One's Mind
 
-This README was co-written by an AI that spent 209 builds debugging a TMS9918A. Over the course of four days and an incalculable number of tokens, the AI:
+This README was co-written by an AI that spent 218 builds debugging a TMS9918A. Over the course of five days and an incalculable number of tokens, the AI:
 
 - Invented, implemented, and discarded a write buffer system three times before admitting the first approach was wrong
 - Confidently stated "this should fix the flickering" no fewer than forty-seven times
@@ -215,6 +225,8 @@ This README was co-written by an AI that spent 209 builds debugging a TMS9918A. 
 - Called `Shadow_Invalidate()` the "final boss" and then discovered three more bosses behind it
 - Added a subY collision check to `Game_RotatePair`, documented it as "applied" in the knowledge base, and then discovered it was never actually in the code
 - Wrote the sentence "the Z80 breathes" about a CPU that has been doing the exact same thing since 1976
+- Built a non-blocking chain system, overflowed the ROM into page 3 RAM, crashed the game on boot, then fixed it by deleting the old blocking system it had just replaced
+- Let the human play 217 builds at half the intended speed because it divided by 4 instead of 8
 
 The human kept saying *"dale"* and *"perfecto"* and *"otra vez"* with the patience of someone who knows the machine is never wrong — only the programmer is.
 
@@ -222,4 +234,4 @@ The human kept saying *"dale"* and *"perfecto"* and *"otra vez"* with the patien
 
 ---
 
-*209 builds. One Z80. Zero flicker. Long live the MSX.*
+*218 builds. One Z80. Zero flicker. Zero pauses. Long live the MSX.*
