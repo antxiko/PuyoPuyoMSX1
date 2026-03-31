@@ -416,6 +416,116 @@ function tileClear() { editPixels.fill(editBG); drawTileEditor(); }
 let tileClipboard = null;
 function tileCopy() { tileClipboard = new Uint8Array(editPixels); }
 function tilePaste() { if (tileClipboard) { editPixels.set(tileClipboard); drawTileEditor(); } }
+
+// --- Group tile selection & copy/paste ---
+let tileSelStart = -1, tileSelEnd = -1; // tile indices for rectangular selection
+let tileGroupClipboard = null; // {w, h, tiles: [{pixels: Uint8Array}...]}
+
+// Map group selection & copy/paste
+let mapSelecting = false, mapSelX1 = -1, mapSelY1 = -1, mapSelX2 = -1, mapSelY2 = -1;
+let mapGroupClipboard = null; // {w, h, data: [tile indices]}
+
+function getTilePixels(tileIdx) {
+    if (!tilesetCanvas2D) return null;
+    const ctx = tilesetCanvas2D.getContext('2d');
+    const tx = (tileIdx % TSET_COLS) * TILE_W;
+    const ty = Math.floor(tileIdx / TSET_COLS) * TILE_H;
+    const imgData = ctx.getImageData(tx, ty, 8, 8);
+    const pixels = new Uint8Array(64);
+    for (let i = 0; i < 64; i++) {
+        const r = imgData.data[i*4], g = imgData.data[i*4+1], b = imgData.data[i*4+2];
+        let best = 0, bestDist = Infinity;
+        for (let c = 0; c < 16; c++) {
+            const dr = r-MSX_PALETTE[c][0], dg = g-MSX_PALETTE[c][1], db = b-MSX_PALETTE[c][2];
+            const d = dr*dr+dg*dg+db*db;
+            if (d < bestDist) { bestDist = d; best = c; }
+        }
+        pixels[i] = best;
+    }
+    return pixels;
+}
+
+function setTilePixels(tileIdx, pixels) {
+    if (!tilesetCanvas2D) return;
+    const ctx = tilesetCanvas2D.getContext('2d');
+    const tx = (tileIdx % TSET_COLS) * TILE_W;
+    const ty = Math.floor(tileIdx / TSET_COLS) * TILE_H;
+    const imgData = ctx.createImageData(8, 8);
+    for (let i = 0; i < 64; i++) {
+        const rgb = MSX_PALETTE[pixels[i]];
+        imgData.data[i*4] = rgb[0]; imgData.data[i*4+1] = rgb[1]; imgData.data[i*4+2] = rgb[2]; imgData.data[i*4+3] = 255;
+    }
+    ctx.putImageData(imgData, tx, ty);
+}
+
+function tileSelRect() {
+    if (tileSelStart < 0 || tileSelEnd < 0) return null;
+    const x1 = Math.min(tileSelStart % TSET_COLS, tileSelEnd % TSET_COLS);
+    const y1 = Math.min(Math.floor(tileSelStart / TSET_COLS), Math.floor(tileSelEnd / TSET_COLS));
+    const x2 = Math.max(tileSelStart % TSET_COLS, tileSelEnd % TSET_COLS);
+    const y2 = Math.max(Math.floor(tileSelStart / TSET_COLS), Math.floor(tileSelEnd / TSET_COLS));
+    return {x1, y1, x2, y2, w: x2-x1+1, h: y2-y1+1};
+}
+
+function groupTileCopy() {
+    const r = tileSelRect();
+    if (!r) return;
+    tileGroupClipboard = {w: r.w, h: r.h, tiles: []};
+    for (let y = r.y1; y <= r.y2; y++)
+        for (let x = r.x1; x <= r.x2; x++)
+            tileGroupClipboard.tiles.push(getTilePixels(y * TSET_COLS + x));
+}
+
+function groupTilePaste() {
+    if (!tileGroupClipboard) return;
+    const startX = selectedTile % TSET_COLS;
+    const startY = Math.floor(selectedTile / TSET_COLS);
+    let i = 0;
+    for (let y = 0; y < tileGroupClipboard.h; y++) {
+        for (let x = 0; x < tileGroupClipboard.w; x++) {
+            const dx = startX + x, dy = startY + y;
+            if (dx < TSET_COLS && dy < TSET_ROWS) {
+                setTilePixels(dy * TSET_COLS + dx, tileGroupClipboard.tiles[i]);
+            }
+            i++;
+        }
+    }
+    tilesetImg = tilesetCanvas2D;
+    markTilesetDirty();
+    drawTileset(); drawScreen(); updateSelected();
+    loadTileToEditor(selectedTile);
+}
+
+function mapSelRect() {
+    if (mapSelX1 < 0) return null;
+    const x1 = Math.min(mapSelX1, mapSelX2), y1 = Math.min(mapSelY1, mapSelY2);
+    const x2 = Math.max(mapSelX1, mapSelX2), y2 = Math.max(mapSelY1, mapSelY2);
+    return {x1, y1, x2, y2, w: x2-x1+1, h: y2-y1+1};
+}
+
+function groupMapCopy() {
+    const r = mapSelRect();
+    if (!r) return;
+    mapGroupClipboard = {w: r.w, h: r.h, data: []};
+    for (let y = r.y1; y <= r.y2; y++)
+        for (let x = r.x1; x <= r.x2; x++)
+            mapGroupClipboard.data.push(screenMap[y * COLS + x]);
+}
+
+function groupMapPaste(px, py) {
+    if (!mapGroupClipboard) return;
+    let i = 0;
+    for (let y = 0; y < mapGroupClipboard.h; y++) {
+        for (let x = 0; x < mapGroupClipboard.w; x++) {
+            const dx = px + x, dy = py + y;
+            if (dx < COLS && dy < ROWS)
+                screenMap[dy * COLS + dx] = mapGroupClipboard.data[i];
+            i++;
+        }
+    }
+    markTilesetDirty();
+    drawScreen();
+}
 function tileInvert() {
     for (let i = 0; i < 64; i++)
         editPixels[i] = editPixels[i] === editFG ? editBG : editFG;
@@ -464,6 +574,14 @@ function drawTileset() {
     const sx = (selectedTile%TSET_COLS)*TILE_W*SCALE, sy = Math.floor(selectedTile/TSET_COLS)*TILE_H*SCALE;
     tsetCtx.strokeStyle = 'yellow'; tsetCtx.lineWidth = 2;
     tsetCtx.strokeRect(sx, sy, TILE_W*SCALE, TILE_H*SCALE); tsetCtx.lineWidth = 1;
+    // Draw group selection rectangle
+    const sr = tileSelRect();
+    if (sr) {
+        tsetCtx.strokeStyle = '#0ff'; tsetCtx.lineWidth = 2;
+        tsetCtx.setLineDash([4, 4]);
+        tsetCtx.strokeRect(sr.x1*TILE_W*SCALE, sr.y1*TILE_H*SCALE, sr.w*TILE_W*SCALE, sr.h*TILE_H*SCALE);
+        tsetCtx.setLineDash([]); tsetCtx.lineWidth = 1;
+    }
 }
 
 function drawTileAt(tx, ty) {
@@ -475,6 +593,14 @@ function drawTileAt(tx, ty) {
 
 function drawScreen() {
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) drawTileAt(x, y);
+    // Draw map group selection rectangle
+    const mr = mapSelRect();
+    if (mr) {
+        scrCtx.strokeStyle = '#0ff'; scrCtx.lineWidth = 2;
+        scrCtx.setLineDash([4, 4]);
+        scrCtx.strokeRect(mr.x1*TILE_W*SCALE, mr.y1*TILE_H*SCALE, mr.w*TILE_W*SCALE, mr.h*TILE_H*SCALE);
+        scrCtx.setLineDash([]); scrCtx.lineWidth = 1;
+    }
 }
 
 function updateSelected() {
@@ -502,9 +628,20 @@ tsetCanvas.addEventListener('mousedown', function(e) {
     const rect = tsetCanvas.getBoundingClientRect();
     const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
     const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
-    selectedTile = Math.min(ty*TSET_COLS+tx, 255);
+    const idx = Math.min(ty*TSET_COLS+tx, 255);
+    if (e.shiftKey) {
+        // Shift+click: start or complete range selection
+        if (tileSelStart < 0) {
+            tileSelStart = idx; tileSelEnd = idx;
+        } else {
+            tileSelEnd = idx;
+        }
+    } else {
+        tileSelStart = -1; tileSelEnd = -1; // clear selection
+        selectedTile = idx;
+        loadTileToEditor(selectedTile);
+    }
     drawTileset(); updateSelected();
-    loadTileToEditor(selectedTile);
 });
 
 // Screen drawing
@@ -517,7 +654,25 @@ function screenPlace(e) {
     markTilesetDirty();
     drawTileAt(tx, ty);
 }
-scrCanvas.addEventListener('mousedown', function(e) { e.preventDefault(); isDrawing=true; rightClick=(e.button===2); screenPlace(e); });
+scrCanvas.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    if (e.shiftKey) {
+        // Shift+click: start or complete map range selection
+        const rect = scrCanvas.getBoundingClientRect();
+        const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
+        const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
+        if (tx<0||tx>=COLS||ty<0||ty>=ROWS) return;
+        if (mapSelX1 < 0) {
+            mapSelX1 = tx; mapSelY1 = ty; mapSelX2 = tx; mapSelY2 = ty;
+        } else {
+            mapSelX2 = tx; mapSelY2 = ty;
+        }
+        drawScreen();
+        return;
+    }
+    mapSelX1 = -1; mapSelY1 = -1; // clear map selection on normal click
+    isDrawing=true; rightClick=(e.button===2); screenPlace(e);
+});
 scrCanvas.addEventListener('mousemove', function(e) { if(isDrawing) screenPlace(e); });
 scrCanvas.addEventListener('mouseup', function() { isDrawing=false; });
 scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; });
@@ -1372,8 +1527,29 @@ document.addEventListener('mousedown', function(e) { if (!e.target.closest('#til
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'c' || e.key === 'C') { tileCopy(); }
-    if (e.key === 'v' || e.key === 'V') { tilePaste(); }
+    if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        // Ctrl+C: group copy (tiles or map, whichever has selection)
+        if (tileSelStart >= 0) groupTileCopy();
+        if (mapSelX1 >= 0) groupMapCopy();
+    } else if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
+        // Ctrl+V: group paste
+        if (tileGroupClipboard) groupTilePaste();
+        if (mapGroupClipboard && mapSelX1 >= 0) {
+            const r = mapSelRect();
+            groupMapPaste(r.x1, r.y1);
+        }
+    } else if (e.key === 'c' || e.key === 'C') {
+        tileCopy(); // single tile copy
+    } else if (e.key === 'v' || e.key === 'V') {
+        tilePaste(); // single tile paste
+    } else if (e.key === 'Escape') {
+        // Clear all selections
+        tileSelStart = -1; tileSelEnd = -1;
+        mapSelX1 = -1; mapSelY1 = -1;
+        drawTileset(); drawScreen();
+    }
 });
 
 </script>

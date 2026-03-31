@@ -120,6 +120,29 @@ static u8 g_PT3Buffer[7845]; // size of largest PT3
 static u8 g_Shadow[2][BOARD_H][BOARD_W];
 static u8 g_ScreenLayout[768]; // gameplay screen layout for tile restoration
 static u8 g_BoardDirty[2]; // set when board changes, triggers connection redraw
+
+// Non-blocking chain state machine (per player)
+#define CS_IDLE      0
+#define CS_GRAVITY   1  // one gravity step per frame
+#define CS_CHECK     2  // find clearable groups
+#define CS_FLASH     3  // show explosion (2 frames)
+#define CS_CLEAR     4  // clear groups, calc score
+#define CS_DONE      5  // send garbage, show window
+static u8 g_ChainState[2];
+static u8 g_ChainStepCount[2]; // chain depth counter
+static u8 g_ChainStepGarbage[2]; // accumulated garbage
+static u8 g_ChainFlashCountdown[2]; // frames remaining for flash
+
+// Non-blocking chain window animation
+#define CW_HIDDEN  0
+#define CW_SHOW1   1
+#define CW_SHOW2   2
+#define CW_SHOW3   3
+#define CW_VISIBLE 4
+#define CW_HIDE1   5
+#define CW_HIDE2   6
+#define CW_HIDE3   7
+static u8 g_ChainWinAnimState[2];
 static u8 g_ShadowNext[2][2];
 // Track previous falling piece position for cleanup (0xFF = none)
 static u8 g_PrevFallX1[2], g_PrevFallY1[2]; // main puyo tile coords
@@ -168,9 +191,9 @@ static void Game_Update(void);
 static void Game_UpdatePlayer(Player* p, u8 joyPort);
 static bool Game_CanPlace(Player* p, u8 x, u8 y);
 static bool Game_CellFree(Player* p, i8 x, i8 y);
+static void Game_CleanSatellite(Player* p);
 static void Game_LockPair(Player* p);
 static u8 Game_ClearGroups(Player* p);
-static void Game_ChainLoop(Player* p, Player* opponent);
 static void Game_AddGarbage(Player* p);
 static void Game_DrawBoard(Player* p, u8 playerIdx);
 static void Game_DrawConnections(Player* p, u8 pi);
@@ -180,6 +203,9 @@ static void Game_DrawGameOver(void);
 static i8 Game_GetSatX(u8 dir);
 static i8 Game_GetSatY(u8 dir);
 static bool Game_IsInDanger(Player* p);
+static void Game_InitBars(void);
+static void Game_ChainStep(u8 pi);
+static void Game_ChainWinStep(u8 pi);
 
 //=============================================================================
 // HELPERS
@@ -205,11 +231,20 @@ static void WaitFrames(u8 count) {
 //=============================================================================
 
 static u8 g_MusicActive;
+static u8 g_MusicSkip; // 50Hz compensation counter
 
 // ISR: called automatically every VBlank by crt0
 void VDP_InterruptHandler(void) {
     if (g_MusicActive) {
         PT3_Decode();
+        // 50Hz compensation: decode twice every 5th VBlank (6 ticks per 5 VBlanks = 60Hz rate)
+        if (g_Is50Hz) {
+            g_MusicSkip++;
+            if (g_MusicSkip >= 5) {
+                g_MusicSkip = 0;
+                PT3_Decode();
+            }
+        }
         PT3_UpdatePSG();
     }
 }
@@ -922,8 +957,34 @@ static bool Game_CellFree(Player* p, i8 x, i8 y) {
     // Check cell and, if subY==1, the row below (piece extends 8px down)
     if (x < 0 || x >= BOARD_W || y >= BOARD_H) return FALSE;
     if (y >= 0 && p->board[y][x] != PUYO_EMPTY) return FALSE;
-    if (p->subY == 1 && y + 1 >= 0 && y + 1 < BOARD_H && p->board[y + 1][x] != PUYO_EMPTY) return FALSE;
+    if (p->subY == 1) {
+        if (y + 1 >= BOARD_H) return FALSE; // would extend below board
+        if (y + 1 >= 0 && p->board[y + 1][x] != PUYO_EMPTY) return FALSE;
+    }
     return TRUE;
+}
+
+static void Game_CleanSatellite(Player* p) {
+    // Clean satellite's current visual position before rotation changes it
+    u8 pi = (p == &g_Player[1]) ? 1 : 0;
+    i8 sx = (i8)p->puyoX + Game_GetSatX(p->puyoDir);
+    i8 sy = (i8)p->puyoY + Game_GetSatY(p->puyoDir);
+    if (sx >= 0 && sx < BOARD_W && sy >= 0 && sy < BOARD_H) {
+        u8 tx = p->boardX + (u8)sx * 2;
+        u8 ty = p->boardY + (u8)sy * 2;
+        RestoreTile(tx, ty); RestoreTile(tx + 1, ty);
+        if (ty + 1 < 24) { RestoreTile(tx, ty + 1); RestoreTile(tx + 1, ty + 1); }
+        if (ty + 2 < 24) { RestoreTile(tx, ty + 2); RestoreTile(tx + 1, ty + 2); }
+        // Invalidate shadow so it redraws correctly
+        if ((u8)sy < BOARD_H) g_Shadow[pi][sy][sx] = 0xFF;
+        if ((u8)sy + 1 < BOARD_H) g_Shadow[pi][sy + 1][sx] = 0xFF;
+    }
+    // Also clean if satellite was above screen
+    if (sx >= 0 && sx < BOARD_W && sy == -1) {
+        u8 tx = p->boardX + (u8)sx * 2;
+        RestoreTile(tx, 0); RestoreTile(tx + 1, 0);
+        if (1 < 24) { RestoreTile(tx, 1); RestoreTile(tx + 1, 1); }
+    }
 }
 
 static void Game_RotatePair(Player* p, i8 direction) {
@@ -932,8 +993,8 @@ static void Game_RotatePair(Player* p, i8 direction) {
     i8 sy = (i8)p->puyoY + Game_GetSatY(newDir);
     i8 kickX, kickY, px, py;
     // Direct rotation
-    if (sx >= 0 && sx < BOARD_W && sy < 0) { p->puyoDir = newDir; return; }
-    if (Game_CellFree(p, sx, sy)) { p->puyoDir = newDir; return; }
+    if (sx >= 0 && sx < BOARD_W && sy < 0) { Game_CleanSatellite(p); p->puyoDir = newDir; return; }
+    if (Game_CellFree(p, sx, sy)) { Game_CleanSatellite(p); p->puyoDir = newDir; return; }
     // Wall kick: move main away from satellite
     kickX = -Game_GetSatX(newDir);
     kickY = -Game_GetSatY(newDir);
@@ -943,10 +1004,10 @@ static void Game_RotatePair(Player* p, i8 direction) {
         sx = px + Game_GetSatX(newDir);
         sy = py + Game_GetSatY(newDir);
         if (sx >= 0 && sx < BOARD_W && sy < 0) {
-            p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
+            Game_CleanSatellite(p); p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
         }
         if (Game_CellFree(p, sx, sy)) {
-            p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
+            Game_CleanSatellite(p); p->puyoX = px; p->puyoY = py; p->puyoDir = newDir; return;
         }
     }
 }
@@ -991,55 +1052,6 @@ static bool Game_GravityStep(Player* p) {
     return moved;
 }
 
-// Animated gravity: drop puyos 8px at a time with visual feedback
-static void Game_AnimateGravity(Player* p, u8 playerIdx) {
-    u8 x, bx, by;
-    i8 iy;
-    bx = p->boardX;
-    by = p->boardY;
-
-    while (TRUE) {
-        // Find which puyos will fall (have empty below)
-        bool willFall = FALSE;
-        for (x = 0; x < BOARD_W; x++) {
-            for (iy = BOARD_H - 2; iy >= 0; iy--) {
-                if (p->board[(u8)iy][x] != PUYO_EMPTY && p->board[(u8)iy + 1][x] == PUYO_EMPTY) {
-                    willFall = TRUE;
-                    break;
-                }
-            }
-            if (willFall) break;
-        }
-        if (!willFall) break;
-
-        // Draw half-step: show falling puyos at +1 tile offset (8px)
-        // Also invalidate shadow for cells that move (source + dest)
-        for (x = 0; x < BOARD_W; x++) {
-            for (iy = BOARD_H - 2; iy >= 0; iy--) {
-                u8 y = (u8)iy;
-                if (p->board[y][x] != PUYO_EMPTY && p->board[y + 1][x] == PUYO_EMPTY) {
-                    u8 base = PAT_PUYO_BASE + (p->board[y][x] - 1) * 4;
-                    u8 ty = by + y * 2 + 1;
-                    RestoreTile(bx + x * 2, by + y * 2);
-                    RestoreTile(bx + x * 2 + 1, by + y * 2);
-                    VDP_Poke_GM2(bx + x * 2,     ty,     base);
-                    VDP_Poke_GM2(bx + x * 2 + 1, ty,     base + 1);
-                    VDP_Poke_GM2(bx + x * 2,     ty + 1, base + 2);
-                    VDP_Poke_GM2(bx + x * 2 + 1, ty + 1, base + 3);
-                    // Invalidate only moved cells
-                    g_Shadow[playerIdx][y][x] = 0xFF;
-                    g_Shadow[playerIdx][y + 1][x] = 0xFF;
-                }
-            }
-        }
-        Halt(); NB_Flush(); // 1 frame at half position
-
-        // Actually move puyos down 1 row in the board
-        Game_GravityStep(p);
-        Game_DrawBoard(p, playerIdx);
-        Halt(); NB_Flush(); // 1 frame at full position
-    }
-}
 
 static u8 g_Visited[BOARD_H][BOARD_W];
 static u8 g_GroupX[BOARD_H * BOARD_W];
@@ -1060,8 +1072,11 @@ static void Game_FloodFill(Player* p, u8 x, u8 y, u8 color) {
     if (y < BOARD_H - 1) Game_FloodFill(p, x, y + 1, color);
 }
 
+static u8 g_ClearGroupCount; // number of groups cleared in last Game_ClearGroups call
+
 static u8 Game_ClearGroups(Player* p) {
     u8 x, y, i, totalCleared = 0, color;
+    g_ClearGroupCount = 0;
     for (y = 0; y < BOARD_H; y++)
         for (x = 0; x < BOARD_W; x++)
             g_Visited[y][x] = 0;
@@ -1072,6 +1087,7 @@ static u8 Game_ClearGroups(Player* p) {
                 g_GroupSize = 0;
                 Game_FloodFill(p, x, y, color);
                 if (g_GroupSize >= 4) {
+                    g_ClearGroupCount++;
                     // Clear the group
                     for (i = 0; i < g_GroupSize; i++)
                         p->board[g_GroupY[i]][g_GroupX[i]] = PUYO_EMPTY;
@@ -1148,32 +1164,95 @@ static void Game_RestoreRow(u8 tx, u8 ty, u8 w) {
         VDP_Poke_GM2(tx + i, ty, g_ScreenLayout[ty * 32 + tx + i]);
 }
 
-static void Game_ShowChainWindow(u8 pi) {
+// Chain window animation is now driven by g_ChainWinAnimState per frame
+static void Game_ChainWinStep(u8 pi) {
     u8 wx, x, y, cx;
-    g_ChainWinActive[pi] = 1;
-
     wx = (pi == 0) ? 2 : 20;
 
-    // Expand from center animation
-    // Step 1: 3 border tiles centered horizontally at middle row (y=3)
-    cx = wx + (CHAIN_WIN_W / 2) - 1;
-    VDP_Poke_GM2(cx, 3, 61);
-    VDP_Poke_GM2(cx + 1, 3, 61);
-    VDP_Poke_GM2(cx + 2, 3, 61);
-    Halt(); NB_Flush();
+    switch (g_ChainWinAnimState[pi]) {
+    case CW_SHOW1:
+        // Scroll step 1: bottom 2 rows at screen rows 0-1
+        for (x = 0; x < CHAIN_WIN_W; x++) {
+            u8 tile;
+            if (x == 0 || x == CHAIN_WIN_W - 1) tile = 61;
+            else tile = g_ChainText[x - 1];
+            VDP_Poke_GM2(wx + x, 0, tile);
+            VDP_Poke_GM2(wx + x, 1, 61);
+        }
+        g_ChainWinAnimState[pi] = CW_SHOW2;
+        break;
+    case CW_SHOW2:
+        // Scroll step 2: full window at rows 0-2
+        for (x = 0; x < CHAIN_WIN_W; x++) {
+            u8 tile;
+            VDP_Poke_GM2(wx + x, 0, 61);
+            if (x == 0 || x == CHAIN_WIN_W - 1) tile = 61;
+            else tile = g_ChainText[x - 1];
+            VDP_Poke_GM2(wx + x, 1, tile);
+            VDP_Poke_GM2(wx + x, 2, 61);
+        }
+        g_ChainWinAnimState[pi] = CW_SHOW3;
+        break;
+    case CW_SHOW3:
+        // Scroll step 3: restore rows 0-2, draw at final position
+        Game_RestoreRow(wx, 0, CHAIN_WIN_W);
+        Game_RestoreRow(wx, 1, CHAIN_WIN_W);
+        Game_RestoreRow(wx, 2, CHAIN_WIN_W);
+        Game_DrawChainWin(pi, g_ChainWinCount[pi], 0);
+        g_ChainWinAnimState[pi] = CW_VISIBLE;
+        break;
+    case CW_VISIBLE:
+        // Normal display — handled by RedrawChainWindow
+        break;
+    case CW_HIDE1: {
+        // Shrink step 1: restore full window, draw 6x2 centered
+        u8 bx = g_Player[pi].boardX;
+        u8 by = g_Player[pi].boardY;
+        for (y = 0; y < CHAIN_WIN_H; y++)
+            for (x = 0; x < CHAIN_WIN_W; x++) {
+                u8 ty = 2 + y, tx = wx + x;
+                VDP_Poke_GM2(tx, ty, g_ScreenLayout[ty * 32 + tx]);
+                if (tx >= bx && tx < bx + BOARD_W * 2 && ty >= by && ty < by + BOARD_H * 2) {
+                    u8 cy2 = (ty - by) / 2, cx2 = (tx - bx) / 2;
+                    if (cx2 < BOARD_W && cy2 < BOARD_H)
+                        g_Shadow[pi][cy2][cx2] = 0xFF;
+                }
+            }
+        cx = wx + 2;
+        for (y = 0; y < 2; y++)
+            for (x = 0; x < 6; x++)
+                VDP_Poke_GM2(cx + x, 2 + y, 61);
+        g_ChainWinAnimState[pi] = CW_HIDE2;
+        break;
+    }
+    case CW_HIDE2:
+        // Shrink step 2: 3 tiles centered
+        cx = wx + 2;
+        for (y = 0; y < 2; y++)
+            Game_RestoreRow(cx, 2 + y, 6);
+        cx = wx + (CHAIN_WIN_W / 2) - 1;
+        VDP_Poke_GM2(cx, 3, 61);
+        VDP_Poke_GM2(cx + 1, 3, 61);
+        VDP_Poke_GM2(cx + 2, 3, 61);
+        g_ChainWinAnimState[pi] = CW_HIDE3;
+        break;
+    case CW_HIDE3:
+        // Shrink step 3: remove
+        cx = wx + (CHAIN_WIN_W / 2) - 1;
+        Game_RestoreRow(cx, 3, 3);
+        g_BoardDirty[pi] = TRUE;
+        g_ChainWinActive[pi] = 0;
+        g_ChainWinTimer[pi] = 0;
+        g_ChainWinTotal[pi] = 0;
+        g_ChainWinAnimState[pi] = CW_HIDDEN;
+        break;
+    }
+}
 
-    // Step 2: 6 tiles wide x 2 rows of border (centered)
-    Game_RestoreRow(cx, 3, 3);
-    cx = wx + 2;
-    for (y = 0; y < 2; y++)
-        for (x = 0; x < 6; x++)
-            VDP_Poke_GM2(cx + x, 2 + y, 61);
-    Halt(); NB_Flush();
-
-    // Step 3: clean step 2, draw full window
-    for (y = 0; y < 2; y++)
-        Game_RestoreRow(cx, 2 + y, 6);
-    Game_DrawChainWin(pi, 0, 0);
+static void Game_ShowChainWindow(u8 pi) {
+    // Just set state — animation advances in Game_ChainWinStep
+    g_ChainWinAnimState[pi] = CW_SHOW1;
+    g_ChainWinActive[pi] = 1;
 }
 
 static u8 g_ChainFlipTimer[2];
@@ -1190,47 +1269,9 @@ static void Game_UpdateChainNumber(u8 pi, u8 count) {
 }
 
 static void Game_HideChainWindow(u8 pi) {
-    u8 x, y, wx, cx;
     if (!g_ChainWinActive[pi]) return;
-    wx = (pi == 0) ? 2 : 20;
-
-    // Step 1: shrink to 6x2 centered
-    {
-        u8 bx = g_Player[pi].boardX;
-        u8 by = g_Player[pi].boardY;
-        for (y = 0; y < CHAIN_WIN_H; y++)
-            for (x = 0; x < CHAIN_WIN_W; x++) {
-                u8 ty = 2 + y, tx = wx + x;
-                VDP_Poke_GM2(tx, ty, g_ScreenLayout[ty * 32 + tx]);
-                if (tx >= bx && tx < bx + BOARD_W * 2 && ty >= by && ty < by + BOARD_H * 2) {
-                    u8 cy2 = (ty - by) / 2, cx2 = (tx - bx) / 2;
-                    if (cx2 < BOARD_W && cy2 < BOARD_H)
-                        g_Shadow[pi][cy2][cx2] = 0xFF;
-                }
-            }
-    }
-    cx = wx + 2;
-    for (y = 0; y < 2; y++)
-        for (x = 0; x < 6; x++)
-            VDP_Poke_GM2(cx + x, 2 + y, 61);
-    Halt(); NB_Flush();
-
-    // Step 2: shrink to 3 tiles centered at middle row
-    for (y = 0; y < 2; y++)
-        Game_RestoreRow(cx, 2 + y, 6);
-    cx = wx + (CHAIN_WIN_W / 2) - 1;
-    VDP_Poke_GM2(cx, 3, 61);
-    VDP_Poke_GM2(cx + 1, 3, 61);
-    VDP_Poke_GM2(cx + 2, 3, 61);
-    Halt(); NB_Flush();
-
-    // Step 3: remove last 3 tiles
-    Game_RestoreRow(cx, 3, 3);
-
-    g_BoardDirty[pi] = TRUE;
-    g_ChainWinActive[pi] = 0;
-    g_ChainWinTimer[pi] = 0;
-    g_ChainWinTotal[pi] = 0;
+    // Start hide animation — advances in Game_ChainWinStep
+    g_ChainWinAnimState[pi] = CW_HIDE1;
 }
 
 
@@ -1246,114 +1287,115 @@ static bool Game_IsInDanger(Player* p) {
     return FALSE;
 }
 
-static void Game_ChainLoop(Player* p, Player* opponent) {
-    u8 chainCount = 0, totalGarbage = 0, cleared;
-    u8 playerIdx = (p == &g_Player[0]) ? 0 : 1;
-    u8 oppIdx = (playerIdx == 0) ? 1 : 0;
 
-    while (TRUE) {
-        Game_AnimateGravity(p, playerIdx);
+// Non-blocking chain step: advance one step per frame
+static void Game_ChainStep(u8 pi) {
+    Player* p = &g_Player[pi];
+    Player* opponent = &g_Player[1 - pi];
 
-        // First find groups without clearing them
-        {
-            u8 x, y, color;
-            u8 groupsFound = 0;
-            for (y = 0; y < BOARD_H; y++)
-                for (x = 0; x < BOARD_W; x++)
-                    g_Visited[y][x] = 0;
+    switch (g_ChainState[pi]) {
+    case CS_GRAVITY:
+        // One gravity step per frame
+        if (Game_GravityStep(p)) {
+            g_BoardDirty[pi] = TRUE;
+            // Stay in CS_GRAVITY — next frame does another step
+        } else {
+            // Nothing fell — check for groups
+            g_ChainState[pi] = CS_CHECK;
+        }
+        break;
 
-            for (y = 0; y < BOARD_H; y++) {
-                for (x = 0; x < BOARD_W; x++) {
-                    color = p->board[y][x];
-                    if (color >= 1 && color <= PUYO_COUNT && !g_Visited[y][x]) {
-                        g_GroupSize = 0;
-                        Game_FloodFill(p, x, y, color);
-                        if (g_GroupSize >= 4) {
-                            // Flash the group before clearing
-                            Game_FlashCleared(p, playerIdx);
-                            groupsFound = 1;
-                        }
+    case CS_CHECK: {
+        u8 x, y, color;
+        u8 groupsFound = 0;
+        for (y = 0; y < BOARD_H; y++)
+            for (x = 0; x < BOARD_W; x++)
+                g_Visited[y][x] = 0;
+        for (y = 0; y < BOARD_H; y++) {
+            for (x = 0; x < BOARD_W; x++) {
+                color = p->board[y][x];
+                if (color >= 1 && color <= PUYO_COUNT && !g_Visited[y][x]) {
+                    g_GroupSize = 0;
+                    Game_FloodFill(p, x, y, color);
+                    if (g_GroupSize >= 4) {
+                        Game_FlashCleared(p, pi);
+                        groupsFound = 1;
                     }
                 }
             }
-
-            if (groupsFound) {
-                // Show flash for a moment
-                Halt(); NB_Flush(); Halt(); Halt();
-            }
         }
-
-        // Now actually clear
-        cleared = Game_ClearGroups(p);
-        if (cleared == 0) break;
-
-        chainCount++;
-        g_ChainWinTotal[playerIdx]++;
-        p->score += cleared * 10 * chainCount;
-        p->totalCleared += cleared;
-
-        // Sound effects
-        SFX_Clear();
-        if (chainCount > 1) SFX_Chain(chainCount);
-
-        // Visual effects - more spectacular for bigger chains
-        {
-            static const u8 borderColors[] = { COLOR_LIGHT_GREEN, COLOR_LIGHT_YELLOW, COLOR_LIGHT_RED, COLOR_MAGENTA, COLOR_WHITE };
-            u8 ci = chainCount - 1;
-            u8 flashFrames;
-            if (ci > 4) ci = 4;
-            VDP_SetColor(borderColors[ci]);
-
-
-            totalGarbage += CHAIN_GARBAGE_BASE * chainCount;
-
-            Game_DrawBoard(p, playerIdx);
-            Game_DrawConnections(p, playerIdx);
-            Game_DrawScore(p);
-            Halt(); NB_Flush();
-
-            // Longer pause for bigger chains
-            flashFrames = 4 + (chainCount > 2 ? chainCount * 2 : 0);
-            if (flashFrames > 16) flashFrames = 16;
-            while (flashFrames > 0) {
-                Halt();
-                // Flash border on/off for big chains
-                if (chainCount >= 3 && (flashFrames & 3) == 0) {
-                    VDP_SetColor((flashFrames & 4) ? borderColors[ci] : COLOR_BLACK);
-                }
-                flashFrames--;
-            }
+        if (groupsFound) {
+            g_ChainFlashCountdown[pi] = 3;
+            g_ChainState[pi] = CS_FLASH;
+        } else {
+            g_ChainState[pi] = CS_DONE;
         }
+        break;
+    }
 
-        // Restore border
+    case CS_FLASH:
+        g_ChainFlashCountdown[pi]--;
+        if (g_ChainFlashCountdown[pi] == 0) {
+            g_ChainState[pi] = CS_CLEAR;
+        }
+        break;
+
+    case CS_CLEAR: {
+        u8 cleared = Game_ClearGroups(p);
+        if (cleared > 0) {
+            u8 groupBonus = g_ClearGroupCount;
+            if (groupBonus > 3) groupBonus = 3;
+            g_ChainStepCount[pi]++;
+            g_ChainWinTotal[pi]++;
+            p->score += cleared * 10 * g_ChainStepCount[pi] * groupBonus;
+            p->totalCleared += cleared;
+            SFX_Clear();
+            if (g_ChainStepCount[pi] > 1) SFX_Chain(g_ChainStepCount[pi]);
+            {
+                static const u8 borderColors[] = { COLOR_LIGHT_GREEN, COLOR_LIGHT_YELLOW, COLOR_LIGHT_RED, COLOR_MAGENTA, COLOR_WHITE };
+                u8 ci = g_ChainStepCount[pi] - 1;
+                if (ci > 4) ci = 4;
+                VDP_SetColor(borderColors[ci]);
+            }
+            g_ChainStepGarbage[pi] += CHAIN_GARBAGE_BASE * g_ChainStepCount[pi] * (g_ClearGroupCount > 3 ? 3 : g_ClearGroupCount);
+            g_BoardDirty[pi] = TRUE;
+        }
+        // Back to gravity for next cascade
+        g_ChainState[pi] = CS_GRAVITY;
+        break;
+    }
+
+    case CS_DONE: {
+        u8 totalGarbage = g_ChainStepGarbage[pi];
         VDP_SetColor(COLOR_BLACK);
-    }
-
-    // Show chain window AFTER all animations
-    if (chainCount > 0) {
-        Game_ShowChainWindow(playerIdx);
-        Game_UpdateChainNumber(playerIdx, g_ChainWinTotal[playerIdx]);
-        g_ChainFlipTimer[playerIdx] = 0;
-        g_ChainWinTimer[playerIdx] = 15;
-        g_ChainWinCount[playerIdx] = g_ChainWinTotal[playerIdx];
-    }
-    p->chainCount = chainCount;
-    if (chainCount > p->maxChain) p->maxChain = chainCount;
-
-    if (totalGarbage > 0) {
-        if (p->pendingGarbage > 0) {
-            if (totalGarbage >= p->pendingGarbage) {
-                totalGarbage -= p->pendingGarbage; p->pendingGarbage = 0;
-            } else {
-                p->pendingGarbage -= totalGarbage; totalGarbage = 0;
+        // Show chain window
+        if (g_ChainStepCount[pi] > 0) {
+            g_ChainWinAnimState[pi] = CW_SHOW1;
+            g_ChainWinActive[pi] = 1;
+            g_ChainFlipTimer[pi] = 0;
+            g_ChainWinTimer[pi] = 15;
+            g_ChainWinCount[pi] = g_ChainWinTotal[pi];
+        }
+        p->chainCount = g_ChainStepCount[pi];
+        if (g_ChainStepCount[pi] > p->maxChain) p->maxChain = g_ChainStepCount[pi];
+        // Send garbage
+        if (totalGarbage > 0) {
+            if (p->pendingGarbage > 0) {
+                if (totalGarbage >= p->pendingGarbage) {
+                    totalGarbage -= p->pendingGarbage; p->pendingGarbage = 0;
+                } else {
+                    p->pendingGarbage -= totalGarbage; totalGarbage = 0;
+                }
+            }
+            if (totalGarbage > 0) {
+                opponent->pendingGarbage += totalGarbage;
+                SFX_Garbage();
             }
         }
-        if (totalGarbage > 0) {
-            opponent->pendingGarbage += totalGarbage;
-            SFX_Garbage();
-        }
+        g_ChainState[pi] = CS_IDLE;
+        break;
     }
-
+    }
 }
 
 static void Game_AddGarbage(Player* p) {
@@ -1511,6 +1553,10 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     bool btnA, btnB, btnUp;
     u8 currentSpeed;
     if (!p->alive) return;
+    // Skip input while chain is running
+    { u8 pi = (p == &g_Player[1]) ? 1 : 0;
+      if (g_ChainState[pi] != CS_IDLE) return;
+    }
     joy = Joystick_Read(joyPort);
     dir = JOY_GET_DIR(joy);
     btnA = JOY_GET_A(joy);
@@ -1599,8 +1645,11 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
     if (p->subY == 0 && !Game_CanMovePair(p, 0, 1)) {
         p->lockTimer++;
         if (p->lockTimer >= LOCK_DELAY) {
+            u8 pi = (p == &g_Player[1]) ? 1 : 0;
             Game_LockPair(p);
-            Game_ChainLoop(p, (p == &g_Player[0]) ? &g_Player[1] : &g_Player[0]);
+            g_ChainState[pi] = CS_GRAVITY;
+            g_ChainStepCount[pi] = 0;
+            g_ChainStepGarbage[pi] = 0;
             return;
         }
     }
@@ -1624,7 +1673,6 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
             p->subY = 0;
             p->puyoY++;
             p->lockTimer = 0;
-            p->groundRotations = 0;
         }
     }
 }
@@ -1646,6 +1694,8 @@ static void Game_Init(void) {
     g_ChainWinActive[0] = 0; g_ChainWinActive[1] = 0;
     g_ChainWinTimer[0] = 0; g_ChainWinTimer[1] = 0;
     g_ChainWinTotal[0] = 0; g_ChainWinTotal[1] = 0;
+    g_ChainWinAnimState[0] = CW_HIDDEN; g_ChainWinAnimState[1] = CW_HIDDEN;
+    g_ChainState[0] = CS_IDLE; g_ChainState[1] = CS_IDLE;
     Game_InitBgScroll();
     Shadow_Invalidate();
     g_BoardDirty[0] = TRUE; g_BoardDirty[1] = TRUE;
@@ -1762,6 +1812,76 @@ static void Game_UpdateBackground(void) {
     }
 }
 
+// --- Garbage bar blink system ---
+// P1 bar: tiles 38-42 (5 tiles × 8 bytes = 40 bytes of color data)
+// P2 bar: tiles 70-74 (5 tiles × 8 bytes = 40 bytes of color data)
+#define BAR_P1_TILE_START 38
+#define BAR_P2_TILE_START 70
+#define BAR_TILES 5
+static u8 g_BarOrigColP1[BAR_TILES * 8]; // original color data
+static u8 g_BarOrigColP2[BAR_TILES * 8];
+static u8 g_BarBlinkTimer[2];
+static u8 g_BarBlinkState[2]; // 0=off, 1=yellow, 2=red
+
+static void Game_InitBars(void) {
+    // Save original bar colors from decompressed tileset color data (still in g_PT3Buffer)
+    u8 i;
+    for (i = 0; i < BAR_TILES * 8; i++) {
+        g_BarOrigColP1[i] = g_PT3Buffer[BAR_P1_TILE_START * 8 + i];
+        g_BarOrigColP2[i] = g_PT3Buffer[BAR_P2_TILE_START * 8 + i];
+    }
+    g_BarBlinkState[0] = 0; g_BarBlinkState[1] = 0;
+    g_BarBlinkTimer[0] = 0; g_BarBlinkTimer[1] = 0;
+}
+
+static void Game_UpdateBars(void) {
+    u8 pi, pending, newState, tileStart;
+    for (pi = 0; pi < 2; pi++) {
+        pending = g_Player[pi].pendingGarbage;
+        if (pending == 0) newState = 0;
+        else if (pending <= 3) newState = 1; // yellow
+        else newState = 2; // red
+
+        tileStart = (pi == 0) ? BAR_P1_TILE_START : BAR_P2_TILE_START;
+
+        if (newState == 0) {
+            // Restore original colors if was blinking
+            if (g_BarBlinkState[pi] != 0) {
+                u8 *orig = (pi == 0) ? g_BarOrigColP1 : g_BarOrigColP2;
+                VDP_WriteVRAM_16K(orig, g_ScreenColorLow + (u16)tileStart * 8, BAR_TILES * 8);
+                g_BarBlinkState[pi] = 0;
+            }
+        } else {
+            g_BarBlinkTimer[pi]++;
+            if ((g_BarBlinkTimer[pi] & 1) == 0) {
+                // Alternate between original and highlight
+                u8 colorByte;
+                u8 phase = (g_BarBlinkTimer[pi] >> 1) & 1;
+                if (phase == 0) {
+                    // Show highlight: yellow (0xA1) or red (0x81)
+                    colorByte = (newState == 1) ? 0xA1 : 0x81;
+                } else {
+                    // Show second color: original for yellow blink, yellow for red blink
+                    if (newState == 1) {
+                        u8 *orig = (pi == 0) ? g_BarOrigColP1 : g_BarOrigColP2;
+                        VDP_WriteVRAM_16K(orig, g_ScreenColorLow + (u16)tileStart * 8, BAR_TILES * 8);
+                        g_BarBlinkState[pi] = newState;
+                        continue;
+                    }
+                    colorByte = 0xA1; // yellow phase for red blink
+                }
+                {
+                    u8 buf[BAR_TILES * 8];
+                    u8 j;
+                    for (j = 0; j < BAR_TILES * 8; j++) buf[j] = colorByte;
+                    VDP_WriteVRAM_16K(buf, g_ScreenColorLow + (u16)tileStart * 8, BAR_TILES * 8);
+                }
+                g_BarBlinkState[pi] = newState;
+            }
+        }
+    }
+}
+
 static void Game_Update(void) {
     // Attract mode: any input → back to title
     if (g_GameMode == MODE_ATTRACT) {
@@ -1781,6 +1901,10 @@ static void Game_Update(void) {
     Game_UpdatePlayer(&g_Player[0], JOY_PORT_1);
     Game_UpdatePlayer(&g_Player[1], JOY_PORT_2);
 
+    // Non-blocking chain steps (one step per frame per player)
+    if (g_ChainState[0] != CS_IDLE) Game_ChainStep(0);
+    if (g_ChainState[1] != CS_IDLE) Game_ChainStep(1);
+
     // All draw calls write to g_NameBuffer (RAM), not VRAM
     Game_DrawBoard(&g_Player[0], 0);
     Game_DrawBoard(&g_Player[1], 1);
@@ -1789,10 +1913,12 @@ static void Game_Update(void) {
     Game_DrawScore(&g_Player[0]);
     Game_DrawScore(&g_Player[1]);
 
-    // Chain windows: per-player redraw + auto-hide timer
+    // Chain window animation steps (non-blocking)
     { u8 pi;
       for (pi = 0; pi < 2; pi++) {
-        if (g_ChainWinActive[pi]) {
+        if (g_ChainWinAnimState[pi] != CW_HIDDEN && g_ChainWinAnimState[pi] != CW_VISIBLE) {
+            Game_ChainWinStep(pi);
+        } else if (g_ChainWinActive[pi] && g_ChainWinAnimState[pi] == CW_VISIBLE) {
             if (g_ChainWinTimer[pi] > 0) {
                 g_ChainWinTimer[pi]--;
                 if (g_ChainWinTimer[pi] == 0) {
@@ -1805,6 +1931,9 @@ static void Game_Update(void) {
             }
         }
     } }
+
+    // Garbage bar blink (writes to VRAM color table)
+    Game_UpdateBars();
 
     // 50Hz compensation: skip Halt every 5th frame (6 updates per 5 VBlanks ≈ 60Hz)
     if (g_Is50Hz) {
@@ -1941,6 +2070,7 @@ void main(void) {
             g_GameState = STATE_PLAYING;
             // g_CpuLevel already set from menu selection
             VDP_Setup();
+            Game_InitBars(); // save bar colors while tileset colors are in g_PT3Buffer
             Game_Init();
             Music_Start();
         }
