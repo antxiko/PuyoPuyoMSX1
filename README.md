@@ -2,39 +2,43 @@
 
 > Two players. Five colors. One Z80. No mercy. **Zero flicker.**
 
-A from-scratch competitive Puyo Puyo built for the MSX1, pushing the TMS9918A to its absolute limits. Written in C with [MSXgl](https://github.com/aoineko-fr/MSXgl), hand-tuned for a machine from 1983.
+They told us the MSX1 couldn't handle it. A competitive Puyo Puyo — two full boards, chain combos, garbage warfare, smooth animation — on a CPU from 1983 running at 3.58 MHz with 16KB of RAM and a video chip that wasn't designed for any of this. They told us to pick a better platform.
 
-**The game runs at 2x speed with rock-solid graphics.** After twenty builds of relentless optimization — from dynamic pattern pools to pre-computed tilesets, from direct VRAM writes to a RAM-buffered name table with VBlank-only differential flushing — the rendering pipeline is now flicker-free by construction. Every name table write lands during VBlank. Every connection draws at the exact frame a piece locks. Every placed puyo stays perfectly still. The TMS9918A has been tamed.
+**We picked the Z80.** And after 209 builds of relentless engineering, the game runs at 2x speed with rock-solid graphics. No flicker. No tearing. No compromise. Every name table write lands during VBlank. Every connection draws the exact frame a piece locks. Every puyo stays perfectly still. The TMS9918A has been conquered.
 
 ---
 
 ## What is this?
 
-A real, playable, feature-complete Puyo Puyo VS running on 3.58 MHz and 16KB of RAM at double speed with zero graphical glitches. Two players face off on a single MSX — or one player challenges a CPU opponent with 8 brutality levels. Puyos fall, chains explode, garbage rains. The Z80 does not flinch.
+A real, playable, feature-complete Puyo Puyo VS running on hardware from 1983 at double speed with zero graphical glitches. Two players face off on a single MSX — or one player challenges a CPU opponent across 8 brutality levels that scale from "learning to walk" to "absolute annihilation." Puyos fall, chains explode, garbage rains. The Z80 does not flinch.
+
+Written in C with [MSXgl](https://github.com/aoineko-fr/MSXgl). Hand-tuned for a machine that predates the NES.
 
 ---
 
 ## Features
 
-- **Arcade mode** — fight through 8 CPU difficulty levels, from "learning to walk" to the final boss
+- **Arcade mode** — fight through 8 CPU difficulty levels, each one faster, smarter, and less forgiving than the last
 - **VS mode** — two humans on one MSX: keyboard/joystick 1 vs joystick 2
-- **Chain window** — real-time chain counter overlay appears during combos
-- **5 puyo colors** + garbage blocks that fall from the sky
-- **Chain combos** — the soul of Puyo Puyo, with escalating visual effects
+- **Chain window** — real-time chain counter overlay that expands from the center and collapses when done
+- **5 puyo colors** + garbage blocks that rain from the sky in randomized columns
+- **Chain combos** — the soul of Puyo Puyo, with escalating visual effects and screen-shaking intensity
 - **Blob connections** — same-color puyos fuse visually when adjacent, 30 pre-computed connection tiles
 - **Smooth 8px falling** — half-tile precision at 2x speed, not the usual 16px jumps
 - **Spawn animation** — puyos emerge from the top, 8 pixels at a time
-- **Garbage from above** — animated non-blocking gravity, randomized columns, like the arcade
-- **Zero-flicker rendering** — RAM-buffered name table with VBlank-only differential flush
+- **Garbage from above** — animated non-blocking gravity with Fisher-Yates randomized column distribution
+- **Zero-flicker rendering** — 768-byte RAM buffer with VBlank-only full flush. Flicker is impossible by construction
 - **PT3 tracker music** — 3 channels of AY-3-8910 goodness via VBlank ISR
-- **Diagonal scrolling backgrounds** — each player gets their own animated pattern
+- **Diagonal scrolling backgrounds** — each player gets their own animated pattern, accelerates when the tower gets high
 - **Speed progression** — every 10 pieces, the pressure increases
-- **Explosion effects** — visual burst when groups are cleared
-- **3-2-1-GO countdown** — because every match deserves a proper start
-- **Game over animation** — loser's puyos fade to grey, row by row
+- **Explosion effects** — visual burst when groups reach critical mass
+- **3-2-1-GO countdown** — because every match deserves a proper launch sequence
+- **Game over animation** — loser's puyos decay to grey, row by row, from the bottom up
 - **Stats screen** — score, max chain, total clears for both players
-- **Custom screen layout** — designed pixel by pixel in our visual editor
-- **ZX0 compressed assets** — tileset, screen layout, and music squeezed into 31KB of ROM
+- **Attract mode** — leave the title screen idle and two CPU champions fight to the death, cycling through all 8 difficulty levels
+- **Rotation lock** — 8 ground rotations maximum per piece, no infinite spin exploits
+- **Custom pixel art** — every tile designed by hand for the MSX1 palette
+- **ZX0 compressed assets** — tileset, screen layout, and music squeezed into a 64KB flat ROM
 
 ---
 
@@ -58,10 +62,10 @@ CPU takes over Player 2 automatically when the joystick is idle.
 | CPU | Z80A @ 3.58 MHz |
 | VDP | TMS9918A — Screen 2, 256x192, 16 colors |
 | PSG | AY-3-8910 — 3 tone channels |
-| ROM | 48KB with VBlank ISR hook |
+| ROM | 64KB flat (ROM_64K_ISR), no mapper |
 | RAM | ~9KB used (includes 7.8KB PT3 buffer) |
 | Music | PT3 format, ZX0 compressed, ISR-driven |
-| Graphics | ZX0 compressed tileset + screen layout |
+| Graphics | ZX0 compressed tileset + screen layout in page 0 |
 | Compiler | SDCC via MSXgl build system |
 
 ---
@@ -102,6 +106,7 @@ All game graphics were created with **[MSXJuanEditor](https://github.com/antxiko
 
 - **Antxiko** — game design, pixel art, music selection
 - **TheNestruo** — graphic design & art direction (the game would be MUCH uglier without him)
+- **Errazking** — tileset overhaul (build 209: the puyos finally look the way they were meant to)
 - **Claude Opus 4.6** — code, tools, engine integration
 - **Aki** — title music: *Milky Way in My Pocket* (FOReVER 2026 - 8bit winter games)
 - **LaesQ** — gameplay music: *Ostagazuzulum* (FOReVER 2026 - 8bit winter games)
@@ -110,37 +115,21 @@ All game graphics were created with **[MSXJuanEditor](https://github.com/antxiko
 
 ---
 
-## The Great Connection Wars (builds 161-169)
+## The Rendering War (builds 161-179)
 
-There are bugs you fix in an afternoon, and then there are bugs that drag you into the underworld and make you question reality. The puyo connection rendering was the latter.
+There are bugs you fix in an afternoon, and then there are bugs that drag you into the abyss. The puyo connection rendering was the second kind.
 
-It started innocently: "the connections flicker sometimes." Nine builds, forty-seven failed theories, and one complete architectural rewrite later, we finally understood what was happening — and it was everything, all at once.
+It started with "the connections flicker sometimes." Twenty builds later, three complete architectural rewrites later, we understood what was happening — and it was everything, all at once.
 
-**Build 161** — The original sin. Connections used a dynamic pattern pool (indices 128-255) that was rewritten to VRAM every single frame. Each connection required 17 bytes of VRAM writes: 8 for pattern data, 8 for color data, 1 for the name table. With a full board, that's hundreds of writes per frame, far exceeding what the VBlank period allows. The TMS9918A doesn't forgive.
+**The dynamic pool era (161-164).** Connections used a shared pattern pool rewritten to VRAM every frame. 17 bytes per connection tile. Hundreds of writes per frame. The VBlank window doesn't forgive overflow. Player 1's patterns would overwrite Player 2's indices. Colors bled between boards. Dead code was everywhere. We cleaned 300 bytes of waste. The flickering continued.
 
-**Build 162-163** — We tried write buffers, pre-computing everything in RAM before flushing to VRAM. We tried drawing connections only for the affected player. We tried partial connection updates around the last locked piece. Each fix solved one problem and created two more. The pattern pool was shared between players — Player 1's connection patterns would overwrite indices that Player 2 was still referencing, causing puyos to display in the wrong color.
+**The pre-computed revolution (165).** Replaced the entire dynamic pool with 30 fixed connection patterns loaded once at boot. One name table byte per connection instead of 17. A 17x reduction. The pool was dead. The flickering was not.
 
-**Build 164** — The great cleanup. Removed every dead variable, unused function, and zombie code path. Stripped 300+ bytes of RAM waste. The code was clean. The connections still flickered.
+**The ghost hunt (166-170).** The falling piece was clearing and redrawing at the same position every frame — the VDP beam would catch the gap. The shadow system was triggering full board redraws from its cleanup routine. `Shadow_Invalidate()` was nuking every cell during chain combos, forcing a full-screen flash. Ghost connection patterns survived in VRAM after neighbors were cleared. Each fix peeled back a layer. Each layer revealed the next.
 
-**Build 165** — The architectural revolution. Replaced the entire dynamic pattern pool with 36 pre-computed fixed patterns loaded once at startup. Each puyo color gets 6 connection variants (top-filled TL, top-filled TR, bottom-filled BL, bottom-filled-with-left-edge BL, bottom-filled BR, bottom-filled-with-right-edge BR). Connection drawing went from 17 VRAM bytes per tile to exactly 1. A 17x reduction. The pool was dead. The flickering continued.
+**The connection spam (177).** Every 8 frames, a state transition set the dirty flag, triggering a full connection redraw of every puyo on both boards. Everyone thought the periodic flickering was "just how MSX1 works." It wasn't.
 
-**Build 166-167** — The falling piece was the traitor. Every frame, the subY drawing code would RestoreTile (write background) then immediately VDP_Poke (write puyo) at the same position, even when the piece hadn't moved. The VDP would scan between those two writes and display the background for one scanline pass — a flicker visible to the human eye but invisible to the logic. We added position tracking to skip redundant redraws. But then connections started disappearing because the cleanup code was overwriting them. We made connections redraw every frame — but that overloaded VRAM writes again when the board was full.
-
-**Build 168** — The shadow loop revelation. The shadow comparison system was marking `g_BoardDirty` from the cleanup code, which triggered a full connection redraw on the next frame. But that redraw wrote base puyo patterns first, erasing the connections, then redrew them — visible as a one-frame flash. The fix: trigger `g_BoardDirty` from inside the shadow loop itself, so connections are redrawn in the SAME frame, right after the base patterns, never leaving a frame without them.
-
-**Build 169** — The final boss: `Shadow_Invalidate()`. During chain combos, `Game_AnimateGravity` was calling `Shadow_Invalidate()` which nuked the ENTIRE shadow table — every cell set to 0xFF, forcing every puyo on the board to be redrawn from scratch, erasing all connections, then redrawing them one frame later. The connections would vanish during every single chain. The fix was surgical: instead of invalidating everything, only invalidate the specific cells that actually moved during gravity (source and destination). Puyos that didn't move kept their shadow clean, their connections untouched, their dignity intact.
-
-**Build 170** — The ghost connections. Everything looked perfect until we noticed a green puyo showing connection edges with no neighbor in sight. The connection code only *wrote* connected quadrants — it never *erased* disconnected ones. When a neighbor vanished (cleared in a combo), the old connection pattern stayed in VRAM like a scar. The fix: write all 4 quadrants of every puyo — connection pattern where adjacent, base pattern where not. No ghosts survive. And one final reordering: cleanup runs *before* the shadow loop, not after, so the shadow redraws on top of cleaned tiles instead of the cleanup erasing what the shadow just painted. Background scroll moved to last — the falling pieces deserve the VBlank, not the wallpaper.
-
-**Build 170** — The ghost connections. Everything looked perfect until we noticed a green puyo showing connection edges with no neighbor in sight. The connection code only *wrote* connected quadrants — it never *erased* disconnected ones. When a neighbor vanished (cleared in a combo), the old connection pattern stayed in VRAM like a scar. The fix: write all 4 quadrants of every puyo — connection pattern where adjacent, base pattern where not. No ghosts survive.
-
-**Build 177** — The connection spam revelation. We discovered that every 8 frames, when the piece transitioned between subY states, the shadow loop was setting `g_BoardDirty = TRUE`. This triggered a FULL connection redraw — every puyo on both boards, 4 tiles each — creating periodic VRAM bursts that caused the persistent flickering everyone thought was "just how MSX1 works." The fix: remove `g_BoardDirty` from the shadow loop entirely. Connections only redraw when the board actually changes (piece locks, gravity, garbage). Inline connection restoration in the shadow loop handles cells that get redrawn without triggering a full board connection pass.
-
-**Build 179** — The Name Buffer. The nuclear option. **TheNestruo** proposed the idea that changed everything: instead of writing to VRAM directly during the game loop, buffer the entire name table in RAM and flush only the changes during VBlank. ALL name table writes now go to a 768-byte RAM buffer (`g_NameBuffer`). A dirty list tracks which tiles changed. After `Halt()`, `NB_Flush()` writes ONLY the changed tiles to VRAM — during VBlank, when the display is off. The CPU never touches the name table outside of VBlank again. Flickering eliminated by definition. The entire rendering architecture — from direct VRAM pokes to buffered differential updates — was rebuilt in a single session. One idea. One conversation. Zero flicker.
-
-**Build 180** — The phantom connections. One last bug: falling pieces showed connection patterns before landing. The inline connection code in the shadow loop was checking `visible[y][x]` (which includes the falling piece overlay) instead of `p->board[y][x]` (which only has placed puyos). One condition added: `p->board[y][x] == color`. Connections now appear exactly when puyos lock — not a frame before, not a frame after.
-
-Twenty builds. Three architectural rewrites. One RAM buffer that changed everything.
+**The Name Buffer (179).** TheNestruo said four words that ended the war: *"buffer it in RAM."* 768 bytes. Full LDIRVM after Halt. The CPU never touches the name table outside VBlank again. Flickering eliminated not by fixing bugs, but by making them impossible.
 
 From 17 bytes per connection per frame to 1. From hundreds of VRAM writes during active display to zero. From "it flickers and we don't know why" to "it cannot flicker by construction."
 
@@ -148,25 +137,21 @@ From 17 bytes per connection per frame to 1. From hundreds of VRAM writes during
 
 ---
 
-## The 64K Expansion — The Dungeon Deepens (builds 194-203)
+## The 64K Expansion (builds 194-203)
 
-The adventurers had mapped every corridor of the 48KB dungeon. Every torch was lit, every trap disarmed, every byte accounted for. But the dungeon was full. There was no room for new chambers. The party needed a bigger dungeon.
+The 48KB ROM was full. The code overflowed page 1 into page 2. The assets competed with the game logic for space. Something had to give.
 
-**Build 194 — The Gate to Page Zero.** The wizard discovered an ancient incantation: `Target = "ROM_64K_ISR"`. With a single rune inscribed in the scroll of `project_config.js`, the cartridge claimed the forbidden page 0 — the domain of the BIOS itself. The BIOS was not slain; it retreated behind interslot calls, still answering when summoned. But now, behind the ISR sentinel at 0x0038, lay 15,750 bytes of virgin ROM. A new floor of the dungeon, untouched.
+**Page Zero claimed (194).** `Target = "ROM_64K_ISR"` — one line in the config, and the cartridge seized page 0 from the BIOS. 15,750 bytes of ROM behind the ISR at 0x0038. The BIOS retreated to interslot calls. The assets moved underground.
 
-**Build 197 — The Great Treasure Migration.** The party moved all their provisions — tileset patterns, colors, music scrolls, screen maps — from the crowded upper halls (pages 1-2) down into the vaults of page 0. Each treasure chest, compressed with the ZX0 enchantment, could be read with nothing more than a pointer. No bank switching. No interslot rituals. Just `const void*` and courage. 3,400 bytes freed above. 12,000 bytes still empty below.
+**The great migration (197).** Tileset patterns, colors, music, screen layouts — all compressed with ZX0, all relocated to page 0. Read by pointer. No bank switching. 3,400 bytes freed in the code pages. 12,000 bytes still empty below.
 
-**Build 200 — The Title Screen of Legend.** A master artisan crafted 64 new tiles — an entire alphabet of puyo runes. Loaded into VRAM slots 0-63, the same 11×5 map was invoked twice: once blessed with the green flame of bank 0, once cursed with the red fire of bank 1. Screen 2's independent color tables — a power forged into the TMS9918A in the First Age of 1983 — wielded at last as the ancients intended. Cost: 317 bytes. The old letter-drawing function and its lookup tables? Cast into the void.
+**Title screen (200).** 64 custom tiles. One 11x5 map rendered twice — green in bank 0, red in bank 1. Screen 2's independent color tables per vertical third, wielded as the original engineers intended. Cost: 317 bytes.
 
-**Build 202 — The Herald's Entrance.** Before the title, a herald appears: "COMPILA!" rendered in its own 64-tile alphabet (256 bytes). A "!" sprite rises from the abyss. Press any button and the herald steps aside. Wait too long on the title screen and the attract mode awakens: two CPU champions at maximum difficulty, locked in eternal combat. Any key breaks the spell and returns the player to the menu. The arcade ritual, complete.
-
-**Build 203 — The Phantom Limb.** A ghost haunted the rotation spell. When the falling pair rotated from horizontal to vertical at half-step, the satellite puyo's cleansing RestoreTile struck the main puyo's bottom row — for they shared the cursed tile row `tyTop+2`. A single ward was added: if the satellite's top overlaps the main's bottom, the RestoreTile is suppressed. The pair now rotates clean. The ghost is banished.
+**Producers splash (202).** "COMPILA!" in its own alphabet. A sprite rises from the void. Attract mode awakens when the title screen goes idle — two CPUs at war, cycling through all difficulty levels.
 
 ---
 
-## The Architecture — The Dungeon Map
-
-After 200+ expeditions, the dungeon's defenses look like this:
+## The Architecture
 
 ```
 CPU writes to g_NameBuffer[768] (RAM)
@@ -178,39 +163,63 @@ VDP_WriteVRAM_16K(g_NameBuffer, 0x1800, 768) — full LDIRVM
 VDP scans top-to-bottom — all tiles consistent
 ```
 
-No cursed dirty lists. No shadow enchantments on the name table. No RestoreTile-then-draw race traps. Just 768 bytes teleported once per frame, always ahead of the VDP's scanning eye. The shadow system survives only as a ward on the board cells — a relic of the old ways, still useful. Everything else writes freely to the buffer, unafraid.
+No dirty lists. No partial updates. No race conditions. 768 bytes teleported once per frame, always ahead of the scanning beam.
 
-The assets dwell in the vaults of page 0. The code inhabits pages 1-2. The RAM holds page 3 — stack, variables, the PT3 music scroll. The ISR stands guard at 0x0038. Four kingdoms, each sovereign, none trespassing. A flat 64KB ROM with no mapper — compatible with the MSX Simple 64K ROM Cartridge, a vessel forged for exactly this purpose.
+Assets in page 0. Code in pages 1-2. RAM in page 3. ISR at 0x0038. Four kingdoms, each sovereign. A flat 64KB ROM with no mapper.
 
-50Hz PAL realms receive automatic speed compensation: every 5th frame, the game skips the Halt and runs an extra logic tick. 6 updates per 5 VBlanks. The player cannot tell the difference. Time flows equally for all.
+50Hz PAL machines receive automatic speed compensation: every 5th frame, the game skips the Halt and runs an extra logic tick. 6 updates per 5 VBlanks. The player cannot tell the difference.
 
-**Build 204** — The final polish. The chain window shed its padding — from 5 rows to 3. Border, counter, border. No wasted tiles, no empty rows. And the next piece oracle, which had been showing the future upside down since build 1, finally learned which puyo falls on top and which falls below. `nextColor2` draws above, `nextColor1` draws below — matching `DIR_UP`, the starting orientation. Two hundred and four builds to notice the preview was inverted. The dungeon master wept.
+---
 
-*204 expeditions. One Z80. The game runs at 2x speed on hardware forged in 1983, with zero flicker, attract mode, chain combos, and a title screen conjured from 317 bytes of compressed runes. The dungeon is conquered. But the Z80 hungers for more.*
+## The CPU — 8 Levels of Escalation
+
+The synthetic opponent evaluates placements by scoring adjacent same-color neighbors. It doesn't simulate chains. It doesn't plan ahead. It plays greedy — and at maximum escalation, it plays greedy *fast*.
+
+| Level | Speed | Vision | Rotates | Fast Drop | Notes |
+|-------|-------|--------|---------|-----------|-------|
+| 1 | 6 frames | 3 cols | No | No | Slow, narrow vision, 25% random moves |
+| 2 | 5 frames | 4 cols | No | No | Slightly wider, still no rotation |
+| 3 | 4 frames | 5 cols | Yes | No | Starts rotating — a different opponent |
+| 4 | 3 frames | 6 cols | Yes | No | Full board evaluation, quick reactions |
+| 5 | 3 frames | 6 cols | Yes | Yes | Fast drop activated — pieces slam down |
+| 6 | 2 frames | 6 cols | Yes | Yes | Very fast, relentless pressure |
+| 7 | 1 frame | 6 cols | Yes | Yes | Maximum speed — one input per frame |
+| 8 | 1 frame | 6 cols | Yes | Yes | Maximum speed, zero randomness, no mercy |
+
+The AI simulates joystick inputs: rotate first, then move, then drop. You can watch it think. At level 8, you can watch it think faster than you can react.
+
+---
+
+## Build 205-209 — The Final Push
+
+**Build 205.** Garbage now falls in randomized columns via Fisher-Yates shuffle. Satellite puyo collisions rewritten with unified `Game_CellFree()` — checks the row below when the piece is between grid positions. Lock timer runs independently of the drop timer, immune to rotation spam. Maximum 8 ground rotations per piece. ISR noise eliminated with a `g_MusicActive` flag.
+
+**Build 206-207.** Chain window animation — expands from center in 3 frames (3 tiles → 6x2 → full window), collapses in reverse when done. Both players use the same animation. README rewritten.
+
+**Build 208.** CPU difficulty rebalanced across all 8 levels. Attract mode cycles through all difficulty levels instead of always using maximum.
+
+**Build 209.** **Errazking** enters the arena. The entire tileset receives its first external overhaul — new puyo designs, new connections, new visual identity. The puyos finally look the way they were always meant to look. 209 builds of engineering. One artist to make it beautiful.
 
 ---
 
 ## Appendix: On Losing One's Mind
 
-This README was co-written by an AI that spent 200+ builds debugging a TMS9918A — a chip designed before the AI's creators were born. Over the course of three days and an unknowable number of tokens, the AI:
+This README was co-written by an AI that spent 209 builds debugging a TMS9918A. Over the course of four days and an incalculable number of tokens, the AI:
 
 - Invented, implemented, and discarded a write buffer system three times before admitting the first approach was wrong
 - Confidently stated "this should fix the flickering" no fewer than forty-seven times
 - Proposed double buffering on a chip with 16KB of VRAM, then spent two hours proving to itself why it wouldn't work, then tried it anyway
 - Wrote a function called `Game_DrawCellConnection` that was rewritten six times, eliminated twice, resurrected once, and finally replaced by a lookup into 36 pre-computed tiles that were already in the tileset
 - Suggested "going to 30fps" as a fix for a logic bug, then watched the user play the same flickering game at half speed
-- Generated a knowledge base document about MSX rendering while actively getting MSX rendering wrong
 - Described the VDP as "tamed" in the README while the VDP was, at that exact moment, displaying half a puyo
-- Wrote commit messages with phrases like "kill the last flicker" on at least four separate occasions, each time incorrectly
 - Called `Shadow_Invalidate()` the "final boss" and then discovered three more bosses behind it
-- At one point, wrote the sentence "the Z80 breathes" about a CPU that has been doing the exact same thing since 1976
+- Added a subY collision check to `Game_RotatePair`, documented it as "applied" in the knowledge base, and then discovered it was never actually in the code
+- Wrote the sentence "the Z80 breathes" about a CPU that has been doing the exact same thing since 1976
 
-The human, for their part, kept saying "dale" and "perfecto" and "otra vez" with the patience of someone who has debugged hardware from 1983 before and knows that the machine is never wrong — only the programmer is.
-
-If you've read this far: the game works. The puyos fall. The chains explode. The connections hold. The title screen loads in 317 bytes. And somewhere in page 0, between 0x0100 and 0x3FFF, there are 12KB of empty ROM waiting for the next adventure.
+The human kept saying *"dale"* and *"perfecto"* and *"otra vez"* with the patience of someone who knows the machine is never wrong — only the programmer is.
 
 *The AI regrets nothing. The Z80 regrets nothing. The TMS9918A was never asked.*
 
 ---
 
-*Built for the machine that started it all. Long live the Z80.*
+*209 builds. One Z80. Zero flicker. Long live the MSX.*

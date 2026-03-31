@@ -1142,8 +1142,37 @@ static void Game_DrawChainWin(u8 pi, u8 count, u8 flip) {
     VDP_Poke_GM2(wx + 2, 3, 80 + (count % 10));
 }
 
+static void Game_RestoreRow(u8 tx, u8 ty, u8 w) {
+    u8 i;
+    for (i = 0; i < w; i++)
+        VDP_Poke_GM2(tx + i, ty, g_ScreenLayout[ty * 32 + tx + i]);
+}
+
 static void Game_ShowChainWindow(u8 pi) {
+    u8 wx, x, y, cx;
     g_ChainWinActive[pi] = 1;
+
+    wx = (pi == 0) ? 2 : 20;
+
+    // Expand from center animation
+    // Step 1: 3 border tiles centered horizontally at middle row (y=3)
+    cx = wx + (CHAIN_WIN_W / 2) - 1;
+    VDP_Poke_GM2(cx, 3, 61);
+    VDP_Poke_GM2(cx + 1, 3, 61);
+    VDP_Poke_GM2(cx + 2, 3, 61);
+    Halt(); NB_Flush();
+
+    // Step 2: 6 tiles wide x 2 rows of border (centered)
+    Game_RestoreRow(cx, 3, 3);
+    cx = wx + 2;
+    for (y = 0; y < 2; y++)
+        for (x = 0; x < 6; x++)
+            VDP_Poke_GM2(cx + x, 2 + y, 61);
+    Halt(); NB_Flush();
+
+    // Step 3: clean step 2, draw full window
+    for (y = 0; y < 2; y++)
+        Game_RestoreRow(cx, 2 + y, 6);
     Game_DrawChainWin(pi, 0, 0);
 }
 
@@ -1161,9 +1190,11 @@ static void Game_UpdateChainNumber(u8 pi, u8 count) {
 }
 
 static void Game_HideChainWindow(u8 pi) {
-    u8 x, y, wx;
+    u8 x, y, wx, cx;
     if (!g_ChainWinActive[pi]) return;
     wx = (pi == 0) ? 2 : 20;
+
+    // Step 1: shrink to 6x2 centered
     {
         u8 bx = g_Player[pi].boardX;
         u8 by = g_Player[pi].boardY;
@@ -1172,13 +1203,31 @@ static void Game_HideChainWindow(u8 pi) {
                 u8 ty = 2 + y, tx = wx + x;
                 VDP_Poke_GM2(tx, ty, g_ScreenLayout[ty * 32 + tx]);
                 if (tx >= bx && tx < bx + BOARD_W * 2 && ty >= by && ty < by + BOARD_H * 2) {
-                    u8 cy = (ty - by) / 2, cx = (tx - bx) / 2;
-                    if (cx < BOARD_W && cy < BOARD_H)
-                        g_Shadow[pi][cy][cx] = 0xFF;
+                    u8 cy2 = (ty - by) / 2, cx2 = (tx - bx) / 2;
+                    if (cx2 < BOARD_W && cy2 < BOARD_H)
+                        g_Shadow[pi][cy2][cx2] = 0xFF;
                 }
             }
-        g_BoardDirty[pi] = TRUE;
     }
+    cx = wx + 2;
+    for (y = 0; y < 2; y++)
+        for (x = 0; x < 6; x++)
+            VDP_Poke_GM2(cx + x, 2 + y, 61);
+    Halt(); NB_Flush();
+
+    // Step 2: shrink to 3 tiles centered at middle row
+    for (y = 0; y < 2; y++)
+        Game_RestoreRow(cx, 2 + y, 6);
+    cx = wx + (CHAIN_WIN_W / 2) - 1;
+    VDP_Poke_GM2(cx, 3, 61);
+    VDP_Poke_GM2(cx + 1, 3, 61);
+    VDP_Poke_GM2(cx + 2, 3, 61);
+    Halt(); NB_Flush();
+
+    // Step 3: remove last 3 tiles
+    Game_RestoreRow(cx, 3, 3);
+
+    g_BoardDirty[pi] = TRUE;
     g_ChainWinActive[pi] = 0;
     g_ChainWinTimer[pi] = 0;
     g_ChainWinTotal[pi] = 0;
@@ -1352,14 +1401,14 @@ static u8 g_CpuLevel;     // 1-8 difficulty
 // rotate: 0=no, 1=yes
 // fastdrop: 0=no, 1=yes
 static const u8 g_CpuParams[8][4] = {
-    { 8, 2, 0, 0 }, // Level 1: very slow, 2 cols, no rotate, no fast drop
-    { 7, 3, 0, 0 }, // Level 2
-    { 6, 4, 0, 0 }, // Level 3
-    { 5, 5, 1, 0 }, // Level 4: starts rotating
-    { 4, 6, 1, 0 }, // Level 5: checks all columns
-    { 3, 6, 1, 1 }, // Level 6: fast drop
-    { 2, 6, 1, 1 }, // Level 7
-    { 1, 6, 1, 1 }, // Level 8: maximum speed
+    { 6, 3, 0, 0 }, // Level 1: slow, 3 cols, no rotate
+    { 5, 4, 0, 0 }, // Level 2: 4 cols
+    { 4, 5, 1, 0 }, // Level 3: starts rotating
+    { 3, 6, 1, 0 }, // Level 4: full eval, faster
+    { 3, 6, 1, 1 }, // Level 5: fast drop
+    { 2, 6, 1, 1 }, // Level 6: very fast
+    { 1, 6, 1, 1 }, // Level 7: max speed
+    { 1, 6, 1, 1 }, // Level 8: max speed, no random
 };
 
 // Count how many adjacent same-color puyos are near the top of column x
@@ -1399,8 +1448,8 @@ static void CPU_DecideMove(Player* p) {
         endX = startX + maxCols;
     }
 
-    // Levels 1-2: random element (sometimes pick random column)
-    if (lvl < 2 && (Math_GetRandom8() & 3) == 0) {
+    // Level 1: random element (sometimes pick random column)
+    if (lvl == 0 && (Math_GetRandom8() & 3) == 0) {
         g_CpuTargetX = Math_GetRandom8() % BOARD_W;
         g_CpuTargetDir = DIR_UP;
         g_CpuDelay = 0;
@@ -1626,6 +1675,7 @@ static void Game_Init(void) {
     RestoreTile(14, 1);
     RestoreTile(15, 1);
     RestoreTile(16, 1);
+
 }
 
 
@@ -1878,9 +1928,9 @@ void main(void) {
                 }
 
                 if (attract) {
-                    // Attract mode: CPU vs CPU
+                    // Attract mode: CPU vs CPU, cycle through levels
                     g_GameMode = MODE_ATTRACT;
-                    g_CpuLevel = 7; // max difficulty
+                    g_CpuLevel = (g_CpuLevel + 1) & 7;
                 } else {
                     g_GameMode = sel;
                     if (sel == 0) g_CpuLevel = cpuLvl;

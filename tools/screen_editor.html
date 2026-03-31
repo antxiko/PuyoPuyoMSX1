@@ -448,7 +448,7 @@ function saveTileset() {
     if (!tilesetCanvas2D) return;
     const a = document.createElement('a');
     a.href = tilesetCanvas2D.toDataURL('image/png');
-    a.download = 'tileset_tiled.png';
+    a.download = 'tileset.png';
     a.click();
     clearTilesetDirty();
 }

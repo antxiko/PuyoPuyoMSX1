@@ -1,4 +1,4 @@
-// tileset2code.js - Convert tileset_tiled.png to MSX Screen 2 pattern+color C arrays
+// tileset2code.js - Convert tileset.png to MSX Screen 2 pattern+color C arrays
 // Usage: node tools/tileset2code.js [tileset.png] [output.h]
 // Requires PHP with GD (uses it to read PNG since Node has no native PNG support)
 
@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 
 const path = require('path');
 const baseDir = path.resolve(__dirname, '..');
-const inputFile = process.argv[2] || path.join(baseDir, 'assets/tileset_tiled.png');
+const inputFile = process.argv[2] || path.join(baseDir, 'assets/tileset.png');
 const colorFile = process.argv[3] || path.join(baseDir, 'color_table.bin');
 const outputFile = process.argv[4] || path.join(baseDir, 'src/tileset_data.h');
 

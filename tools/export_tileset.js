@@ -8,8 +8,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const baseDir = path.resolve(__dirname, '..');
-const inputFile = path.join(baseDir, 'assets/tileset_tiled.png');
-const outputFile = path.join(baseDir, 'assets/tileset_tiled.png');
+const inputFile = path.join(baseDir, 'assets/tileset.png');
+const outputFile = path.join(baseDir, 'assets/tileset.png');
 
 // MSX1 palette (RGB)
 const msxPalette = [

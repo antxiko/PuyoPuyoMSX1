@@ -12,7 +12,7 @@ const zx0Path = path.join(baseDir, 'MSXgl/tools/compress/ZX0/zx0.exe');
 const outDir = path.join(baseDir, 'MSXgl/projects/puyopuyo/out');
 const tmpDir = path.join(baseDir, 'assets');
 
-const tilesetPng = process.argv[2] || path.join(baseDir, 'assets/tileset_tiled.png');
+const tilesetPng = process.argv[2] || path.join(baseDir, 'assets/tileset.png');
 const mapJson = process.argv[3] || null;
 
 console.log('=== Build Assets ===\n');
