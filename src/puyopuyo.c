@@ -890,113 +890,131 @@ static void Game_DrawStatsScreen(void) {
 }
 
 // Credits text lines (row, col, text) — will scroll from bottom to top
-static const char* const g_CreditLines[] = {
-    "  PUYO PUYO VS  ",
-    "    MSX1 2026    ",
+// Credits: pairs of {role, name}
+static const char* const g_CreditRoles[] = {
+    "GAME DESIGN",
+    "PIXEL ART",
+    "GRAFICOS",
+    "MUSICA",
+    "MUSICA",
+    "CODE & TOOLS",
+    "TESTERS",
     "",
-    " GAME DESIGN",
-    "  & PIXEL ART",
-    "    ANTXIKO",
-    "",
-    " TILESET ARTIST",
-    "   ERRAZKING",
-    "",
-    " GRAPHIC DESIGN",
-    "   THENESTRUO",
-    "",
-    "     MUSIC",
-    "  AKI & LAESQ",
-    "",
-    "  CODE & TOOLS",
-    " CLAUDE OPUS 4.6",
-    "",
-    "    TESTING",
-    "     JAUME",
-    "",
-    "    FRAMEWORK",
-    "  MSXGL AOINEKO",
-    "",
-    "  PT3 PLAYER",
-    " BULBA DIONISO",
-    " MSXKUN SAPPHIRE",
-    "     MVAC7",
+    "GRACIAS A",
     "",
     "",
-    " LONG LIVE MSX!",
-    "",
+    "FRAMEWORK",
+    "PT3 PLAYER",
     "",
 };
-#define CREDIT_LINES 34
+static const char* const g_CreditNames[] = {
+    "ANTXIKO",
+    "ANTXIKO",
+    "IGOR ERRAZKING",
+    "AKI & LAESQ",
+    "JAUME",
+    "CLAUDE OPUS 4.6",
+    "LA PENA BUENA",
+    "DE LA RUN",
+    "THENESTRUO",
+    "ALUCARDX",
+    "MVAC7",
+    "MSXGL AOINEKO",
+    "BULBA DIONISO",
+    "LONG LIVE MSX!",
+};
+#define CREDIT_COUNT 14
+
+// Write text at row y with horizontal offset (for left/right scroll)
+static void CreditWriteAt(const char* txt, u8 y, i8 hOffset) {
+    u8 len = 0, col, ch;
+    i8 ox;
+    while (txt[len]) len++;
+    ox = (i8)((32 - len) >> 1) + hOffset;
+    for (col = 0; col < 32; col++) {
+        ch = 0;
+        if ((i8)col >= ox && (i8)col < ox + (i8)len && txt[col - ox] != ' ')
+            ch = txt[col - ox] + 32;
+        VDP_Poke_GM2(col, y, ch);
+    }
+}
+
+// Clear a screen row in name buffer
+static void CreditClearRow(u8 y) {
+    u8 col;
+    for (col = 0; col < 32; col++) VDP_Poke_GM2(col, y, 0);
+}
+
+// Scroll directions: 0=from top, 1=from left, 2=from right
+//                     0=from bottom, 1=from left, 2=from right
+static void CreditScrollIn(const char* txt, u8 targetRow, u8 dir) {
+    u8 step;
+    if (dir == 0 && targetRow <= 12) {
+        // From top
+        for (step = 0; step <= targetRow; step++) {
+            if (step > 0) CreditClearRow(step - 1);
+            CreditWriteAt(txt, step, 0);
+            Halt(); NB_Flush(); Halt();
+            if (Keyboard_IsKeyPressed(KEY_ESC) || Keyboard_IsKeyPressed(KEY_SPACE) ||
+                JOY_GET_A(Joystick_Read(JOY_PORT_1))) return;
+        }
+    } else if (dir == 0 && targetRow > 12) {
+        // From bottom
+        for (step = 0; step <= 23 - targetRow; step++) {
+            if (step > 0) CreditClearRow(24 - step);
+            CreditWriteAt(txt, 23 - step, 0);
+            Halt(); NB_Flush(); Halt();
+            if (Keyboard_IsKeyPressed(KEY_ESC) || Keyboard_IsKeyPressed(KEY_SPACE) ||
+                JOY_GET_A(Joystick_Read(JOY_PORT_1))) return;
+        }
+    } else {
+        // From left (dir==1) or right (dir==2)
+        i8 startOff = (dir == 1) ? -32 : 32;
+        i8 delta = (dir == 1) ? 2 : -2;
+        i8 off;
+        for (off = startOff; (dir == 1) ? (off <= 0) : (off >= 0); off += delta) {
+            CreditWriteAt(txt, targetRow, off);
+            Halt(); NB_Flush();
+            if (Keyboard_IsKeyPressed(KEY_ESC) || Keyboard_IsKeyPressed(KEY_SPACE) ||
+                JOY_GET_A(Joystick_Read(JOY_PORT_1))) return;
+        }
+        CreditWriteAt(txt, targetRow, 0); // final centered position
+    }
+}
 
 static void Game_DrawCredits(void) {
-    u16 scrollPx;
-    u8 row, col, subY, i;
-    u8 patBuf[8];
+    u8 ci;
 
     VDP_Setup();
+    { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = 0; }
+    g_NbDirtyCount = 0;
+    VDP_WriteVRAM_16K(g_NameBuffer, g_ScreenLayoutLow, 768);
 
-    // Decompress font patterns to RAM for pixel-level access
-    ZX0_UnpackToRAM((const void*)TILESET_PAT_ZX0_ABS, g_PT3Buffer);
+    for (ci = 0; ci < CREDIT_COUNT; ci++) {
+        const char* role = g_CreditRoles[ci];
+        const char* name = g_CreditNames[ci];
+        u8 hasRole = (role[0] != 0);
+        u8 roleDir, nameDir;
 
-    // Fill screen with tile 0 (blank) and set name table for unique patterns per position
-    VDP_FillScreen_GM2(0);
-    for (row = 0; row < 24; row++)
-        for (col = 0; col < 32; col++)
-            g_NameBuffer[row * 32 + col] = (row & 7) * 32 + col;
-    NB_Flush();
+        // Random directions: 0=vertical, 1=from left, 2=from right
+        roleDir = Math_GetRandom8() % 3;
+        nameDir = Math_GetRandom8() % 3;
 
-    // Pixel-smooth scroll from bottom to top
-    for (scrollPx = 0; scrollPx < (u16)(CREDIT_LINES + 24) * 8; scrollPx++) {
-        u8 topLine = (u8)(scrollPx >> 3);
-        subY = (u8)(scrollPx & 7);
+        // Role enters toward row 10
+        if (hasRole)
+            CreditScrollIn(role, 10, roleDir);
 
-        for (row = 0; row < 24; row++) {
-            u8 srcLine = topLine + row;
-            u8 nxtLine = srcLine + 1;
-            const char *txt1, *txt2;
-            u8 len1 = 0, len2 = 0, ox1, ox2, colStart, colEnd;
-            u8 bank = row >> 3;
-            u8 tileBase = (row & 7) << 5;
+        // Name enters toward row 13
+        CreditScrollIn(name, 13, nameDir);
 
-            txt1 = (srcLine < CREDIT_LINES) ? g_CreditLines[srcLine] : "";
-            txt2 = (nxtLine < CREDIT_LINES) ? g_CreditLines[nxtLine] : "";
-            while (txt1[len1]) len1++;
-            while (txt2[len2]) len2++;
+        // Hold both visible
+        WaitFrames(40);
 
-            // Skip rows where both lines are empty
-            if (len1 == 0 && len2 == 0) continue;
-
-            ox1 = (32 - len1) >> 1;
-            ox2 = (32 - len2) >> 1;
-
-            // Only iterate columns that could have content
-            colStart = (len1 && len2) ? (ox1 < ox2 ? ox1 : ox2) : (len1 ? ox1 : ox2);
-            colEnd = (len1 && len2) ? ((ox1+len1 > ox2+len2) ? ox1+len1 : ox2+len2) : (len1 ? ox1+len1 : ox2+len2);
-
-            for (col = colStart; col < colEnd; col++) {
-                u8 ch1 = 0, ch2 = 0;
-                u16 pat1off, pat2off, addr;
-
-                if (len1 && col >= ox1 && col < ox1 + len1 && txt1[col - ox1] != ' ')
-                    ch1 = txt1[col - ox1] + 32;
-                if (len2 && col >= ox2 && col < ox2 + len2 && txt2[col - ox2] != ' ')
-                    ch2 = txt2[col - ox2] + 32;
-
-                pat1off = (u16)ch1 << 3;
-                pat2off = (u16)ch2 << 3;
-                for (i = 0; i < 8; i++) {
-                    u8 srcRow = subY + i;
-                    patBuf[i] = (srcRow < 8) ? g_PT3Buffer[pat1off + srcRow] : g_PT3Buffer[pat2off + srcRow - 8];
-                }
-                addr = g_ScreenPatternLow + (u16)bank * 0x800 + ((u16)tileBase + col) * 8;
-                VDP_WriteVRAM_16K(patBuf, addr, 8);
-            }
-        }
-
-        Halt();
-        if (Keyboard_IsKeyPressed(KEY_ESC) || Keyboard_IsKeyPressed(KEY_SPACE) ||
-            JOY_GET_A(Joystick_Read(JOY_PORT_1)) || JOY_GET_A(Joystick_Read(JOY_PORT_2)))
-            break;
+        // Clear both
+        if (hasRole) CreditClearRow(10);
+        CreditClearRow(13);
+        Halt(); NB_Flush();
+        WaitFrames(10);
     }
 }
 
@@ -1744,7 +1762,10 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
         if (g_CpuLevel != 0xFF && (joyPort == JOY_PORT_2 || g_GameMode == MODE_ATTRACT)) CPU_DecideMove(p);
         return;
     }
-    if (p->inputDelay > 0) p->inputDelay--;
+    if (p->inputDelay > 0) {
+        p->inputDelay--;
+        if (!(dir & (JOY_INPUT_DIR_LEFT | JOY_INPUT_DIR_RIGHT))) p->inputDelay = 0;
+    }
     if (p->inputDelay == 0) {
         if (dir & JOY_INPUT_DIR_LEFT) {
             if (Game_CanMovePair(p, -1, 0)) { p->puyoX--; p->inputDelay = 2; }
@@ -1979,10 +2000,10 @@ static void Game_UpdateBars(void) {
             }
         } else {
             g_BarBlinkTimer[pi]++;
-            if ((g_BarBlinkTimer[pi] & 1) == 0) {
-                // Alternate between original and highlight
+            {
+                // Alternate between original and highlight every frame
                 u8 colorByte;
-                u8 phase = (g_BarBlinkTimer[pi] >> 1) & 1;
+                u8 phase = g_BarBlinkTimer[pi] & 1;
                 if (phase == 0) {
                     // Show highlight: yellow (0xA1) or red (0x81)
                     colorByte = (newState == 1) ? 0xA1 : 0x81;

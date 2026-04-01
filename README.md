@@ -118,7 +118,7 @@ Todos los gráficos fueron construidos con **[MSXJuanEditor](https://github.com/
 - **Antxiko** — Investigador principal. Diseño del fenómeno, síntesis de píxeles, selección de audio. Se le escuchó decir "dale" 247 veces durante la investigación
 - **TheNestruo** — Diseño gráfico y dirección artística. Sin él, los organismos serían considerablemente más feos. Propuso el buffer en RAM que cerró el caso del flicker
 - **Errazking** — Intervino en la iteración 209. Rediseñó la apariencia de todos los organismos. Los puyos por fin parecen lo que siempre debieron parecer
-- **Jaume** — Testing. Se le asignó la verificación de campo
+- **Jaume** — Música. Composición pendiente de integración
 - **Claude Opus 4.6** — Analista forense digital. Código, herramientas, integración con el motor. Véase Anexo A para historial de errores
 - **Aki** — Audio del título: *Milky Way in My Pocket* (FOReVER 2026 - 8bit winter games)
 - **LaesQ** — Audio de combate: *Ostagazuzulum* (FOReVER 2026 - 8bit winter games)
