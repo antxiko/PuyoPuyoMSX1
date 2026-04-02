@@ -35,6 +35,7 @@ RawFiles = [
     { page: 0, file: "out/prod_pat.zx0" },
     { page: 0, file: "out/prod_col.zx0" },
     { page: 0, file: "out/prod_map.zx0" },
+    { page: 0, file: "out/screen_solo.zx0" },
 ];
 
 

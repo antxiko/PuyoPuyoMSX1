@@ -43,6 +43,9 @@
 #define MODE_ARCADE     0
 #define MODE_VS         1
 #define MODE_ATTRACT    2
+#define MODE_SOLO       3
+
+#define SOLO_BOARD_X    10   // centered: (32 - 12) / 2 = 10
 
 #define DROP_SPEED_INIT    16
 #define DROP_SPEED_MIN     3
@@ -598,7 +601,8 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
     // Next piece preview
     {
         u8 nx, ny;
-        if (playerIdx == 0) { nx = 16; ny = 7; } else { nx = 16; ny = 14; }
+        if (g_GameMode == MODE_SOLO) { nx = 24; ny = 5; }
+        else if (playerIdx == 0) { nx = 16; ny = 7; } else { nx = 16; ny = 14; }
         if (p->nextColor2 != g_ShadowNext[playerIdx][1]) {
             g_ShadowNext[playerIdx][1] = p->nextColor2;
             DrawPuyo16(nx, ny, p->nextColor2);
@@ -659,7 +663,9 @@ static void Game_DrawScore(Player* p) {
     if (p->score == p->prevScore) return;
     p->prevScore = p->score;
 
-    if (p == &g_Player[0]) {
+    if (g_GameMode == MODE_SOLO) {
+        sx = 24; sy = 11;
+    } else if (p == &g_Player[0]) {
         sx = CENTER_X; sy = 6;
     } else {
         sx = CENTER_X; sy = 13;
@@ -732,8 +738,9 @@ static void Game_DrawProducers(void) {
 
 static void Game_DrawTitle(void) {
     u8 i, x, y, bank;
-    static const u8 arcTxt[] = {'A'+32,'R'+32,'C'+32,'A'+32,'D'+32,'E'+32};
-    static const u8 vsTxt[]  = {'V'+32,'S'+32};
+    static const u8 arcTxt[]  = {'A'+32,'R'+32,'C'+32,'A'+32,'D'+32,'E'+32};
+    static const u8 vsTxt[]   = {'V'+32,'S'+32};
+    static const u8 soloTxt[] = {'S'+32,'O'+32,'L'+32,'O'+32};
 
     // Disable BIOS key click
     *((u8*)0xF3DB) = 0;
@@ -787,8 +794,9 @@ static void Game_DrawTitle(void) {
     }
 
     // Menu options
-    for (i = 0; i < 6; i++) VDP_Poke_GM2(13 + i, 19, arcTxt[i]);
-    for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 21, vsTxt[i]);
+    for (i = 0; i < 6; i++) VDP_Poke_GM2(13 + i, 17, arcTxt[i]);
+    for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 19, vsTxt[i]);
+    for (i = 0; i < 4; i++) VDP_Poke_GM2(14 + i, 21, soloTxt[i]);
 }
 
 // Animate loser's board turning grey, row by row from bottom to top
@@ -1587,14 +1595,14 @@ static u8 g_CpuLevel;     // 1-8 difficulty
 // rotate: 0=no, 1=yes
 // fastdrop: 0=no, 1=yes
 static const u8 g_CpuParams[8][4] = {
-    { 6, 3, 0, 0 }, // Level 1: slow, 3 cols, no rotate
-    { 5, 4, 0, 0 }, // Level 2: 4 cols
-    { 4, 5, 1, 0 }, // Level 3: starts rotating
-    { 3, 6, 1, 0 }, // Level 4: full eval, faster
-    { 3, 6, 1, 1 }, // Level 5: fast drop
-    { 2, 6, 1, 1 }, // Level 6: very fast
-    { 1, 6, 1, 1 }, // Level 7: max speed
-    { 1, 6, 1, 1 }, // Level 8: max speed, no random
+    { 12, 2, 0, 0 }, // Level 1: very slow, 2 cols, 50% random
+    { 10, 3, 0, 0 }, // Level 2: slow, 3 cols, 25% random
+    {  8, 4, 0, 0 }, // Level 3: medium, 4 cols
+    {  6, 5, 1, 0 }, // Level 4: starts rotating
+    {  4, 6, 1, 0 }, // Level 5: full eval, fast
+    {  3, 6, 1, 1 }, // Level 6: fast drop
+    {  2, 6, 1, 1 }, // Level 7: very fast
+    {  1, 6, 1, 1 }, // Level 8: max speed
 };
 
 // Count how many adjacent same-color puyos are near the top of column x
@@ -1634,8 +1642,9 @@ static void CPU_DecideMove(Player* p) {
         endX = startX + maxCols;
     }
 
-    // Level 1: random element (sometimes pick random column)
-    if (lvl == 0 && (Math_GetRandom8() & 3) == 0) {
+    // Levels 1-2: random element (50% for lvl 1, 25% for lvl 2)
+    if ((lvl == 0 && (Math_GetRandom8() & 1) == 0) ||
+        (lvl == 1 && (Math_GetRandom8() & 3) == 0)) {
         g_CpuTargetX = Math_GetRandom8() % BOARD_W;
         g_CpuTargetDir = DIR_UP;
         g_CpuDelay = 0;
@@ -1829,13 +1838,23 @@ static void Game_UpdatePlayer(Player* p, u8 joyPort) {
 //=============================================================================
 
 static void Game_Init(void) {
-    Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
-    Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
+    if (g_GameMode == MODE_SOLO) {
+        Game_InitPlayer(&g_Player[0], SOLO_BOARD_X, P1_BOARD_Y);
+        Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
+        g_Player[1].alive = FALSE; // no P2 in solo
+        g_CpuLevel = 0xFF;
+    } else {
+        Game_InitPlayer(&g_Player[0], P1_BOARD_X, P1_BOARD_Y);
+        Game_InitPlayer(&g_Player[1], P2_BOARD_X, P2_BOARD_Y);
+    }
     // CPU level: set on first init, preserved between rounds in arcade
     if (g_GameMode == MODE_VS)
         g_CpuLevel = 0xFF; // VS mode: no CPU
-    // Load gameplay screen layout from compressed data
-    ZX0_UnpackToRAM((const void*)SCREEN_GAME_ZX0_ABS, g_ScreenLayout);
+    // Load screen layout (different for SOLO mode)
+    if (g_GameMode == MODE_SOLO)
+        ZX0_UnpackToRAM((const void*)SCREEN_SOLO_ZX0_ABS, g_ScreenLayout);
+    else
+        ZX0_UnpackToRAM((const void*)SCREEN_GAME_ZX0_ABS, g_ScreenLayout);
     VDP_WriteVRAM_16K(g_ScreenLayout, g_ScreenLayoutLow, 768);
     NB_Init(); // sync RAM buffer with VRAM
     g_ChainWinActive[0] = 0; g_ChainWinActive[1] = 0;
@@ -2179,8 +2198,8 @@ void main(void) {
 
                     if (inputDelay > 0) inputDelay--;
                     if (inputDelay == 0) {
-                        if (dir & JOY_INPUT_DIR_UP) { sel = 0; inputDelay = 10; }
-                        if (dir & JOY_INPUT_DIR_DOWN) { sel = 1; inputDelay = 10; }
+                        if (dir & JOY_INPUT_DIR_UP) { if (sel > 0) sel--; inputDelay = 10; }
+                        if (dir & JOY_INPUT_DIR_DOWN) { if (sel < 2) sel++; inputDelay = 10; }
                         if (sel == 0) {
                             if ((dir & JOY_INPUT_DIR_LEFT) && cpuLvl > 0) { cpuLvl--; inputDelay = 10; }
                             if ((dir & JOY_INPUT_DIR_RIGHT) && cpuLvl < 7) { cpuLvl++; inputDelay = 10; }
@@ -2189,9 +2208,10 @@ void main(void) {
 
                     // Draw cursor + level
                     if (sel != prevSel || cpuLvl != prevLvl) {
-                        VDP_Poke_GM2(10, 19, sel == 0 ? '>'+32 : 0);
-                        VDP_Poke_GM2(10, 21, sel == 1 ? '>'+32 : 0);
-                        VDP_Poke_GM2(20, 19, sel == 0 ? 80 + cpuLvl + 1 : 0);
+                        VDP_Poke_GM2(10, 17, sel == 0 ? '>'+32 : 0);
+                        VDP_Poke_GM2(10, 19, sel == 1 ? '>'+32 : 0);
+                        VDP_Poke_GM2(10, 21, sel == 2 ? '>'+32 : 0);
+                        VDP_Poke_GM2(20, 17, sel == 0 ? 80 + cpuLvl + 1 : 0);
                         prevSel = sel;
                         prevLvl = cpuLvl;
                     }
@@ -2218,8 +2238,13 @@ void main(void) {
                     g_GameMode = MODE_ATTRACT;
                     g_CpuLevel = (g_CpuLevel + 1) & 7;
                 } else {
-                    g_GameMode = sel;
-                    if (sel == 0) g_CpuLevel = cpuLvl;
+                    if (sel == 2) {
+                        g_GameMode = MODE_SOLO;
+                        g_CpuLevel = 0xFF; // no CPU in solo
+                    } else {
+                        g_GameMode = sel;
+                        if (sel == 0) g_CpuLevel = cpuLvl;
+                    }
                 }
             }
             Music_Stop();
@@ -2233,9 +2258,10 @@ void main(void) {
         }
         else if (g_GameState == STATE_PLAYING) {
             Game_Update();
-            if (!g_Player[0].alive || !g_Player[1].alive) {
-                Music_Stop();
-                g_GameState = STATE_GAMEOVER;
+            if (g_GameMode == MODE_SOLO) {
+                if (!g_Player[0].alive) { Music_Stop(); g_GameState = STATE_GAMEOVER; }
+            } else {
+                if (!g_Player[0].alive || !g_Player[1].alive) { Music_Stop(); g_GameState = STATE_GAMEOVER; }
             }
             // ESC → back to title
             if (Keyboard_IsKeyPressed(KEY_ESC)) {
