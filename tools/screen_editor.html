@@ -417,6 +417,21 @@ let tileClipboard = null;
 function tileCopy() { tileClipboard = new Uint8Array(editPixels); }
 function tilePaste() { if (tileClipboard) { editPixels.set(tileClipboard); drawTileEditor(); } }
 
+// --- Undo system ---
+const UNDO_MAX = 20;
+let undoStack = [];
+function undoPush() {
+    undoStack.push(new Uint8Array(screenMap));
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+}
+function undoPop() {
+    if (undoStack.length === 0) return;
+    const prev = undoStack.pop();
+    screenMap.set(prev);
+    markTilesetDirty();
+    drawScreen();
+}
+
 // --- Group tile selection & copy/paste ---
 let tileSelStart = -1, tileSelEnd = -1; // tile indices for rectangular selection
 let tileGroupClipboard = null; // {w, h, tiles: [{pixels: Uint8Array}...]}
@@ -514,6 +529,7 @@ function groupMapCopy() {
 
 function groupMapPaste(px, py) {
     if (!mapGroupClipboard) return;
+    undoPush();
     let i = 0;
     for (let y = 0; y < mapGroupClipboard.h; y++) {
         for (let x = 0; x < mapGroupClipboard.w; x++) {
@@ -654,27 +670,36 @@ function screenPlace(e) {
     markTilesetDirty();
     drawTileAt(tx, ty);
 }
+let mapDragSelecting = false;
 scrCanvas.addEventListener('mousedown', function(e) {
     e.preventDefault();
     if (e.shiftKey) {
-        // Shift+click: start or complete map range selection
+        // Shift+drag: start map range selection
         const rect = scrCanvas.getBoundingClientRect();
         const tx = Math.floor((e.clientX-rect.left)/(TILE_W*SCALE));
         const ty = Math.floor((e.clientY-rect.top)/(TILE_H*SCALE));
         if (tx<0||tx>=COLS||ty<0||ty>=ROWS) return;
-        if (mapSelX1 < 0) {
-            mapSelX1 = tx; mapSelY1 = ty; mapSelX2 = tx; mapSelY2 = ty;
-        } else {
-            mapSelX2 = tx; mapSelY2 = ty;
-        }
+        mapSelX1 = tx; mapSelY1 = ty; mapSelX2 = tx; mapSelY2 = ty;
+        mapDragSelecting = true;
         drawScreen();
         return;
     }
     mapSelX1 = -1; mapSelY1 = -1; // clear map selection on normal click
+    undoPush(); // save state before drawing
     isDrawing=true; rightClick=(e.button===2); screenPlace(e);
 });
-scrCanvas.addEventListener('mousemove', function(e) { if(isDrawing) screenPlace(e); });
-scrCanvas.addEventListener('mouseup', function() { isDrawing=false; });
+scrCanvas.addEventListener('mousemove', function(e) {
+    if (mapDragSelecting) {
+        const rect = scrCanvas.getBoundingClientRect();
+        const tx = Math.max(0, Math.min(COLS-1, Math.floor((e.clientX-rect.left)/(TILE_W*SCALE))));
+        const ty = Math.max(0, Math.min(ROWS-1, Math.floor((e.clientY-rect.top)/(TILE_H*SCALE))));
+        mapSelX2 = tx; mapSelY2 = ty;
+        drawScreen();
+        return;
+    }
+    if(isDrawing) screenPlace(e);
+});
+scrCanvas.addEventListener('mouseup', function() { isDrawing=false; mapDragSelecting=false; });
 scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; });
 scrCanvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 scrCanvas.addEventListener('mousemove', function(e) {
@@ -692,8 +717,8 @@ scrCanvas.addEventListener('mousemove', function(e) {
 });
 scrCanvas.addEventListener('mouseleave', function() { isDrawing=false; const t=document.getElementById('tooltip'); if(t) t.style.display='none'; });
 
-function fillAll() { screenMap.fill(selectedTile); drawScreen(); }
-function clearAll() { screenMap.fill(0); drawScreen(); }
+function fillAll() { undoPush(); screenMap.fill(selectedTile); drawScreen(); }
+function clearAll() { undoPush(); screenMap.fill(0); drawScreen(); }
 
 function exportMap() {
     const a = document.createElement('a');
@@ -1527,7 +1552,10 @@ document.addEventListener('mousedown', function(e) { if (!e.target.closest('#til
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+    if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        undoPop();
+    } else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         // Ctrl+C: group copy (tiles or map, whichever has selection)
         if (tileSelStart >= 0) groupTileCopy();

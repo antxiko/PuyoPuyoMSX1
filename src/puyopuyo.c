@@ -745,58 +745,33 @@ static void Game_DrawTitle(void) {
     // Disable BIOS key click
     *((u8*)0xF3DB) = 0;
 
-    VDP_Setup();
+    VDP_Setup(); // loads full gameplay tileset (256 tiles, font included)
 
-    // Load title tileset (64 tiles) into VRAM tiles 0-63
+    // Load title tileset only in bank 1 (rows 8-15, where title is drawn)
+    // Banks 0 and 2 keep the gameplay tileset (font + digits)
     ZX0_UnpackToRAM((const void*)TITLE_PAT_ZX0_ABS, g_PT3Buffer);
-    WriteBanks(g_ScreenPatternLow, 512);
+    VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenPatternLow + 0x800, 768);
     ZX0_UnpackToRAM((const void*)TITLE_COL_ZX0_ABS, g_PT3Buffer);
-    WriteBanks(g_ScreenColorLow, 512);
+    VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + 0x800, 768);
 
-    // Fill screen with tile 4 (black tile in title tileset)
+    // Fill screen with tile 0
     VDP_FillScreen_GM2(0);
     { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = 0; }
     g_NbDirtyCount = 0;
 
-    // Decompress title map
+    // Decompress title map (21x6) and draw centered
     ZX0_UnpackToRAM((const void*)TITLE_MAP_ZX0_ABS, g_PT3Buffer);
-
-    // Draw "PUYO" line 1 (1 tile left)
-    { u8 ox = 9, oy = 3;
-      for (y = 0; y < 5; y++)
-        for (x = 0; x < 11; x++)
-            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 11 + x]);
-    }
-
-    // Draw "PUYO" line 2 (1 tile right, 1 tile up) — map still in g_PT3Buffer
-    { u8 ox = 11, oy = 8;
-      for (y = 0; y < 5; y++)
-        for (x = 0; x < 11; x++)
-            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 11 + x]);
-    }
-
-    // Change bank 1 colors (rows 8-15): green → red for second PUYO
-    {
-        u16 j;
-        ZX0_UnpackToRAM((const void*)TITLE_COL_ZX0_ABS, g_PT3Buffer);
-        for (j = 0; j < 512; j++) {
-            u8 fg = (g_PT3Buffer[j] >> 4) & 0x0F;
-            u8 bg = g_PT3Buffer[j] & 0x0F;
-            if (fg == COLOR_DARK_GREEN) fg = COLOR_MEDIUM_RED;
-            else if (fg == COLOR_MEDIUM_GREEN) fg = COLOR_MEDIUM_RED;
-            else if (fg == COLOR_LIGHT_GREEN) fg = COLOR_LIGHT_RED;
-            if (bg == COLOR_DARK_GREEN) bg = COLOR_MEDIUM_RED;
-            else if (bg == COLOR_MEDIUM_GREEN) bg = COLOR_MEDIUM_RED;
-            else if (bg == COLOR_LIGHT_GREEN) bg = COLOR_LIGHT_RED;
-            g_PT3Buffer[j] = (fg << 4) | bg;
-        }
-        VDP_WriteVRAM_16K(g_PT3Buffer, g_ScreenColorLow + 0x800, 512);
+    { u8 ox = (32 - 21) / 2, oy = 9;
+      for (y = 0; y < 6; y++)
+        for (x = 0; x < 21; x++)
+            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 21 + x]);
     }
 
     // Menu options
     for (i = 0; i < 6; i++) VDP_Poke_GM2(13 + i, 17, arcTxt[i]);
     for (i = 0; i < 2; i++) VDP_Poke_GM2(15 + i, 19, vsTxt[i]);
     for (i = 0; i < 4; i++) VDP_Poke_GM2(14 + i, 21, soloTxt[i]);
+    // Level number position for arcade
 }
 
 // Animate loser's board turning grey, row by row from bottom to top
@@ -2208,10 +2183,11 @@ void main(void) {
 
                     // Draw cursor + level
                     if (sel != prevSel || cpuLvl != prevLvl) {
-                        VDP_Poke_GM2(10, 17, sel == 0 ? '>'+32 : 0);
-                        VDP_Poke_GM2(10, 19, sel == 1 ? '>'+32 : 0);
-                        VDP_Poke_GM2(10, 21, sel == 2 ? '>'+32 : 0);
-                        VDP_Poke_GM2(20, 17, sel == 0 ? 80 + cpuLvl + 1 : 0);
+                        VDP_Poke_GM2(11, 17, sel == 0 ? 170 : 0);
+                        VDP_Poke_GM2(11, 19, sel == 1 ? 170 : 0);
+                        VDP_Poke_GM2(11, 21, sel == 2 ? 170 : 0);
+                        VDP_Poke_GM2(19, 17, sel == 0 ? 80 + cpuLvl + 1 : 0);
+                        VDP_Poke_GM2(20, 17, 0); // clear old position
                         prevSel = sel;
                         prevLvl = cpuLvl;
                     }
@@ -2228,6 +2204,24 @@ void main(void) {
                     if (JOY_GET_A(joy1) || JOY_GET_A(joy2) ||
                         JOY_GET_B(joy1) || JOY_GET_B(joy2) ||
                         Keyboard_IsKeyPressed(KEY_SPACE)) break;
+                }
+
+                // Blink selected option before entering
+                if (!attract) {
+                    static const u8 menuTx[] = {13, 15, 14};
+                    static const u8 menuTw[] = {6, 2, 4};
+                    static const u8 menuTxt[] = {
+                        'A'+32,'R'+32,'C'+32,'A'+32,'D'+32,'E'+32,
+                        'V'+32,'S'+32,0,0,0,0,
+                        'S'+32,'O'+32,'L'+32,'O'+32,0,0};
+                    u8 bk, bi;
+                    u8 ty = 17 + sel * 2;
+                    for (bk = 0; bk < 8; bk++) {
+                        for (bi = 0; bi < menuTw[sel]; bi++)
+                            VDP_Poke_GM2(menuTx[sel] + bi, ty, (bk & 1) ? 0 : menuTxt[sel * 6 + bi]);
+                        Halt(); NB_Flush();
+                        WaitFrames(4);
+                    }
                 }
 
                 if (attract == 2) {

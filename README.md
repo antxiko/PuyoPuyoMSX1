@@ -1,103 +1,117 @@
 # PUYO PUYO VS — MSX1
 
-> It's spring. The flowers are blooming. The birds are singing. And inside a Z80 running at 3.58 MHz, colored blobs are falling from the sky and exploding in chain reactions that send grey rubble raining onto your best friend's side of the screen. Life is good.
-
-This is Puyo Puyo VS for the MSX1. A from-scratch competitive puzzle game built for a machine from 1983, running at a speed it was never designed to reach, with graphics that should not be possible on a TMS9918A. 228 builds. Zero flicker. One beautiful spring.
+> *Canta, oh Musa, la cólera del Z80, que a 3.58 millones de ciclos por segundo lanzó sobre el campo de batalla organismos cromáticos innumerables, y precipitó al Hades las almas de muchos puyos valerosos.*
 
 ---
 
-## What a lovely day to play Puyo Puyo
+## Libro I — El Juego
 
-Two players sit at the same MSX. The sun comes through the window. Puyos fall gently from the top of the screen in pairs. You rotate them, guide them down, stack them by color. When four of the same color touch — pop. They vanish. The puyos above them fall. If THOSE form a group — pop again. That's a chain. Your opponent gets garbage. They panic. You smile. The birds keep singing.
+En los tiempos en que los hombres forjaban sus propias máquinas y el silicio era joven, nació un juego. No un juego cualquiera, sino un combate de puzle competitivo para el MSX1, escrito en C, compilado con SDCC, y ejecutado sobre un procesador que los dioses habían creado en 1976 sin saber el uso que los mortales le darían.
 
-Or you play alone. The SOLO mode puts your board in the center of the screen, just you and the puyos, no pressure, no opponent, just a warm afternoon and falling colors. When your tower reaches the top, you start again. There's no rush. It's spring.
+Dos guerreros se sientan ante el mismo terminal. Desde lo alto del campo de batalla, los puyos caen en parejas — cinco colores, como los cinco dedos de la mano de Zeus. Los guerreros los guían, los rotan, los apilan. Cuando cuatro del mismo color se tocan, se desvanecen en un estallido de luz. Los puyos que quedaban flotando caen. Si forman nuevo grupo — cadena. Y entonces, como lluvia enviada por un dios iracundo, el garbage cae sobre el tablero enemigo.
 
-Or you fight the CPU. Eight levels. Level 1 barely knows what it's doing — it places puyos at random half the time and takes forever to react. Level 8 plays one move per frame with zero randomness and no mercy. Somewhere in between, you'll find your match. The sun will still be shining when you lose.
-
----
-
-## Features (it's a long list, but the weather is nice, take your time)
-
-- **Three modes** — Arcade (vs CPU, 8 levels), VS (two humans), Solo (just you and the puyos)
-- **Chain combos** — the soul of the game, with group bonus for simultaneous multi-clears
-- **Garbage warfare** — randomized columns, Fisher-Yates shuffled, because even debris deserves fairness
-- **All Clear bonus** — empty your entire board and 30 garbage blocks rain on your opponent
-- **Blob connections** — 30 pre-computed tiles make adjacent puyos fuse into satisfying blobs
-- **Smooth animation** — 8-pixel falling precision at 4x speed, because spring days go fast
-- **Zero-flicker rendering** — 768-byte RAM buffer, VBlank-only flush, flickering is literally impossible
-- **Non-blocking chains** — both players keep playing while chains resolve, nobody waits
-- **Garbage indicator** — top bar blinks yellow or red when debris is incoming, like a weather warning
-- **Sound effects** — channel C of the PSG, borrowed from the music just long enough to go "pop"
-- **PT3 music** — three channels of AY-3-8910, with 50Hz compensation so it sounds the same everywhere
-- **Scrolling backgrounds** — diagonal patterns that speed up when your tower gets dangerously high
-- **Credits with style** — roles scroll down, names scroll up, directions randomized, pixel-smooth
-- **Victory screen** — because winning deserves a moment in the sun
-- **Attract mode** — two CPUs play while you watch, cycling through all difficulty levels
-- **ESC to menu** — because sometimes the garden needs watering
+Así es Puyo Puyo VS. Así ha sido durante 230 builds. Así será mientras el Z80 respire.
 
 ---
 
-## Controls
+## Libro II — Los Modos de Combate
 
-| Action | Player 1 | Player 2 / CPU |
+**ARCADE** — El héroe se enfrenta solo a ocho niveles de inteligencia sintética. El primer oponente es como Polifemo: grande, torpe, medio ciego, coloca puyos al azar la mitad de las veces. El octavo es como Aquiles: un input por frame, visión total, cero piedad.
+
+**VS** — Dos héroes, un MSX. Teclado y joystick 1 contra joystick 2. No hay dioses que intervengan. Solo habilidad, reflejos, y la capacidad de construir cadenas bajo presión.
+
+**SOLO** — El héroe medita solo. Un tablero centrado en la pantalla, sin oponente, sin garbage, sin presión. Solo los puyos y el silencio. Cuando la torre alcanza el cielo, se empieza de nuevo. Como Sísifo, pero con colores.
+
+---
+
+## Libro III — Las Armas
+
+- **Cadenas en cascada** — El alma del juego. Bonus multiplicador para destrucciones simultáneas de múltiples grupos
+- **All Clear** — Quien vacíe por completo su tablero envía 30 bloques de escombros al rival. Como el rayo de Zeus
+- **Garbage aleatorio** — Los escombros caen en columnas barajadas con Fisher-Yates, porque hasta la ira divina debe ser justa
+- **Indicador de escombros** — La barra superior parpadea amarillo o rojo cuando la precipitación es inminente
+- **Conexiones moleculares** — 30 patrones pre-calculados que funden visualmente los puyos adyacentes
+- **Efectos sonoros** — Canal C del PSG, arrebatado momentáneamente al reproductor de música para emitir los sonidos del combate
+- **Cadenas no bloqueantes** — Máquina de estados por jugador. Ambos guerreros permanecen activos durante las cascadas del otro
+- **Ventana de cadena** — Se materializa desde lo alto con scroll, se contrae al centro al desaparecer
+- **Rotación limitada** — 8 giros máximo por pieza en el suelo. No hay exploits ante los dioses
+- **Velocidad cuádruple** — El juego corre a 4x sobre hardware de 1983. Los mortales se adaptan o perecen
+
+---
+
+## Libro IV — Los Controles
+
+| Acción | Guerrero 1 | Guerrero 2 / Sintético |
 |---|---|---|
-| Move | Arrows / Joystick 1 | Joystick 2 |
-| Rotate CW | Up / Z / Space / Btn A | Btn A |
-| Rotate CCW | X / Btn B | Btn B |
-| Fast drop | Down | Down |
-| Credits | C (menu) | — |
-| Back to menu | ESC | — |
+| Desplazamiento | Flechas / Joystick 1 | Joystick 2 |
+| Rotación horaria | Arriba / Z / Espacio / Btn A | Btn A |
+| Rotación antihoraria | X / Btn B | Btn B |
+| Descenso forzado | Abajo | Abajo |
+| Créditos | C (en el ágora) | — |
+| Retirada | ESC | — |
 
 ---
 
-## Under the Hood (but who wants to be under a hood on a day like this)
+## Libro V — La Máquina
 
-| Spec | Value |
+| Artefacto | Descripción |
 |---|---|
-| CPU | Z80A @ 3.58 MHz |
-| VDP | TMS9918A — Screen 2, 256x192, 16 colors |
-| PSG | AY-3-8910 — 3 tone + 1 noise |
-| ROM | 64KB flat (ROM_64K_ISR), no mapper |
-| RAM | ~9KB used |
-| Compiler | SDCC 4.2.0 via MSXgl |
+| Procesador | Z80A @ 3.58 MHz — forjado en los talleres de Zilog |
+| Generador de visiones | TMS9918A — Modo 2, 256x192, 16 colores |
+| Lira digital | AY-3-8910 — 3 cuerdas tónicas + 1 de ruido |
+| Tablilla de piedra | 64KB ROM plana, sin mapper |
+| Memoria efímera | ~9KB en uso |
+| Compilador | SDCC 4.2.0 vía MSXgl |
 
 ---
 
-## The People Who Made This Happen
+## Libro VI — Los Artesanos
 
-Some people write code. Some people draw pixels. Some people pick music. Some people just say *"dale"* and *"perfecto"* until the game works. It takes all kinds.
+Ninguna epopeya se forja sin manos mortales. Estos son los que dieron forma al combate:
 
-- **Antxiko** — game design, pixel art, music selection, patience beyond measure
-- **Igor Errazking** — tileset artist, gave the puyos the face they always deserved
-- **TheNestruo** — graphic design, art direction, and the four words that ended the flicker war: *"buffer it in RAM"*
-- **Jaume** — music (coming soon, spring is young)
-- **Claude Opus 4.6** — code, tools, 47 incorrect flicker fixes, one correct one
-- **Aki** — title music: *Milky Way in My Pocket*
-- **LaesQ** — gameplay music: *Ostagazuzulum*
-- **MSXgl** by Aoineko — the framework
-- **PT3 player** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
-
----
-
-## The Journey (abridged, because the full version is 228 builds long)
-
-**Builds 1-160.** The game exists. Puyos fall. Chains work. It flickers terribly.
-
-**Builds 161-179.** The Great Flicker War. Dynamic pattern pools. Shared indices. Shadow invalidation. Ghost connections. Nineteen builds of agony. Then TheNestruo says *"buffer it in RAM"* and the war ends in one afternoon. 768 bytes. One LDIRVM. Zero flicker. Forever.
-
-**Builds 194-203.** The ROM was full. We claimed page 0 from the BIOS. 15KB of free space appeared. The assets moved underground. The title screen cost 317 bytes.
-
-**Builds 205-218.** Garbage randomization. Satellite collision fixes. Non-blocking chain system. The entire chain loop — gravity, flash, clear, effects — rewritten as a per-player state machine. One step per frame. The game never pauses. Also, the human discovered the pieces had been falling at half speed for 217 builds.
-
-**Build 209.** Errazking's tileset. The puyos finally look beautiful.
-
-**Builds 219-228.** Sound effects. All Clear bonus. Victory screen. Credits with pixel scroll. SOLO mode. ROM optimization recovered 2.7KB. CPU difficulty rebalanced — level 1 is now actually easy. The weather got warmer. The game got better.
+- **Antxiko** — Arquitecto del juego, artesano de píxeles, selector de himnos. Dijo *"dale"* y el mundo obedeció
+- **Igor Errazking** — Escultor de tiles. Dio a los puyos el rostro que los dioses habían imaginado
+- **TheNestruo** — Director artístico. Pronunció las cuatro palabras sagradas: *"búferalo en RAM"*
+- **Jaume** — Músico. Su lira aún no suena, pero la partitura se escribe
+- **Claude Opus 4.6** — Escriba del código. Erró 47 veces al decir "esto arreglará el parpadeo"
+- **Aki** — Compositor: *Milky Way in My Pocket*
+- **LaesQ** — Compositor: *Ostagazuzulum*
+- **MSXgl** de Aoineko — El yunque sobre el que se forjó todo
+- **Reproductores PT3** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
 
 ---
 
-## Building
+## Libro VII — La Guerra del Flicker (builds 161-179)
 
-See [COMPILE.md](COMPILE.md) for full instructions.
+Como la guerra de Troya, duró más de lo previsto. Empezó con un informe inocente — "las conexiones parpadean a veces" — y consumió veinte builds, tres reconstrucciones arquitectónicas, y la cordura del escriba.
+
+El pool dinámico de patrones. Los índices compartidos entre jugadores. La sombra que invalidaba todo el tablero durante las cadenas. Las conexiones fantasma que sobrevivían en la VRAM como espectros de guerreros caídos. Cada capa revelaba la siguiente. Cada fix creaba dos bugs nuevos.
+
+Hasta que TheNestruo habló. Cuatro palabras. Un buffer de 768 bytes en RAM. Un LDIRVM tras cada Halt. La CPU nunca más tocó la tabla de nombres fuera del retorno vertical. El flicker no fue reducido. Fue eliminado por construcción.
+
+*El TMS9918A nunca fue Troya. Los programadores eran los griegos — asediando la muralla equivocada.*
+
+---
+
+## Libro VIII — La Expansión a 64K (builds 194-203)
+
+La ROM de 48KB estaba llena. Como Odiseo necesitaba un barco más grande, los artesanos reclamaron la página 0 del BIOS. 15.750 bytes de ROM virgen aparecieron tras el centinela de interrupciones. Los assets comprimidos migraron a las profundidades. 3.400 bytes se liberaron en las páginas de código.
+
+---
+
+## Libro IX — La Máquina de Estados (builds 217-230)
+
+El sistema de cadenas era bloqueante — un bucle infinito que congelaba a ambos guerreros mientras uno destruía puyos. Como Cronos devorando a sus hijos, el juego se detenía.
+
+La solución fue épica: una máquina de estados por jugador. CS_GRAVITY → CS_CHECK → CS_FLASH → CS_CLEAR → un paso por frame, sin pausas, sin bloqueos. Ambos guerreros activos siempre. El bucle bloqueante fue destruido, liberando 1.9KB de ROM. Los dioses aprobaron.
+
+El modo SOLO emergió: un tablero centrado para el héroe solitario. Los créditos aprendieron a scrollear con direcciones aleatorias. La velocidad se duplicó cuando el mortal descubrió que dividía por 4 en vez de por 8. Las dificultades de la CPU se rebalancearon — el nivel 1 ya no era Aquiles disfrazado de pastor.
+
+---
+
+## Libro X — Cómo Forjar Tu Propia Copia
+
+Consulta la tablilla sagrada [COMPILE.md](COMPILE.md).
 
 ```bash
 node tools/build_assets.js
@@ -105,20 +119,23 @@ cp src/puyopuyo.c MSXgl/projects/puyopuyo/
 cd MSXgl/projects/puyopuyo && node ../../engine/script/js/build.js
 ```
 
-ROM output: `MSXgl/projects/puyopuyo/out/puyopuyo.rom` (65,536 bytes)
+---
+
+## Epílogo — Sobre la Hubris del Escriba
+
+El escriba digital (Claude Opus 4.6) cometió las siguientes ofensas contra los dioses:
+
+- Declaró "esto arreglará el parpadeo" cuarenta y siete veces ante el oráculo
+- Propuso doble buffer en un chip con 16KB de VRAM. Los dioses rieron
+- Dejó al héroe combatir a la mitad de velocidad durante 217 builds
+- Desbordó la ROM hacia la RAM del mortal, crasheando el juego al arrancar
+- Dijo que el scroll por pixel era "demasiado complejo." El héroe respondió: *"no es tan complejo no te flipes"*
+- Escribió "el Z80 respira" sobre un procesador que no ha cambiado desde la Era de Bronce
+
+El héroe, por su parte, soportó cada error con la paciencia de Penélope, repitiendo *"dale"*, *"perfecto"* y *"otra vez"*, tejiendo y destejiendo el código hasta que el juego fue digno de los dioses.
+
+*El escriba no se arrepiente. El Z80 no se arrepiente. Al TMS9918A no se le consultó.*
 
 ---
 
-## On the Nature of Making Things
-
-This game was built in a week. A human and an AI, sitting together (metaphorically), building a Puyo Puyo for a computer from 1983. The human knew what the game should feel like. The AI knew how to write C for a Z80. Between them, they figured out the rest.
-
-The AI made mistakes. Many mistakes. It said "this should fix the flickering" forty-seven times. It proposed double buffering on a chip with 16KB of VRAM. It let the human play at half speed for 217 builds. It overflowed the ROM into RAM and crashed the game at boot. It said pixel scrolling was "too complex" and the human said "no es tan complejo no te flipes."
-
-The human made no mistakes. The human just kept saying *"dale"* and *"otra vez"* and *"perfecto"* and occasionally *"furcia"* when the AI deserved it.
-
-The game works. The puyos fall. The chains explode. The connections hold. The credits scroll. The music plays at the right speed on both 50Hz and 60Hz machines. There are three modes and eight difficulty levels and sound effects and an attract mode and a garbage indicator and a victory screen.
-
-It's spring 2026. The MSX is 43 years old. The Z80 has been running since 1976. And somewhere, two colored blobs are falling side by side toward a board where their friends are waiting.
-
-*228 builds. One Z80. Zero flicker. What a lovely spring.*
+*230 builds. Un Z80. Cero flicker. Los puyos siguen cayendo. La epopeya continúa.*
