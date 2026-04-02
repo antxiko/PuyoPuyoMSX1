@@ -680,7 +680,8 @@ static void Game_DrawScore(Player* p) {
 }
 
 static void Game_DrawProducers(void) {
-    u8 x, y, bank;
+    u8 x, y;
+    u8 ox, oy;
 
     VDP_Setup();
 
@@ -690,48 +691,74 @@ static void Game_DrawProducers(void) {
     ZX0_UnpackToRAM((const void*)PROD_COL_ZX0_ABS, g_PT3Buffer);
     WriteBanks(g_ScreenColorLow, 512);
 
-    // "!" sprite pattern
-    { static const u8 excl[] = { 0x38, 0x38, 0x38, 0x38, 0x38, 0x00, 0x38, 0x00 };
-      VDP_WriteVRAM_16K(excl, g_SpritePatternLow, 8);
-    }
-
     // Fill screen black
     VDP_FillScreen_GM2(0);
     { u16 j; for (j = 0; j < 768; j++) g_NameBuffer[j] = 0; }
     g_NbDirtyCount = 0;
 
-    // Decompress map (18x2) and draw centered
+    // Decompress map (19x2)
     ZX0_UnpackToRAM((const void*)PROD_MAP_ZX0_ABS, g_PT3Buffer);
-    { u8 ox = 7, oy = 11;
-      for (y = 0; y < 2; y++)
-        for (x = 0; x < 18; x++)
-            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 18 + x]);
+    ox = (32 - 19) / 2;
+    oy = 11;
+
+    // Animation: reveal tiles left to right, column by column (skip last col = "!")
+    for (x = 0; x < 18; x++) {
+        for (y = 0; y < 2; y++)
+            VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 19 + x]);
+        Halt(); NB_Flush();
+        if (Keyboard_IsKeyPressed(KEY_SPACE) ||
+            JOY_GET_A(Joystick_Read(JOY_PORT_1))) break;
     }
 
-    // Flush map
+    // Load sprite patterns from page 0
+    VDP_WriteVRAM_16K((const void*)SPRITES_BIN_ABS, g_SpritePatternLow, 16);
+    VDP_SetSpriteFlag(VDP_SPRITE_SIZE_8);
+
+    // Wait 60 frames after logo reveal
+    WaitFrames(60);
+
+    // Sprite animation above tile (19,11)
+    { u8 sprX = 19 * 8;
+      u8 sprY = 11 * 8 - 9;
+
+      // Sprite 1 for 3 frames
+      VDP_SetSpriteSM1(0, sprX, sprY, 1, 15);
+      WaitFrames(3);
+
+      // Hide sprite 1, show sprite 0 for 3 frames
+      VDP_DisableSpritesFrom(0);
+      VDP_SetSpriteSM1(0, sprX, sprY, 0, 15);
+      WaitFrames(3);
+
+      // Hide sprite 0
+      VDP_DisableSpritesFrom(0);
+    }
+
+    // Wait 30 frames
+    WaitFrames(30);
+
+    // Show "!", replace I tiles, and show both sprites
+    VDP_Poke_GM2(ox + 18, oy, g_PT3Buffer[18]);
+    VDP_Poke_GM2(ox + 18, oy + 1, g_PT3Buffer[19 + 18]);
+    VDP_Poke_GM2(19, 11, 38);
+    VDP_Poke_GM2(19, 12, 37);
+    { u8 sprX = 19 * 8;
+      u8 sprY = 11 * 8 - 9;
+      VDP_SetSpriteSM1(0, sprX, sprY, 0, 15);
+      VDP_SetSpriteSM1(1, sprX, sprY, 1, 15);
+    }
     Halt(); NB_Flush();
 
-    // Animate "!" sprite from bottom up to map height
-    { u8 sprX = (7 + 18) * 8;  // right of map (pixel X)
-      u8 targetY = 11 * 8;      // map row (pixel Y)
-      u8 sprY = 192;            // start from bottom
-      VDP_SetSpriteFlag(VDP_SPRITE_SIZE_8);
-      while (sprY > targetY) {
-        sprY -= 2;
-        VDP_SetSpriteSM1(0, sprX, sprY, 0, COLOR_WHITE);
+    // Wait 60 frames then button or timeout
+    WaitFrames(60);
+    { u8 timer = 0;
+      while (timer < 180) {
         Halt();
+        timer++;
+        if (JOY_GET_A(Joystick_Read(JOY_PORT_1)) || JOY_GET_B(Joystick_Read(JOY_PORT_1)) ||
+            JOY_GET_A(Joystick_Read(JOY_PORT_2)) ||
+            Keyboard_IsKeyPressed(KEY_SPACE)) break;
       }
-    }
-
-    // Wait for button
-    {
-        u8 joy1;
-        while (1) {
-            Halt();
-            joy1 = Joystick_Read(JOY_PORT_1);
-            if (JOY_GET_A(joy1) || JOY_GET_B(joy1)) break;
-            if (Keyboard_IsKeyPressed(KEY_SPACE)) break;
-        }
     }
     WaitFrames(10);
 }
@@ -2161,8 +2188,9 @@ void main(void) {
 
                     // Any input resets idle timer
                     if (dir || JOY_GET_A(joy1) || JOY_GET_B(joy1) ||
-                        JOY_GET_A(joy2) || JOY_GET_B(joy2) ||
-                        Keyboard_IsKeyPressed(KEY_SPACE)) {
+                        JOY_GET_A(joy2) || JOY_GET_B(joy2) || JOY_GET_DIR(joy2) ||
+                        Keyboard_IsKeyPressed(KEY_SPACE) ||
+                        Keyboard_IsKeyPressed(KEY_Z) || Keyboard_IsKeyPressed(KEY_X)) {
                         idleTimer = 0;
                     } else {
                         idleTimer++;
