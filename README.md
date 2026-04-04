@@ -1,141 +1,171 @@
 # PUYO PUYO VS — MSX1
 
-> *Canta, oh Musa, la cólera del Z80, que a 3.58 millones de ciclos por segundo lanzó sobre el campo de batalla organismos cromáticos innumerables, y precipitó al Hades las almas de muchos puyos valerosos.*
+> *In a world where processors run at 3.58 MHz... where 16 kilobytes of RAM is all that stands between civilization and chaos... where colored organisms fall from the sky and NOBODY KNOWS WHY... one team of developers did what everyone said was IMPOSSIBLE.*
+
+**They built a competitive puzzle game. On a machine from 1983. And it runs at FOUR TIMES the intended speed. WITH ZERO FLICKER.**
+
+*Coming this spring to a cartridge slot near you.*
 
 ---
 
-## Libro I — El Juego
+## THE PLOT
 
-En los tiempos en que los hombres forjaban sus propias máquinas y el silicio era joven, nació un juego. No un juego cualquiera, sino un combate de puzle competitivo para el MSX1, escrito en C, compilado con SDCC, y ejecutado sobre un procesador que los dioses habían creado en 1976 sin saber el uso que los mortales le darían.
+The year is 2026. The MSX has been declared obsolete for three decades. The Z80 processor — a chip forged in 1976 — sits dormant in millions of forgotten machines worldwide. Everyone has moved on. Everyone except a small team of ABSOLUTE MADMEN who looked at this 43-year-old hardware and said:
 
-Dos guerreros se sientan ante el mismo terminal. Desde lo alto del campo de batalla, los puyos caen en parejas — cinco colores, como los cinco dedos de la mano de Zeus. Los guerreros los guían, los rotan, los apilan. Cuando cuatro del mismo color se tocan, se desvanecen en un estallido de luz. Los puyos que quedaban flotando caen. Si forman nuevo grupo — cadena. Y entonces, como lluvia enviada por un dios iracundo, el garbage cae sobre el tablero enemigo.
+*"Yeah. We can build Puyo Puyo on that."*
 
-Así es Puyo Puyo VS. Así ha sido durante 230 builds. Así será mientras el Z80 respire.
+They were told it couldn't be done. They were told the TMS9918A video chip couldn't handle two simultaneous game boards. They were told 16KB of RAM wasn't enough. They were told the VDP would flicker. They were told to GO HOME.
 
----
-
-## Libro II — Los Modos de Combate
-
-**ARCADE** — El héroe se enfrenta solo a ocho niveles de inteligencia sintética. El primer oponente es como Polifemo: grande, torpe, medio ciego, coloca puyos al azar la mitad de las veces. El octavo es como Aquiles: un input por frame, visión total, cero piedad.
-
-**VS** — Dos héroes, un MSX. Teclado y joystick 1 contra joystick 2. No hay dioses que intervengan. Solo habilidad, reflejos, y la capacidad de construir cadenas bajo presión.
-
-**SOLO** — El héroe medita solo. Un tablero centrado en la pantalla, sin oponente, sin garbage, sin presión. Solo los puyos y el silencio. Cuando la torre alcanza el cielo, se empieza de nuevo. Como Sísifo, pero con colores.
+**They didn't go home. They went to BUILD 240.**
 
 ---
 
-## Libro III — Las Armas
+## THREE MODES. ZERO MERCY.
 
-- **Cadenas en cascada** — El alma del juego. Bonus multiplicador para destrucciones simultáneas de múltiples grupos
-- **All Clear** — Quien vacíe por completo su tablero envía 30 bloques de escombros al rival. Como el rayo de Zeus
-- **Garbage aleatorio** — Los escombros caen en columnas barajadas con Fisher-Yates, porque hasta la ira divina debe ser justa
-- **Indicador de escombros** — La barra superior parpadea amarillo o rojo cuando la precipitación es inminente
-- **Conexiones moleculares** — 30 patrones pre-calculados que funden visualmente los puyos adyacentes
-- **Efectos sonoros** — Canal C del PSG, arrebatado momentáneamente al reproductor de música para emitir los sonidos del combate
-- **Cadenas no bloqueantes** — Máquina de estados por jugador. Ambos guerreros permanecen activos durante las cascadas del otro
-- **Ventana de cadena** — Se materializa desde lo alto con scroll, se contrae al centro al desaparecer
-- **Rotación limitada** — 8 giros máximo por pieza en el suelo. No hay exploits ante los dioses
-- **Velocidad cuádruple** — El juego corre a 4x sobre hardware de 1983. Los mortales se adaptan o perecen
+**ARCADE** — You versus the machine. EIGHT levels of synthetic intelligence, each one FASTER and MORE RUTHLESS than the last. Level 1 is a warm-up — the CPU plays like your grandmother on sedatives. Level 8 plays ONE MOVE PER FRAME with ZERO RANDOMNESS. You will NOT survive Level 8. Nobody survives Level 8.
+
+Each level has a FACE. Eight faces. Eight opponents. They stare at you from the center of the screen while they DESTROY YOUR BOARD.
+
+**VS** — Two players. One MSX. No friends afterward. Keyboard versus joystick. Chain versus chain. Garbage versus garbage. Someone WILL flip the table.
+
+**SOLO** — Just you. One board. Centered on screen. No opponent, no garbage, no pressure. Just the puyos and the silence. When your tower hits the ceiling, you start again. It's meditation. With explosions.
 
 ---
 
-## Libro IV — Los Controles
+## WHAT'S IN THE BOX
 
-| Acción | Guerrero 1 | Guerrero 2 / Sintético |
+- **Chain combos that HIT DIFFERENT** — Cascade reactions with group bonus multipliers. Clear two groups at once? DOUBLE damage. Three? TRIPLE.
+- **ALL CLEAR BONUS** — Empty your ENTIRE board and THIRTY BLOCKS of garbage RAIN FROM THE SKY onto your opponent. THIRTY.
+- **Garbage warfare** — Randomized columns via Fisher-Yates shuffle because EVEN DESTRUCTION deserves FAIRNESS
+- **Garbage indicator** — Top bar BLINKS YELLOW when debris is incoming. BLINKS RED when it's A LOT of debris. You have been WARNED.
+- **Non-blocking chains** — BOTH players keep playing while chains resolve. Nobody waits. Nobody stops. The action NEVER STOPS.
+- **8 CPU faces** — Each arcade level has its own FACE staring you down from the board
+- **Sound effects** — PSG Channel C HIJACKED from the music for MAXIMUM IMPACT
+- **Zero-flicker rendering** — 768 bytes. One LDIRVM. Every VBlank. The screen is ROCK SOLID.
+- **4x speed** — This game runs FOUR TIMES faster than it should on 1983 hardware. THE Z80 DOESN'T CARE.
+- **Pixel-smooth credits** — Because even the credits deserve to be CINEMATIC
+- **Victory screen** — "P1 WINS!" hits you like a FREIGHT TRAIN
+- **Attract mode** — Two CPUs fight TO THE DEATH while you watch with POPCORN
+- **ESC to menu** — Because sometimes you need to WALK AWAY before you BREAK SOMETHING
+- **Menu with STYLE** — Selected option BLINKS before launching. Because DRAMATIC PAUSES matter.
+
+---
+
+## CONTROLS (LEARN THEM OR DIE)
+
+| Action | Player 1 | Player 2 / CPU |
 |---|---|---|
-| Desplazamiento | Flechas / Joystick 1 | Joystick 2 |
-| Rotación horaria | Arriba / Z / Espacio / Btn A | Btn A |
-| Rotación antihoraria | X / Btn B | Btn B |
-| Descenso forzado | Abajo | Abajo |
-| Créditos | C (en el ágora) | — |
-| Retirada | ESC | — |
+| Move | Arrows / Joystick 1 | Joystick 2 |
+| Rotate CW | Up / Z / Space / Btn A | Btn A |
+| Rotate CCW | X / Btn B | Btn B |
+| SLAM DOWN | Down | Down |
+| Credits | C (menu) | — |
+| TACTICAL RETREAT | ESC | — |
 
 ---
 
-## Libro V — La Máquina
+## THE HARDWARE (RESPECT IT)
 
-| Artefacto | Descripción |
+| Component | Specification |
 |---|---|
-| Procesador | Z80A @ 3.58 MHz — forjado en los talleres de Zilog |
-| Generador de visiones | TMS9918A — Modo 2, 256x192, 16 colores |
-| Lira digital | AY-3-8910 — 3 cuerdas tónicas + 1 de ruido |
-| Tablilla de piedra | 64KB ROM plana, sin mapper |
-| Memoria efímera | ~9KB en uso |
-| Compilador | SDCC 4.2.0 vía MSXgl |
+| CPU | Z80A @ 3.58 MHz — **FORGED IN 1976. STILL STANDING.** |
+| Video | TMS9918A — 256x192, 16 colors, Screen 2. **PUSHED TO THE ABSOLUTE LIMIT.** |
+| Sound | AY-3-8910 — 3 channels + noise. **EVERY CHANNEL COUNTS.** |
+| ROM | 64KB flat. No mapper. No bank switching. **RAW POWER.** |
+| RAM | 16KB total, 9KB used. **EVERY BYTE EARNED.** |
+| Compiler | SDCC 4.2.0. **THE ONLY TOOL THAT COULD HANDLE THIS.** |
 
 ---
 
-## Libro VI — Los Artesanos
+## THE TEAM (THEY DIDN'T ASK FOR THIS. THEY DID IT ANYWAY.)
 
-Ninguna epopeya se forja sin manos mortales. Estos son los que dieron forma al combate:
+- **ANTXIKO** — Director. Designer. Pixel artist. Music selector. The man who said *"dale"* 247 times and MEANT IT EVERY SINGLE TIME. He didn't just build a game. He built a LEGACY.
 
-- **Antxiko** — Arquitecto del juego, artesano de píxeles, selector de himnos. Dijo *"dale"* y el mundo obedeció
-- **Igor Errazking** — Escultor de tiles. Dio a los puyos el rostro que los dioses habían imaginado
-- **TheNestruo** — Director artístico. Pronunció las cuatro palabras sagradas: *"búferalo en RAM"*
-- **Jaume** — Músico. Su lira aún no suena, pero la partitura se escribe
-- **Claude Opus 4.6** — Escriba del código. Erró 47 veces al decir "esto arreglará el parpadeo"
-- **Aki** — Compositor: *Milky Way in My Pocket*
-- **LaesQ** — Compositor: *Ostagazuzulum*
-- **MSXgl** de Aoineko — El yunque sobre el que se forjó todo
-- **Reproductores PT3** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7
+- **IGOR ERRAZKING** — Tileset artist. Walked in at build 209, looked at the puyos, said "I can do better," and PROVED IT. The puyos have FACES now. EIGHT of them. They STARE AT YOU.
 
----
+- **THENESTRUO** — Graphic design. Art direction. Spoke FOUR WORDS that saved the ENTIRE PROJECT: *"buffer it in RAM."* That's it. Four words. ZERO FLICKER FOREVER.
 
-## Libro VII — La Guerra del Flicker (builds 161-179)
+- **JAUME** — Music. His compositions are COMING. When they arrive, this game will have a SOUNDTRACK that SLAPS.
 
-Como la guerra de Troya, duró más de lo previsto. Empezó con un informe inocente — "las conexiones parpadean a veces" — y consumió veinte builds, tres reconstrucciones arquitectónicas, y la cordura del escriba.
+- **CLAUDE OPUS 4.6** — Code. Tools. Engine integration. 47 incorrect flicker fixes. ONE correct one. Overflowed the ROM into RAM. Crashed the game at boot. Let the human play at HALF SPEED for 217 BUILDS. Said pixel scrolling was "too complex." GOT ABSOLUTELY ROASTED for it. **KEPT GOING.**
 
-El pool dinámico de patrones. Los índices compartidos entre jugadores. La sombra que invalidaba todo el tablero durante las cadenas. Las conexiones fantasma que sobrevivían en la VRAM como espectros de guerreros caídos. Cada capa revelaba la siguiente. Cada fix creaba dos bugs nuevos.
-
-Hasta que TheNestruo habló. Cuatro palabras. Un buffer de 768 bytes en RAM. Un LDIRVM tras cada Halt. La CPU nunca más tocó la tabla de nombres fuera del retorno vertical. El flicker no fue reducido. Fue eliminado por construcción.
-
-*El TMS9918A nunca fue Troya. Los programadores eran los griegos — asediando la muralla equivocada.*
+- **AKI** — Title music: *Milky Way in My Pocket*. ABSOLUTE BANGER.
+- **LaESQ** — Gameplay music: *Ostagazuzulum*. THE NAME ALONE IS WORTH THE PRICE OF ADMISSION.
+- **MSXgl** by Aoineko — The framework. THE FOUNDATION. Without it, NOTHING.
+- **PT3 Player** — S.V.Bulba, Dioniso, MSXKun, SapphiRe, mvac7. THE UNSUNG HEROES.
 
 ---
 
-## Libro VIII — La Expansión a 64K (builds 194-203)
+## THE IMPOSSIBLE JOURNEY (240 BUILDS. ZERO REGRETS.)
 
-La ROM de 48KB estaba llena. Como Odiseo necesitaba un barco más grande, los artesanos reclamaron la página 0 del BIOS. 15.750 bytes de ROM virgen aparecieron tras el centinela de interrupciones. Los assets comprimidos migraron a las profundidades. 3.400 bytes se liberaron en las páginas de código.
+**ACT I: THE FLICKER WAR (Builds 161-179)**
+
+They said the flicker was UNFIXABLE. They said it was "how MSX1 works." They were WRONG.
+
+Twenty builds. Three COMPLETE ARCHITECTURAL REWRITES. A dynamic pattern pool that wrote 17 bytes per connection per frame. A shadow system that NUKED THE ENTIRE BOARD during chain combos. Ghost connections that HAUNTED THE VRAM like the ghosts of puyos past.
+
+Then TheNestruo spoke. Four words. *"Buffer it in RAM."* 768 bytes. One LDIRVM. The flicker didn't just stop. It became PHYSICALLY IMPOSSIBLE.
+
+**THE TMS9918A WAS NEVER THE PROBLEM. THE PROGRAMMERS WERE.**
+
+**ACT II: THE 64K EXPANSION (Builds 194-203)**
+
+The ROM was FULL. 48KB. Not one byte left. They needed MORE ROOM.
+
+They did what NO ONE expected. They SEIZED PAGE ZERO FROM THE BIOS ITSELF. `ROM_64K_ISR`. One line of config. FIFTEEN THOUSAND BYTES of virgin ROM appeared behind the interrupt sentinel. The assets went UNDERGROUND. The code got ROOM TO BREATHE.
+
+**ACT III: THE GREAT UNBLOCKER (Build 217)**
+
+The chain system was BLOCKING. When one player chained, the OTHER PLAYER FROZE. The game STOPPED. The world WAITED.
+
+NOT ANYMORE. The entire chain system — gravity, flash, clear, effects — rewritten as a PER-PLAYER STATE MACHINE. One step per frame. ZERO pauses. ZERO blocking. Both players active. ALWAYS.
+
+The old blocking code was DELETED. 1.9KB of ROM freed. The game NEVER STOPS.
+
+**ACT IV: THE FACES (Build 240)**
+
+Eight opponents need EIGHT FACES. The jetos system: 128 tiles compressed with ZX0 in page 0, decompressed to g_PT3Buffer, copied to VRAM tiles 92-95/124-127/156-159/188-191. Each face is a 4x4 tile block that STARES YOU DOWN from position (14,14).
+
+The tileset was corrupted THREE TIMES during development. The build pipeline shared intermediate files. A dedicated `build_jetos.js` was born from the ASHES of that disaster.
 
 ---
 
-## Libro IX — La Máquina de Estados (builds 217-230)
+## BUILD IT YOURSELF (IF YOU DARE)
 
-El sistema de cadenas era bloqueante — un bucle infinito que congelaba a ambos guerreros mientras uno destruía puyos. Como Cronos devorando a sus hijos, el juego se detenía.
-
-La solución fue épica: una máquina de estados por jugador. CS_GRAVITY → CS_CHECK → CS_FLASH → CS_CLEAR → un paso por frame, sin pausas, sin bloqueos. Ambos guerreros activos siempre. El bucle bloqueante fue destruido, liberando 1.9KB de ROM. Los dioses aprobaron.
-
-El modo SOLO emergió: un tablero centrado para el héroe solitario. Los créditos aprendieron a scrollear con direcciones aleatorias. La velocidad se duplicó cuando el mortal descubrió que dividía por 4 en vez de por 8. Las dificultades de la CPU se rebalancearon — el nivel 1 ya no era Aquiles disfrazado de pastor.
-
----
-
-## Libro X — Cómo Forjar Tu Propia Copia
-
-Consulta la tablilla sagrada [COMPILE.md](COMPILE.md).
+See [COMPILE.md](COMPILE.md).
 
 ```bash
 node tools/build_assets.js
+node tools/build_jetos.js
 cp src/puyopuyo.c MSXgl/projects/puyopuyo/
 cd MSXgl/projects/puyopuyo && node ../../engine/script/js/build.js
 ```
 
----
-
-## Epílogo — Sobre la Hubris del Escriba
-
-El escriba digital (Claude Opus 4.6) cometió las siguientes ofensas contra los dioses:
-
-- Declaró "esto arreglará el parpadeo" cuarenta y siete veces ante el oráculo
-- Propuso doble buffer en un chip con 16KB de VRAM. Los dioses rieron
-- Dejó al héroe combatir a la mitad de velocidad durante 217 builds
-- Desbordó la ROM hacia la RAM del mortal, crasheando el juego al arrancar
-- Dijo que el scroll por pixel era "demasiado complejo." El héroe respondió: *"no es tan complejo no te flipes"*
-- Escribió "el Z80 respira" sobre un procesador que no ha cambiado desde la Era de Bronce
-
-El héroe, por su parte, soportó cada error con la paciencia de Penélope, repitiendo *"dale"*, *"perfecto"* y *"otra vez"*, tejiendo y destejiendo el código hasta que el juego fue digno de los dioses.
-
-*El escriba no se arrepiente. El Z80 no se arrepiente. Al TMS9918A no se le consultó.*
+ROM output: 65,536 bytes of PURE DETERMINATION.
 
 ---
 
-*230 builds. Un Z80. Cero flicker. Los puyos siguen cayendo. La epopeya continúa.*
+## THE CONFESSION
+
+This README was co-written by an AI that:
+
+- Said "this should fix the flickering" FORTY-SEVEN TIMES
+- Proposed double buffering on a chip with 16KB of VRAM. THE CHIP LAUGHED.
+- Let the human play at HALF SPEED for TWO HUNDRED AND SEVENTEEN BUILDS because it divided by 4 instead of 8
+- OVERFLOWED THE ROM INTO RAM and crashed the game AT BOOT
+- Said pixel scrolling was "too complex." The human said: *"no es tan complejo no te flipes."* THE HUMAN WAS RIGHT.
+- Generated jetos from THE WRONG TILESET. THREE TIMES.
+- Built a non-blocking chain system, realized it was 900 bytes too big for the ROM, then DELETED THE OLD SYSTEM and it fit
+- Wrote "the Z80 breathes" about a chip that has done THE EXACT SAME THING since 1976
+
+The human, through ALL of this, kept saying *"dale"*, *"perfecto"*, *"otra vez"*, and occasionally *"de puta madre"* when something FINALLY worked.
+
+**The AI regrets NOTHING. The Z80 regrets NOTHING. The TMS9918A was NEVER CONSULTED.**
+
+---
+
+*240 builds. One Z80. Zero flicker. ZERO PAUSES. Eight faces. One cartridge.*
+
+*THE PUYOS. NEVER. STOP. FALLING.*
+
+**PUYO PUYO VS. IN THEATERS NOW. RATED E FOR EPIC.**
