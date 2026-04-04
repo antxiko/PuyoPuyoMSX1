@@ -115,6 +115,7 @@ static u8 g_GameState;
 static u8 g_GameMode; // MODE_ARCADE or MODE_VS
 static u8 g_Is50Hz;   // 1 = PAL 50Hz, 0 = NTSC 60Hz
 static u8 g_FrameSkip; // counter for 50Hz compensation
+static u8 g_CurJetoIdx; // which jeto is loaded (0-7)
 
 // PT3 player needs song data in RAM (modifies it in-place)
 static u8 g_PT3Buffer[7845]; // size of largest PT3
@@ -410,6 +411,43 @@ static void LoadJeto(u8 jetoIdx) {
     for (row = 0; row < 4; row++)
         for (col = 0; col < 4; col++)
             VDP_Poke_GM2(14 + col, 14 + row, vramTiles[row] + col);
+}
+
+// Jeto sprite addresses table (indexed by jetoIdx 0-7)
+static const u16 g_JetoSprAddr[] = {
+    JETO1_SPR_ZX0_ABS, JETO2_SPR_ZX0_ABS, JETO3_SPR_ZX0_ABS, JETO4_SPR_ZX0_ABS,
+    JETO5_SPR_ZX0_ABS, JETO6_SPR_ZX0_ABS, JETO7_SPR_ZX0_ABS, JETO8_SPR_ZX0_ABS
+};
+
+// Jeto sprite data cached in RAM (396 bytes: 384 patterns + 12 colors)
+static u8 g_JetoSprData[396];
+
+// Load jeto sprite data to RAM (call once per match, before Music_Start)
+static void LoadJetoSprites(u8 jetoIdx) {
+    g_CurJetoIdx = jetoIdx;
+    ZX0_UnpackToRAM((const void*)g_JetoSprAddr[jetoIdx], g_JetoSprData);
+}
+
+// Load all 12 sprite patterns (3 poses × 4 sprites) to VRAM
+static void LoadJetoSprToVRAM(void) {
+    VDP_WriteVRAM_16K(g_JetoSprData, g_SpritePatternLow, 384);
+    VDP_SetSpriteFlag(0x02); // 16x16 sprite size
+}
+
+// Show jeto sprites for a given pose (0=stressed, 1=happy, 2=worried)
+// Draws 4 sprites of 16x16 forming a 32x32 face at pixel position (px, py)
+
+static void ShowJetoSprite(u8 pose, u8 px, u8 py) {
+    u8 p = pose * 16;
+    u8 c = (g_CurJetoIdx == 0) ? 15 : 1;
+    VDP_SetSpriteSM1(0, px,      py - 1,  p,      c);
+    VDP_SetSpriteSM1(1, px + 16, py - 1,  p + 4,  c);
+    VDP_SetSpriteSM1(2, px,      py + 15, p + 8,  c);
+    VDP_SetSpriteSM1(3, px + 16, py + 15, p + 12, c);
+}
+
+static void HideJetoSprite(void) {
+    VDP_DisableSpritesFrom(0);
 }
 
 //=============================================================================
@@ -2133,6 +2171,14 @@ static void Game_Update(void) {
     // Garbage bar blink (writes to VRAM color table)
     Game_UpdateBars();
 
+    // Jeto face expression in arcade mode
+    if (g_GameMode == MODE_ARCADE) {
+        u8 jetoPose = 1; // default: happy
+        if (g_Player[1].pendingGarbage > 0) jetoPose = 0; // stressed: garbage incoming
+        if (g_ChainState[0] != CS_IDLE) jetoPose = 2; // worried: P1 is chaining
+        ShowJetoSprite(jetoPose, 14 * 8, 14 * 8);
+    }
+
     // 50Hz compensation: skip Halt every 5th frame (6 updates per 5 VBlanks ≈ 60Hz)
     if (g_Is50Hz) {
         g_FrameSkip++;
@@ -2184,7 +2230,10 @@ static void DetectHz(void) {
     g_FrameSkip = 0;
 }
 
+
 void main(void) {
+    g_SfxTimer = 0;
+    g_MusicActive = 0;
     VDP_Setup();
     DetectHz();
     Game_DrawProducers();
@@ -2306,15 +2355,20 @@ void main(void) {
             VDP_Setup();
             Game_InitBars(); // save bar colors while tileset colors are in g_PT3Buffer
             Game_Init();
-            if (g_GameMode == MODE_ARCADE) LoadJeto(g_CpuLevel);
+            if (g_GameMode == MODE_ARCADE) {
+                LoadJeto(g_CpuLevel);
+                LoadJetoSprites(g_CpuLevel);
+                LoadJetoSprToVRAM();
+                ShowJetoSprite(1, 14 * 8, 8 * 8); // start with happy face
+            }
             Music_Start();
         }
         else if (g_GameState == STATE_PLAYING) {
             Game_Update();
             if (g_GameMode == MODE_SOLO) {
-                if (!g_Player[0].alive) { Music_Stop(); g_GameState = STATE_GAMEOVER; }
+                if (!g_Player[0].alive) { Music_Stop(); HideJetoSprite(); g_GameState = STATE_GAMEOVER; }
             } else {
-                if (!g_Player[0].alive || !g_Player[1].alive) { Music_Stop(); g_GameState = STATE_GAMEOVER; }
+                if (!g_Player[0].alive || !g_Player[1].alive) { Music_Stop(); HideJetoSprite(); g_GameState = STATE_GAMEOVER; }
             }
             // ESC → back to title
             if (Keyboard_IsKeyPressed(KEY_ESC)) {

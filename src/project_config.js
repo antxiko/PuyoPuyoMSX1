@@ -40,6 +40,14 @@ RawFiles = [
     { page: 0, file: "out/jetos_pat.zx0" },
     { page: 0, file: "out/jetos_col.zx0" },
     { page: 0, file: "out/jetos_map.bin" },
+    { page: 0, file: "out/jeto1_spr.zx0" },
+    { page: 0, file: "out/jeto2_spr.zx0" },
+    { page: 0, file: "out/jeto3_spr.zx0" },
+    { page: 0, file: "out/jeto4_spr.zx0" },
+    { page: 0, file: "out/jeto5_spr.zx0" },
+    { page: 0, file: "out/jeto6_spr.zx0" },
+    { page: 0, file: "out/jeto7_spr.zx0" },
+    { page: 0, file: "out/jeto8_spr.zx0" },
 ];
 
 
