@@ -37,6 +37,9 @@ RawFiles = [
     { page: 0, file: "out/prod_map.zx0" },
     { page: 0, file: "out/screen_solo.zx0" },
     { page: 0, file: "out/sprites.bin" },
+    { page: 0, file: "out/jetos_pat.zx0" },
+    { page: 0, file: "out/jetos_col.zx0" },
+    { page: 0, file: "out/jetos_map.bin" },
 ];
 
 

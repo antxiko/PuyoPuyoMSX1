@@ -382,6 +382,36 @@ static void VDP_Setup(void) {
     } \
 } while(0)
 
+// Load a 4x4 jeto face into VRAM tiles 92-95, 124-127, 156-159, 188-191
+// Uses g_PT3Buffer as temporary (overwritten by Music_Start later)
+static void LoadJeto(u8 jetoIdx) {
+    static const u8 vramTiles[] = {92, 124, 156, 188};
+    const u8* map = (const u8*)JETOS_MAP_BIN_ABS;
+    u8 row, col, bank;
+
+    ZX0_UnpackToRAM((const void*)JETOS_PAT_ZX0_ABS, g_PT3Buffer);
+    for (row = 0; row < 4; row++)
+        for (col = 0; col < 4; col++) {
+            u8 srcTile = map[row * 32 + jetoIdx * 4 + col];
+            u16 srcOff = (u16)srcTile * 8;
+            for (bank = 0; bank < 3; bank++)
+                VDP_WriteVRAM_16K(g_PT3Buffer + srcOff, g_ScreenPatternLow + (u16)bank * 0x800 + (u16)(vramTiles[row] + col) * 8, 8);
+        }
+
+    ZX0_UnpackToRAM((const void*)JETOS_COL_ZX0_ABS, g_PT3Buffer);
+    for (row = 0; row < 4; row++)
+        for (col = 0; col < 4; col++) {
+            u8 srcTile = map[row * 32 + jetoIdx * 4 + col];
+            u16 srcOff = (u16)srcTile * 8;
+            for (bank = 0; bank < 3; bank++)
+                VDP_WriteVRAM_16K(g_PT3Buffer + srcOff, g_ScreenColorLow + (u16)bank * 0x800 + (u16)(vramTiles[row] + col) * 8, 8);
+        }
+
+    for (row = 0; row < 4; row++)
+        for (col = 0; col < 4; col++)
+            VDP_Poke_GM2(14 + col, 14 + row, vramTiles[row] + col);
+}
+
 //=============================================================================
 // DRAW FUNCTIONS - 16x16 puyos (2x2 tiles each)
 //=============================================================================
@@ -598,7 +628,8 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
         }
     }
 
-    // Next piece preview
+    // Next piece preview (skip for P2 in arcade — jeto shown instead)
+    if (g_GameMode == MODE_ARCADE && playerIdx == 1) goto skip_next;
     {
         u8 nx, ny;
         if (g_GameMode == MODE_SOLO) { nx = 24; ny = 5; }
@@ -612,6 +643,7 @@ static void Game_DrawBoard(Player* p, u8 playerIdx) {
             DrawPuyo16(nx, ny + 2, p->nextColor1);
         }
     }
+    skip_next:
 }
 
 // Draw a puyo with connection patterns based on neighbors
@@ -701,14 +733,11 @@ static void Game_DrawProducers(void) {
     ox = (32 - 19) / 2;
     oy = 11;
 
-    // Animation: reveal tiles left to right, column by column (skip last col = "!")
-    for (x = 0; x < 18; x++) {
+    // Show logo all at once (skip last col = "!")
+    for (x = 0; x < 18; x++)
         for (y = 0; y < 2; y++)
             VDP_Poke_GM2(ox + x, oy + y, g_PT3Buffer[y * 19 + x]);
-        Halt(); NB_Flush();
-        if (Keyboard_IsKeyPressed(KEY_SPACE) ||
-            JOY_GET_A(Joystick_Read(JOY_PORT_1))) break;
-    }
+    Halt(); NB_Flush();
 
     // Load sprite patterns from page 0
     VDP_WriteVRAM_16K((const void*)SPRITES_BIN_ABS, g_SpritePatternLow, 16);
@@ -721,16 +750,17 @@ static void Game_DrawProducers(void) {
     { u8 sprX = 19 * 8;
       u8 sprY = 11 * 8 - 9;
 
-      // Sprite 1 for 3 frames
+      // Sprite 1-0-1-0 alternation
       VDP_SetSpriteSM1(0, sprX, sprY, 1, 15);
       WaitFrames(3);
-
-      // Hide sprite 1, show sprite 0 for 3 frames
-      VDP_DisableSpritesFrom(0);
+      VDP_SetSpriteSM1(0, sprX, sprY, 0, 15);
+      WaitFrames(3);
+      VDP_SetSpriteSM1(0, sprX, sprY, 1, 15);
+      WaitFrames(3);
       VDP_SetSpriteSM1(0, sprX, sprY, 0, 15);
       WaitFrames(3);
 
-      // Hide sprite 0
+      // Hide
       VDP_DisableSpritesFrom(0);
     }
 
@@ -2276,6 +2306,7 @@ void main(void) {
             VDP_Setup();
             Game_InitBars(); // save bar colors while tileset colors are in g_PT3Buffer
             Game_Init();
+            if (g_GameMode == MODE_ARCADE) LoadJeto(g_CpuLevel);
             Music_Start();
         }
         else if (g_GameState == STATE_PLAYING) {
