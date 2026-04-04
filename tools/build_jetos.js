@@ -9,8 +9,8 @@ const { execSync } = require('child_process');
 const baseDir = path.resolve(__dirname, '..');
 const zx0Path = path.join(baseDir, 'MSXgl/tools/compress/ZX0/zx0.exe');
 const outDir = path.join(baseDir, 'MSXgl/projects/puyopuyo/out');
-const jetosImg = path.join(baseDir, 'assets/jetos.png');
-const jetosJson = path.join(baseDir, 'assets/jetos.json');
+const jetosImg = path.join(baseDir, 'assets/jetos/jetos.png');
+const jetosJson = path.join(baseDir, 'assets/jetos/jetos.json');
 
 // Read PNG via PHP
 const phpScript = `$im = imagecreatefrompng("${jetosImg.replace(/\\/g, '/')}"); $w = imagesx($im); $h = imagesy($im); echo $w . " " . $h . "\\n"; for ($y = 0; $y < $h; $y++) { for ($x = 0; $x < $w; $x++) { $c = imagecolorat($im, $x, $y); echo (($c >> 16) & 0xFF) . "," . (($c >> 8) & 0xFF) . "," . ($c & 0xFF) . ","; } echo "\\n"; }`;

@@ -88,7 +88,7 @@ function findSpriteColor(pixels, imgW, sx, sy, bgColor) {
 console.log('=== Building jeto sprites ===\n');
 
 for (let j = 1; j <= 8; j++) {
-    const file = path.join(baseDir, `assets/jeto${j}.png`);
+    const file = path.join(baseDir, `assets/jetos/jeto${j}.png`);
     if (!fs.existsSync(file)) { console.log(`jeto${j}.png not found, skipping`); continue; }
 
     const img = readPng(file);
