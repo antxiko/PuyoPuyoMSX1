@@ -24,7 +24,7 @@ They were told it couldn't be done. They were told the TMS9918A video chip could
 
 **ARCADE** — You versus the machine. EIGHT levels of synthetic intelligence, each one FASTER and MORE RUTHLESS than the last. Level 1 is a warm-up — the CPU plays like your grandmother on sedatives. Level 8 plays ONE MOVE PER FRAME with ZERO RANDOMNESS. You will NOT survive Level 8. Nobody survives Level 8.
 
-Each level has a FACE. Eight faces. Eight opponents. They stare at you from the center of the screen while they DESTROY YOUR BOARD.
+Each level has a FACE. Eight faces. Eight opponents. They stare at you from the center of the screen while they DESTROY YOUR BOARD. They SMILE when they're winning. They look WORRIED when you chain. They look STRESSED when garbage is about to RAIN ON THEIR HEAD. They have EMOTIONS. On a MACHINE FROM 1983.
 
 **VS** — Two players. One MSX. No friends afterward. Keyboard versus joystick. Chain versus chain. Garbage versus garbage. Someone WILL flip the table.
 
@@ -39,7 +39,7 @@ Each level has a FACE. Eight faces. Eight opponents. They stare at you from the 
 - **Garbage warfare** — Randomized columns via Fisher-Yates shuffle because EVEN DESTRUCTION deserves FAIRNESS
 - **Garbage indicator** — Top bar BLINKS YELLOW when debris is incoming. BLINKS RED when it's A LOT of debris. You have been WARNED.
 - **Non-blocking chains** — BOTH players keep playing while chains resolve. Nobody waits. Nobody stops. The action NEVER STOPS.
-- **8 CPU faces** — Each arcade level has its own FACE staring you down from the board
+- **8 CPU faces with 3 EXPRESSIONS** — Each arcade opponent has a 32x32 sprite face with stressed/happy/worried states that react to gameplay IN REAL TIME
 - **Sound effects** — PSG Channel C HIJACKED from the music for MAXIMUM IMPACT
 - **Zero-flicker rendering** — 768 bytes. One LDIRVM. Every VBlank. The screen is ROCK SOLID.
 - **4x speed** — This game runs FOUR TIMES faster than it should on 1983 hardware. THE Z80 DOESN'T CARE.
@@ -128,6 +128,12 @@ Eight opponents need EIGHT FACES. The jetos system: 128 tiles compressed with ZX
 
 The tileset was corrupted THREE TIMES during development. The build pipeline shared intermediate files. A dedicated `build_jetos.js` was born from the ASHES of that disaster.
 
+But tiles weren't enough. The faces needed EXPRESSIONS. Three emotional states per opponent — stressed, happy, worried — rendered as FOUR 16x16 SPRITES forming a 32x32 composite face. That's 12 sprite patterns per jeto, 8 jetos, compressed individually with ZX0, decompressed to RAM, loaded to VRAM, and updated EVERY FRAME based on gameplay state. The CPU smiles when it's winning. It looks WORRIED when you chain. It looks STRESSED when garbage is about to fall.
+
+The sprite colors refused to work for FIVE BUILDS because SDCC silently compiled a variable that was declared AFTER its first use, pointing to garbage memory. Color 0 = transparent. Every sprite was INVISIBLE. The fix: move ONE LINE to the top of the file.
+
+**FIVE. BUILDS. ONE. LINE.**
+
 ---
 
 ## BUILD IT YOURSELF (IF YOU DARE)
@@ -137,6 +143,7 @@ See [COMPILE.md](COMPILE.md).
 ```bash
 node tools/build_assets.js
 node tools/build_jetos.js
+node tools/build_jeto_sprites.js
 cp src/puyopuyo.c MSXgl/projects/puyopuyo/
 cd MSXgl/projects/puyopuyo && node ../../engine/script/js/build.js
 ```
@@ -155,6 +162,8 @@ This README was co-written by an AI that:
 - OVERFLOWED THE ROM INTO RAM and crashed the game AT BOOT
 - Said pixel scrolling was "too complex." The human said: *"no es tan complejo no te flipes."* THE HUMAN WAS RIGHT.
 - Generated jetos from THE WRONG TILESET. THREE TIMES.
+- Made sprite colors INVISIBLE for five builds because it declared a variable AFTER using it. ONE LINE. FIVE BUILDS.
+- Said "¿Se ven los sprites?" approximately FORTY SEVEN TIMES while the sprites were TRANSPARENTLY INVISIBLE
 - Built a non-blocking chain system, realized it was 900 bytes too big for the ROM, then DELETED THE OLD SYSTEM and it fit
 - Wrote "the Z80 breathes" about a chip that has done THE EXACT SAME THING since 1976
 
@@ -164,7 +173,7 @@ The human, through ALL of this, kept saying *"dale"*, *"perfecto"*, *"otra vez"*
 
 ---
 
-*240 builds. One Z80. Zero flicker. ZERO PAUSES. Eight faces. One cartridge.*
+*242 builds. One Z80. Zero flicker. ZERO PAUSES. Eight faces. THREE EXPRESSIONS. One cartridge.*
 
 *THE PUYOS. NEVER. STOP. FALLING.*
 
